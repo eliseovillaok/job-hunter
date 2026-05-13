@@ -2,3 +2,4 @@ venv/
 .codex
 .codex/
 results/
+__pycache__/
