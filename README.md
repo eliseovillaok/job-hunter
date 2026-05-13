@@ -1,119 +1,181 @@
-# 🎯 Job Hunter — Automatización de Búsqueda Laboral
+# Job Hunter
 
-Sistema automatizado que encuentra ofertas de trabajo en múltiples plataformas,
-las evalúa con IA y genera cover letters personalizadas.
+Automatiza la búsqueda de ofertas remotas, las evalúa con Google Gemini, genera cover letters para los mejores matches y opcionalmente envía un digest por email.
 
-## 📦 Instalación
+## Qué hace
+
+El flujo real de la aplicación es:
+
+1. Hace scraping de ofertas desde:
+   - Remotive
+   - Arbeitnow
+   - We Work Remotely
+   - Himalayas
+2. Deduplica resultados.
+3. Evalúa cada oferta con Gemini.
+4. Genera cover letters solo para las ofertas que superan el umbral `MIN_MATCH_SCORE`.
+5. Muestra un resumen en consola.
+6. Guarda un archivo JSON en `results/`.
+7. Si no se usa `--dry-run` ni `--no-email`, envía un email HTML con los matches.
+
+## Requisitos
+
+- Python 3.12 o compatible con las dependencias instaladas
+- Una API key de Google Gemini
+- Una cuenta de email SMTP compatible con la configuración actual
+
+## Instalación
 
 ```bash
-# 1. Clonar / descomprimir el proyecto
 cd job_hunter
-
-# 2. Crear entorno virtual (recomendado)
 python -m venv venv
-source venv/bin/activate        # Linux/Mac
-# venv\Scripts\activate         # Windows
-
-# 3. Instalar dependencias
+source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-## ⚙️ Configuración
+En Windows:
 
-Editá `config.py` con tus datos, o definí variables de entorno:
+```powershell
+python -m venv venv
+venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+## Configuración
+
+La app toma configuración desde variables de entorno, con fallback a los valores de `config.py`.
+
+Variables relevantes:
 
 ```bash
-export ANTHROPIC_API_KEY="sk-ant-TU_CLAVE"
+export GEMINI_API_KEY="TU_API_KEY_DE_GEMINI"
 export EMAIL_SENDER="tu_email@gmail.com"
-export EMAIL_PASSWORD="tu_app_password_gmail"   # NO la contraseña normal
+export EMAIL_PASSWORD="tu_app_password"
 export EMAIL_RECIPIENT="tu_email@gmail.com"
 ```
 
-### Obtener Gmail App Password
-1. Gmail → Configuración → Seguridad → Verificación en 2 pasos (activar)
-2. Buscar "Contraseñas de aplicaciones"
-3. Generar una para "Correo / Otro dispositivo"
-4. Usar esa contraseña de 16 dígitos en EMAIL_PASSWORD
+La variable correcta para la IA es `GEMINI_API_KEY`.
+La aplicación no usa `ANTHROPIC_API_KEY`.
 
-## 🚀 Uso
+### Qué hay en `config.py`
+
+En [config.py](/home/user/proyectos/job_hunter/config.py:1) puedes ajustar:
+
+- `SEARCH_KEYWORDS`: keywords de búsqueda
+- `ONLY_REMOTE`: filtra solo remoto
+- `MIN_MATCH_SCORE`: umbral mínimo para generar cover letters y enviar digest
+- `CANDIDATE_PROFILE`: perfil usado por Gemini
+- `SMTP_HOST` y `SMTP_PORT`: servidor SMTP
+
+## Cómo ejecutar
+
+### Ejecución normal
+
+Hace scraping, scoring con IA, genera cover letters, guarda resultados y envía email si hay matches.
 
 ```bash
-# Correr completo (scraping + IA + email)
 python main.py
+```
 
-# Solo ver resultados sin enviar email
+### Modo sin envío de email
+
+Hace todo menos enviar email. Igual genera cover letters y guarda el JSON.
+
+```bash
+python main.py --no-email
+```
+
+### Modo dry run
+
+No envía email. Igual hace scraping, scoring, cover letters, resumen y guardado de resultados.
+
+```bash
 python main.py --dry-run
+```
 
-# Correr y guardar en directorio custom
+### Directorio de salida personalizado
+
+El JSON de resultados se guarda por defecto en `./results`. Puedes cambiarlo:
+
+```bash
 python main.py --output ./mis_resultados
 ```
 
-## 📅 Automatización con cron (Linux/Mac)
+También puedes combinar opciones:
 
 ```bash
-# Abrir crontab
-crontab -e
-
-# Correr todos los días a las 8:00 AM
-0 8 * * * cd /ruta/a/job_hunter && /ruta/a/venv/bin/python main.py >> cron.log 2>&1
-
-# Correr Lunes, Miércoles y Viernes a las 9:00 AM
-0 9 * * 1,3,5 cd /ruta/a/job_hunter && /ruta/a/venv/bin/python main.py >> cron.log 2>&1
+python main.py --dry-run --output ./mis_resultados
 ```
 
-## 📅 Automatización con Task Scheduler (Windows)
+## Salidas generadas
 
-```powershell
-# Crear tarea programada diaria a las 8 AM
-schtasks /create /tn "JobHunter" /tr "C:\ruta\venv\Scripts\python.exe C:\ruta\main.py" /sc daily /st 08:00
-```
+- `results/results_YYYYMMDD_HHMM.json`: resumen estructurado del run
+- `job_hunter.log`: log de ejecución
 
-## 📁 Estructura del proyecto
+Cada JSON guardado incluye:
 
-```
+- score
+- title
+- company
+- source
+- url
+- remote
+- match_reasons
+- missing_skills
+- summary
+- has_cover_letter
+
+## Cómo funciona el email
+
+El digest se envía solo si:
+
+- no usas `--dry-run`
+- no usas `--no-email`
+- existen ofertas con score suficiente como para generar cover letter
+
+Si no hay matches suficientes, no se envía email.
+
+## Obtener credenciales
+
+### Gemini API Key
+
+La propia configuración del proyecto apunta a Google AI Studio:
+
+https://aistudio.google.com/app/apikey
+
+### Gmail App Password
+
+Si usas Gmail:
+
+1. Activa verificación en dos pasos.
+2. Crea una App Password.
+3. Usa esa contraseña en `EMAIL_PASSWORD`.
+
+## Estructura del proyecto
+
+```text
 job_hunter/
-├── main.py          # Orquestador principal
-├── config.py        # ⚙️ CONFIGURAR ANTES DE CORRER
-├── scrapers.py      # Scrapers de plataformas
-├── ai_engine.py     # Scoring y cover letters con Claude
-├── notifier.py      # Envío de email HTML
+├── main.py
+├── config.py
+├── ai_engine.py
+├── scrapers.py
+├── notifier.py
 ├── requirements.txt
-├── results/         # JSONs con historial de runs
-└── job_hunter.log   # Log de ejecuciones
+├── results/
+└── job_hunter.log
 ```
 
-## 🔧 Personalización
+## Dependencias
 
-### Ajustar umbral de matching
-En `config.py`:
-```python
-MIN_MATCH_SCORE = 65   # 0–100, subir para filtrar más
-```
+Según [requirements.txt](/home/user/proyectos/job_hunter/requirements.txt:1), la app usa:
 
-### Agregar / cambiar keywords
-```python
-SEARCH_KEYWORDS = [
-    "backend developer java",
-    "cloud engineer",
-    ...
-]
-```
+- `google-genai`
+- `requests`
+- `feedparser`
 
-### Cambiar frecuencia de notificación
-Modificar la línea en crontab según necesidad.
+## Notas
 
-## 📧 Ejemplo de email recibido
-
-El email incluye por cada match:
-- **Score de compatibilidad** (0–100) con color visual
-- **Razones del match** (habilidades, experiencia)
-- **Skills faltantes** (para considerar antes de aplicar)
-- **Cover letter personalizada** expandible con un click
-- **Link directo** a la oferta
-
-## ⚠️ Notas importantes
-
-- LinkedIn y Indeed limitan el scraping agresivo — el script incluye delays
-- GetOnBoard y Torre.co tienen APIs más amigables
-- Los resultados se guardan en `./results/` para histórico
-- Los logs se guardan en `job_hunter.log`
+- La evaluación de IA usa Gemini, no Claude.
+- El modelo configurado en el código actual es `models/gemini-2.0-flash-lite`.
+- Los delays y reintentos están implementados en el código para reducir problemas de rate limit.
+- Los scrapers dependen de APIs y feeds externos; si una fuente cambia, puede devolver menos resultados o fallar.
