@@ -152,7 +152,7 @@ def _build_html(jobs: list[ScoredJob], run_date: str) -> str:
     <!-- Footer -->
     <div style="text-align:center;padding:16px;color:#94a3b8;font-size:12px;">
       Generado automáticamente por Job Hunter · Eliseo Martin Villa<br>
-      Powered by Claude AI 🤖
+      Powered by Google Gemini 🤖
     </div>
 
   </div>
