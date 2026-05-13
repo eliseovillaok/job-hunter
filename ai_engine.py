@@ -1,0 +1,189 @@
+"""
+ai_engine.py — Motor de IA usando google-genai
+Modelo: gemini-1.5-flash (FREE TIER: 15 req/min, 1500 req/día)
+"""
+
+from google import genai
+from google.genai import errors as genai_errors
+import json
+import re
+import logging
+import time
+from dataclasses import dataclass
+from typing import Optional
+from config import GEMINI_API_KEY, CANDIDATE_PROFILE, MIN_MATCH_SCORE
+from scrapers import JobPosting
+
+log = logging.getLogger(__name__)
+
+client = genai.Client(api_key=GEMINI_API_KEY)
+MODEL = "models/gemini-2.0-flash-lite"   # ← free tier disponible (2.0-flash NO tiene free tier)
+
+# Free tier: 15 req/min → esperar 4s entre requests para no pasarse
+REQUEST_DELAY = 4.0
+MAX_RETRIES = 3
+
+
+@dataclass
+class ScoredJob:
+    job: JobPosting
+    score: int
+    match_reasons: list[str]
+    missing_skills: list[str]
+    cover_letter: Optional[str]
+    summary: str
+
+
+def _generate(prompt: str) -> str:
+    """Llama a Gemini con retry automático ante 429."""
+    for attempt in range(MAX_RETRIES):
+        try:
+            resp = client.models.generate_content(model=MODEL, contents=prompt)
+            return resp.text.strip()
+        except Exception as e:
+            err_str = str(e)
+            if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
+                # Extraer retryDelay del mensaje si está disponible
+                wait = 60  # default
+                match = re.search(r"retryDelay.*?(\d+)s", err_str)
+                if match:
+                    wait = int(match.group(1)) + 2
+                if attempt < MAX_RETRIES - 1:
+                    log.warning(f"Rate limit (429). Esperando {wait}s antes de reintentar... (intento {attempt+1}/{MAX_RETRIES})")
+                    time.sleep(wait)
+                else:
+                    log.error(f"Rate limit agotado tras {MAX_RETRIES} intentos.")
+                    raise
+            else:
+                raise
+    return ""
+
+
+def _parse_json(raw: str) -> dict:
+    raw = raw.replace("```json", "").replace("```", "").strip()
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        match = re.search(r'\{[\s\S]*\}', raw)
+        if match:
+            try:
+                return json.loads(match.group())
+            except json.JSONDecodeError:
+                pass
+    log.warning(f"No se pudo parsear JSON. Raw:\n{raw[:200]}")
+    return {}
+
+
+# =============================================================================
+# STEP 1 — Scoring
+# =============================================================================
+def score_job(job: JobPosting) -> dict:
+    prompt = f"""You are a senior tech recruiter. Score how well this job matches the candidate.
+
+CANDIDATE PROFILE:
+{CANDIDATE_PROFILE}
+
+JOB OFFER:
+Title: {job.title}
+Company: {job.company} | Source: {job.source} | Remote: {"Yes" if job.remote else "No"}
+Tags: {", ".join(job.tags) if job.tags else "N/A"}
+Description: {job.description[:1500]}
+
+Return ONLY a raw JSON object, no markdown, no explanation:
+{{"score": <integer 0-100>, "match_reasons": ["reason1", "reason2"], "missing_skills": ["skill"], "summary": "one line summary", "apply_recommended": <true or false>}}
+
+Scoring: 80-100 excellent | 60-79 good | 40-59 partial | 0-39 poor match
+Candidate is a Java/Spring Boot backend engineer seeking remote work."""
+
+    try:
+        raw = _generate(prompt)
+        result = _parse_json(raw)
+        if not result or "score" not in result:
+            return {"score": 0, "match_reasons": [], "missing_skills": [], "summary": "", "apply_recommended": False}
+        return result
+    except Exception as e:
+        log.error(f"Error scoring '{job.title}': {e}")
+        return {"score": 0, "match_reasons": [], "missing_skills": [], "summary": "", "apply_recommended": False}
+
+
+# =============================================================================
+# STEP 2 — Cover Letter
+# =============================================================================
+def generate_cover_letter(job: JobPosting, score_data: dict) -> str:
+    prompt = f"""Write a professional cover letter in ENGLISH (international) or SPANISH (Latin American company).
+
+CANDIDATE:
+{CANDIDATE_PROFILE}
+
+JOB:
+Title: {job.title} | Company: {job.company} ({job.source})
+Why it matches: {", ".join(score_data.get("match_reasons", []))}
+Description: {job.description[:1000]}
+
+Requirements:
+- Professional but warm tone, 3-4 concise paragraphs
+- Use real metrics: 60-80% task reduction, >99% uptime, 20-40% query improvement
+- Connect candidate's stack to this specific role
+- End with a clear call to action
+- First line: [SUBJECT: suggested email subject]
+
+Output only the cover letter."""
+
+    try:
+        return _generate(prompt)
+    except Exception as e:
+        log.error(f"Error cover letter '{job.title}': {e}")
+        return "Error generando cover letter."
+
+
+# =============================================================================
+# PIPELINE
+# =============================================================================
+def process_jobs(jobs: list[JobPosting]) -> list[ScoredJob]:
+    scored_jobs: list[ScoredJob] = []
+    dist = {"80-100": 0, "60-79": 0, "40-59": 0, "0-39": 0}
+
+    log.info(f"Evaluando {len(jobs)} ofertas con {MODEL} (free tier: 15 req/min)...")
+    log.info(f"Tiempo estimado: ~{len(jobs) * REQUEST_DELAY / 60:.1f} minutos")
+
+    for i, job in enumerate(jobs, 1):
+        data = score_job(job)
+        score = data.get("score", 0)
+
+        if score >= 80:   dist["80-100"] += 1
+        elif score >= 60: dist["60-79"] += 1
+        elif score >= 40: dist["40-59"] += 1
+        else:             dist["0-39"] += 1
+
+        log.info(f"[{i:2d}/{len(jobs)}] {score:3d}/100 — {job.title[:40]:<40} @ {job.company[:20]}")
+
+        scored_jobs.append(ScoredJob(
+            job=job,
+            score=score,
+            match_reasons=data.get("match_reasons", []),
+            missing_skills=data.get("missing_skills", []),
+            cover_letter=None,
+            summary=data.get("summary", ""),
+        ))
+        time.sleep(REQUEST_DELAY)
+
+    scored_jobs.sort(key=lambda x: x.score, reverse=True)
+
+    log.info("--- Distribución de scores ---")
+    for rng, count in dist.items():
+        log.info(f"  {rng}: {count} ofertas")
+
+    top = [j for j in scored_jobs if j.score >= MIN_MATCH_SCORE]
+    log.info(f"→ {len(top)} ofertas superaron umbral de {MIN_MATCH_SCORE}")
+
+    if not top:
+        log.info("Top 5 scores:")
+        for sj in scored_jobs[:5]:
+            log.info(f"  {sj.score}/100 — {sj.job.title} @ {sj.job.company}")
+
+    for i, sj in enumerate(top, 1):
+        log.info(f"[{i}/{len(top)}] Cover letter: {sj.job.title} (score: {sj.score})")
+        sj.cover_letter = generate_cover_letter(sj.job, {"match_reasons": sj.match_reasons})
+        time.sleep(REQUEST_DELAY)
+
+    return scored_jobs
