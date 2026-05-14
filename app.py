@@ -109,11 +109,12 @@ Es **gratuita** — no necesitás tarjeta.
 
     st.divider()
 
-    # ── Email ──────────────────────────────────────────────────────────────────
-    st.header("📧 Email para el digest")
+    # ── Email (OPCIONAL) ────────────────────────────────────────────────────────
+    send_email = st.checkbox("📧 Enviar digest por email al terminar", value=False)
 
-    with st.expander("¿Cómo conseguir el App Password de Gmail?", icon="❓"):
-        st.markdown("""
+    if send_email:
+        with st.expander("¿Cómo conseguir el App Password de Gmail?", icon="❓"):
+            st.markdown("""
 1. Ir a [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords)
 2. Verificación en 2 pasos debe estar **activada**
 3. En "Nombre de la app" escribir `Job Hunter`
@@ -121,22 +122,26 @@ Es **gratuita** — no necesitás tarjeta.
 5. Usarlos abajo (sin espacios)
 
 ⚠️ **NO** uses tu contraseña normal de Gmail.
-        """)
+            """)
 
-    email_sender = st.text_input(
-        "Tu Gmail",
-        placeholder="tu@gmail.com",
-    )
-    email_password = st.text_input(
-        "App Password (16 caracteres)",
-        type="password",
-        placeholder="abcdefghijklmnop",
-    )
-    email_recipient = st.text_input(
-        "Email destino del digest",
-        placeholder="tu@gmail.com",
-        help="Puede ser el mismo Gmail u otro email",
-    )
+        email_sender = st.text_input(
+            "Tu Gmail",
+            placeholder="tu@gmail.com",
+        )
+        email_password = st.text_input(
+            "App Password (16 caracteres)",
+            type="password",
+            placeholder="abcdefghijklmnop",
+        )
+        email_recipient = st.text_input(
+            "Email destino del digest",
+            placeholder="tu@gmail.com",
+            help="Puede ser el mismo Gmail u otro email",
+        )
+    else:
+        email_sender = ""
+        email_password = ""
+        email_recipient = ""
 
     st.divider()
 
@@ -204,19 +209,23 @@ def validate_config():
     errors = []
     if not gemini_key or not gemini_key.startswith("AIza"):
         errors.append("❌ API Key de Gemini inválida o vacía")
+    
     if send_email:
         if not email_sender or "@" not in email_sender:
-            errors.append("❌ Gmail sender inválido")
-        if not email_password or len(email_password.replace(" ","")) < 16:
-            errors.append("❌ App Password debe tener 16 caracteres (sin espacios)")
+            errors.append("❌ Si envías email: Gmail sender requerido")
+        if not email_password or len(email_password.replace(" ","")) != 16:
+            errors.append("❌ Si envías email: App Password debe tener exactamente 16 caracteres (sin espacios)")
         if not email_recipient or "@" not in email_recipient:
-            errors.append("❌ Email recipient inválido")
+            errors.append("❌ Si envías email: email recipient requerido")
+    
     keywords = [k.strip() for k in keywords_raw.strip().splitlines() if k.strip()]
     if not keywords:
         errors.append("❌ Agregá al menos una keyword")
+    
     platforms = any([use_remotive, use_arbeitnow, use_wwr, use_himalayas])
     if not platforms:
         errors.append("❌ Seleccioná al menos una plataforma")
+    
     return errors
 
 # ─── Run button ───────────────────────────────────────────────────────────────
@@ -227,6 +236,8 @@ with col_info:
     st.info("⏱ Tarda ~6-8 min · 90 ofertas · IA evalúa cada una")
 
 if run_button:
+    # Re-leer valores actuales de la UI (sin necesidad de Ctrl+Enter)
+    # Streamlit actualiza automáticamente cuando haces click en el botón
     errors = validate_config()
     if errors:
         for e in errors:
@@ -460,7 +471,7 @@ if run_button:
                     data=sj.cover_letter,
                     file_name=f"cover_{sj.job.company.replace(' ','_')}_{sj.job.title[:20].replace(' ','_')}.txt",
                     mime="text/plain",
-                    key=f"dl_{sj.job.url}_{idx}",  # URL del job lo hace único
+                    key=f"dl_{idx}",
                 )
 
     with tab1:
