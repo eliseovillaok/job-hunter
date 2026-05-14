@@ -56,7 +56,7 @@ Buscar trabajo es tedioso:
 
 ### Absolutamente necesario:
 1. **Una computadora** (Windows, Mac o Linux)
-2. **Python 3.10+** — [descargá acá](https://www.python.org/downloads/) -- **SOLO EN OPCION B**
+2. ** (local - OPCION B) Python 3.10+** — [descargá acá](https://www.python.org/downloads/) -- 
 3. **Una cuenta de Google** (para la API de Gemini — es **100% gratis**)
 
 ### Opcional (solo si querés recibir email):
@@ -420,7 +420,7 @@ MIT — libre para usar, modificar y distribuir.
 ## 💬 Soporte
 
 ¿Preguntas? ¿Sugerencias?
-- GitHub: [github.com/tu-usuario/job-hunter](https://github.com/tu-usuario/job-hunter)
+- GitHub: [github.com/eliseovillaok/job-hunter](https://github.com/eliseovillaok/job-hunter)
 
 ---
 
