@@ -198,8 +198,6 @@ Ubicación: Argentina — disponible 100% remoto""",
         height=200,
     )
 
-    send_email = st.checkbox("Enviar digest por email al terminar", value=True)
-
 
 # ─── Main area ───────────────────────────────────────────────────────────────
 st.title("🎯 Job Hunter AI")
