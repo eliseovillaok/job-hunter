@@ -110,6 +110,11 @@ Es **gratuita** — no necesitás tarjeta.
     st.divider()
 
     # ── Email (OPCIONAL) ────────────────────────────────────────────────────────
+    # Inicializar variables de email (por si no se tilda el checkbox)
+    email_sender = ""
+    email_password = ""
+    email_recipient = ""
+    
     send_email = st.checkbox("📧 Enviar digest por email al terminar", value=False)
 
     if send_email:
@@ -138,11 +143,7 @@ Es **gratuita** — no necesitás tarjeta.
             placeholder="tu@gmail.com",
             help="Puede ser el mismo Gmail u otro email",
         )
-    else:
-        email_sender = ""
-        email_password = ""
-        email_recipient = ""
-
+    
     st.divider()
 
     # ── Búsqueda ───────────────────────────────────────────────────────────────
