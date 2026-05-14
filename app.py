@@ -465,12 +465,14 @@ if run_button:
                     f'<div class="cover-letter-box">{sj.cover_letter}</div>',
                     unsafe_allow_html=True,
                 )
+                # Usar URL del job como parte de la key para hacerla única
+                unique_key = f"dl_{hash(sj.job.url)}_{idx}"
                 st.download_button(
                     "⬇ Descargar cover letter",
                     data=sj.cover_letter,
                     file_name=f"cover_{sj.job.company.replace(' ','_')}_{sj.job.title[:20].replace(' ','_')}.txt",
                     mime="text/plain",
-                    key=f"dl_{idx}",
+                    key=unique_key,
                 )
 
     with tab1:
