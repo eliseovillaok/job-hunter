@@ -396,7 +396,7 @@ MIT — libre para usar, modificar y distribuir.
 ## 💬 Soporte
 
 ¿Preguntas? ¿Sugerencias?
-- GitHub: [github.com/tu-usuario/job-hunter](https://github.com/tu-usuario/job-hunter)
+- GitHub: [github.com/tu-usuario/job-hunter](https://github.com/eliseovillaok/job-hunter)
 
 ---
 
