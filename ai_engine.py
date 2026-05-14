@@ -17,7 +17,7 @@ from scrapers import JobPosting
 log = logging.getLogger(__name__)
 
 client = genai.Client(api_key=GEMINI_API_KEY)
-MODEL = "models/gemini-2.0-flash-lite"   # ← free tier disponible (2.0-flash NO tiene free tier)
+MODEL = "models/gemini-3.1-flash-lite"   # ← free tier disponible
 
 # Free tier: 15 req/min → esperar 4s entre requests para no pasarse
 REQUEST_DELAY = 4.0
