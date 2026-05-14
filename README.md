@@ -400,9 +400,9 @@ MIT — libre para usar, modificar y distribuir.
 Construido por **Eliseo Martin Villa** — Backend & Cloud Engineer
 
 ¿Preguntas? ¿Sugerencias?
-- GitHub: [github.com/tu-usuario/job-hunter](https://github.com/tu-usuario/job-hunter)
+- GitHub: [github.com/tu-usuario/job-hunter](https://github.com/eliseovillaok/job-hunter)
 - Email: [eliseovilla10@gmail.com](mailto:eliseovilla10@gmail.com)
-- LinkedIn: [linkedin.com/in/eliseo-villa](https://linkedin.com/in/eliseo-villa)
+- LinkedIn: [linkedin.com/in/eliseo-villa](https://linkedin.com/in/eliseovilla)
 
 ---
 
