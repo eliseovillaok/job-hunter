@@ -1,181 +1,411 @@
-# Job Hunter
+# 🎯 Job Hunter — Tu asistente de búsqueda laboral con IA
 
-Automatiza la búsqueda de ofertas remotas, las evalúa con Google Gemini, genera cover letters para los mejores matches y opcionalmente envía un digest por email.
+**Job Hunter** es una aplicación que te ayuda a encontrar ofertas de trabajo remotas que realmente matcheen con tu perfil. Usa inteligencia artificial para evaluar automáticamente cada oferta y generar cartas de presentación personalizadas.
 
-## Qué hace
+> Construido por **Eliseo Martin Villa** — Backend & Cloud Engineer
 
-El flujo real de la aplicación es:
+---
 
-1. Hace scraping de ofertas desde:
-   - Remotive
-   - Arbeitnow
-   - We Work Remotely
-   - Himalayas
-2. Deduplica resultados.
-3. Evalúa cada oferta con Gemini.
-4. Genera cover letters solo para las ofertas que superan el umbral `MIN_MATCH_SCORE`.
-5. Muestra un resumen en consola.
-6. Guarda un archivo JSON en `results/`.
-7. Si no se usa `--dry-run` ni `--no-email`, envía un email HTML con los matches.
+## 🎯 ¿Qué problema resuelve?
 
-## Requisitos
+Buscar trabajo es tedioso:
+- 📋 Buscas en múltiples sitios (LinkedIn, Indeed, Remotive, etc.)
+- 👀 Lees cientos de ofertas que no matchean con tu perfil
+- ✍️ Escribís la misma carta de presentación una y otra vez
+- 📧 Organizás ofertas en un Excel desordenado
 
-- Python 3.12 o compatible con las dependencias instaladas
-- Una API key de Google Gemini
-- Una cuenta de email SMTP compatible con la configuración actual
+**Job Hunter** lo automatiza todo:
+- 🔍 **Busca automáticamente** en 4 plataformas principales
+- 🤖 **Evalúa con IA** cada oferta según tu perfil (score 0-100)
+- ✍️ **Genera cover letters únicos** listos para enviar
+- 📧 **Te manda un digest** con los mejores matches al email
+- ⏰ **Configúralo una vez** y usalo cuando quieras
 
-## Instalación
+---
+
+## ✨ Características principales
+
+### 🔍 Búsqueda automatizada en 4 plataformas
+- **Remotive** — ofertas técnicas remotas curadas
+- **Arbeitnow** — base de datos global de trabajo remoto
+- **We Work Remotely** — comunidad de 100K+ ofertas remotas
+- **Himalayas** — plataforma especializada en talento remoto
+
+### 🤖 Evaluación inteligente con IA
+- Cada oferta recibe un **score 0-100** basado en tu perfil
+- La IA analiza: habilidades requeridas, experiencia, stack técnico, ubicación
+- Filtrá por score mínimo (ej: solo ver ofertas de 65+ puntos)
+
+### ✍️ Cover letters personalizadas
+- La IA genera una carta **única para cada oferta**
+- Menciona habilidades específicas del job description
+- Listos para copiar y pegar — solo falta tu firma
+
+### 📧 Digest por email (opcional)
+- Recibís un email HTML con los mejores matches
+- Acceso desde celular o desktop
+- Expandible directamente en el email
+
+### 🎨 Interfaz web intuitiva
+- No necesitás tocar código
+- Configurá todo desde un formulario en el navegador
+- Ves resultados en tiempo real
+- Descargá resultados individuales o completos
+
+---
+
+## 📋 Requisitos previos — ¿Qué necesitás?
+
+### Absolutamente necesario:
+1. **Una computadora** (Windows, Mac o Linux)
+2. **Python 3.10+** — [descargá acá](https://www.python.org/downloads/)
+3. **Una cuenta de Google** (para la API de Gemini — es **100% gratis**)
+
+### Opcional (solo si querés recibir email):
+4. **Una cuenta de Gmail** (con verificación en 2 pasos)
+
+### No necesitás:
+- ❌ Pagar nada (Gemini API es gratuita)
+- ❌ Conocimientos de programación
+- ❌ Servidor propio
+- ❌ Instalar nada aparte de Python
+
+---
+
+## 🚀 Instalación paso a paso
+
+### Paso 1: Descargar e instalar Python
+
+1. Entra a [python.org/downloads](https://www.python.org/downloads/)
+2. Descargá la versión más reciente (3.12 o superior)
+3. Ejecutá el instalador
+4. **⚠️ IMPORTANTE:** En la primera pantalla, tildá la opción que dice "Add Python to PATH"
+5. Click en "Install Now"
+6. Esperá a que termine la instalación
+
+**Para verificar que instaló correctamente:**
+- En Windows: abrí "Command Prompt" (cmd.exe)
+- En Mac/Linux: abrí "Terminal"
+- Escribí: `python --version`
+- Debería mostrar algo como `Python 3.12.0`
+
+### Paso 2: Descargar Job Hunter
+
+1. Descargá el archivo `job_hunter.zip` desde el repositorio
+2. Descomprimilo en una carpeta (ej: `C:\Users\TuUsuario\job_hunter` en Windows, o `~/job_hunter` en Mac/Linux)
+3. Abrí una terminal en esa carpeta
+   - **Windows:** Click derecho en la carpeta → "Abrir PowerShell aquí"
+   - **Mac/Linux:** Click derecho → "Abrir terminal aquí"
+
+### Paso 3: Crear el entorno virtual (venv)
+
+El entorno virtual es como una "carpeta aislada" donde viven las dependencias de Job Hunter sin afectar el resto de tu computadora.
+
+En la terminal, escribí:
 
 ```bash
-cd job_hunter
 python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
 ```
 
-En Windows:
+Esperá a que termine (tarda ~30 segundos).
 
+### Paso 4: Activar el entorno virtual
+
+**En Windows (PowerShell):**
 ```powershell
-python -m venv venv
 venv\Scripts\activate
+```
+
+**En Mac/Linux:**
+```bash
+source venv/bin/activate
+```
+
+Si funciona correctamente, deberías ver `(venv)` al inicio de la línea en la terminal.
+
+### Paso 5: Instalar las dependencias
+
+En la terminal (con el venv activado), escribí:
+
+```bash
 pip install -r requirements.txt
 ```
 
-## Configuración
+Esto descarga e instala todas las librerías necesarias (streamlit, google-genai, requests, etc.). Tarda ~2 minutos. Verás muchas líneas de texto — es normal.
 
-La app toma configuración desde variables de entorno, con fallback a los valores de `config.py`.
+### Paso 6: Obtener la API Key de Gemini (gratis)
 
-Variables relevantes:
+1. Entra a [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)
+2. Iniciá sesión con tu cuenta de Google (creá una si no tenés)
+3. Click en el botón azul "Create API Key"
+4. Seleccioná "Create API key in new project"
+5. Google te genera una clave que empieza con `AIza...`
+6. **Copiá la clave completa** (es larga, no la cortes)
+7. **Guardala en un lugar seguro** (la vas a necesitar cuando corras la app)
 
-```bash
-export GEMINI_API_KEY="TU_API_KEY_DE_GEMINI"
-export EMAIL_SENDER="tu_email@gmail.com"
-export EMAIL_PASSWORD="tu_app_password"
-export EMAIL_RECIPIENT="tu_email@gmail.com"
-```
+⚠️ **Importante:** Esta clave es como tu contraseña — no la compartas ni la subas a GitHub.
 
-La variable correcta para la IA es `GEMINI_API_KEY`.
-La aplicación no usa `ANTHROPIC_API_KEY`.
+### Paso 7: (Opcional) Obtener Gmail App Password
 
-### Qué hay en `config.py`
+Solo si querés **recibir las ofertas por email**:
 
-En [config.py](/home/user/proyectos/job_hunter/config.py:1) puedes ajustar:
+1. Entra a [myaccount.google.com/security](https://myaccount.google.com/security)
+2. Asegurate de tener "Verificación en 2 pasos" **activada** (si no, activála)
+3. Una vez activada, entra a [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords)
+4. En el dropdown "Seleccionar app", elegí "Mail"
+5. En el dropdown "Seleccionar dispositivo", elegí "Windows PC" (o tu sistema operativo)
+6. Click en "Generar"
+7. Google te muestra un código de **16 caracteres** (sin espacios)
+8. **Copiá el código completo**
+9. **Guardalo en un lugar seguro**
 
-- `SEARCH_KEYWORDS`: keywords de búsqueda
-- `ONLY_REMOTE`: filtra solo remoto
-- `MIN_MATCH_SCORE`: umbral mínimo para generar cover letters y enviar digest
-- `CANDIDATE_PROFILE`: perfil usado por Gemini
-- `SMTP_HOST` y `SMTP_PORT`: servidor SMTP
+⚠️ **Importante:** Este código es tan sensible como tu contraseña. No lo compartas.
 
-## Cómo ejecutar
+---
 
-### Ejecución normal
+## 📱 Ejecutar la aplicación
 
-Hace scraping, scoring con IA, genera cover letters, guarda resultados y envía email si hay matches.
-
-```bash
-python main.py
-```
-
-### Modo sin envío de email
-
-Hace todo menos enviar email. Igual genera cover letters y guarda el JSON.
+Con el entorno virtual activado, escribí en la terminal:
 
 ```bash
-python main.py --no-email
+streamlit run app.py
 ```
 
-### Modo dry run
+En unos segundos:
+1. Se abrirá automáticamente una pestaña en tu navegador
+2. Verás una página con un formulario en la izquierda y instrucciones a la derecha
+3. ¡Ya podés empezar a configurar!
 
-No envía email. Igual hace scraping, scoring, cover letters, resumen y guardado de resultados.
+Si no se abre automáticamente, entra a `http://localhost:8501`
 
+---
+
+## 🎯 Cómo usar la aplicación
+
+### 1. **Configuración inicial (barra izquierda)**
+
+#### 🔑 API Key de Gemini
+- Pegá la clave que copiaste de aistudio.google.com
+- ⚠️ No la cierres — la necesitás cada vez que usas la app
+
+#### 📧 Email (opcional)
+- Si querés recibir el digest por email, completá:
+  - **Tu Gmail:** tu dirección completa (ej: tu@gmail.com)
+  - **App Password:** el código de 16 caracteres que generaste
+  - **Email destino:** donde querés recibir el digest (puede ser el mismo Gmail)
+
+#### 🔍 Búsqueda
+- **Keywords:** palabras clave para buscar (ej: "backend developer", "java spring boot")
+  - Una por línea
+  - Cuantas más, más ofertas encontrás
+- **Score mínimo:** solo muestra ofertas con ese score o superior
+  - 65 = recomendado (buen balance)
+  - 80+ = solo excelentes matches
+  - 50+ = más permisivo
+- **Plataformas:** tildá las que querés buscar (recomendado: todas 4)
+
+#### 👤 Tu perfil
+- Describí en español lo que buscás y tu experiencia
+- La IA lo usa para evaluar ofertas
+- Sé específico: menciona tecnologías, años de experiencia, qué rol buscás
+
+### 2. **Buscar ofertas**
+- Click en el botón azul "🚀 Buscar ofertas ahora"
+- Verás progreso en tiempo real:
+  - Primero: scraping de las 4 plataformas
+  - Luego: evaluación de cada oferta con IA
+  - Finalmente: generación de cover letters
+- **Duración aproximada:** 6-8 minutos
+
+### 3. **Ver resultados**
+- Se cargan en dos tabs:
+  - **🔥 Top matches:** solo ofertas sobre tu score mínimo
+  - **📋 Todas:** todas las ofertas encontradas, ordenadas por score
+
+- Por cada oferta ves:
+  - **Score:** 0-100 (verde = excelente, amarillo = bueno, gris = bajo)
+  - **Plataforma:** dónde se encontró (Remotive, Arbeitnow, etc.)
+  - **Razones del match:** qué habilidades tuyas matchean
+  - **Skills faltantes:** qué te falta (para que lo sepas)
+  - **Cover letter:** carta generada por IA (expandible)
+  - **Ver oferta:** link directo al job description
+
+### 4. **Descargar resultados**
+- **Cover letter individual:** botón debajo de cada carta
+- **Resultados completos:** JSON con todos los datos (al final de la página)
+
+### 5. **Email (opcional)**
+- Si completaste el email en la configuración, recibirás un email HTML con los mejores matches
+- Expandible desde el celular
+
+---
+
+## ❓ Preguntas frecuentes
+
+### **¿Es completamente gratis?**
+Sí. Google Gemini tiene un free tier generoso:
+- 15 solicitudes/minuto
+- 1.500 solicitudes/día
+- $0 USD
+- Suficiente para correr el script varias veces al día
+
+Si querés runs ilimitados, podés activar billing en Google Cloud (< $0.01 USD por corrida).
+
+### **¿Qué pasa si me equivoco en la API Key?**
+La app te lo va a decir. Volvé a [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey), generá una nueva clave y pegala de nuevo.
+
+### **¿Mis credenciales se guardan?**
+No. La app funciona en tu computadora. Todo ocurre localmente — tus credenciales nunca se envían a servidores nuestros. Solo se usan para:
+- Conectar a la API de Gemini (Google)
+- Enviar email (Gmail)
+
+### **¿Qué pasa si me olvido el App Password de Gmail?**
+Generá uno nuevo en [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords). El anterior se invalida automáticamente.
+
+### **¿Puedo cambiar las keywords sin reiniciar?**
+Sí. Cambialas en la barra izquierda y click en "Buscar ofertas ahora" de nuevo.
+
+### **¿Cuánto tiempo tarda?**
+Aproximadamente **6-8 minutos** por corrida:
+- 1-2 min: scraping en las 4 plataformas (~90 ofertas)
+- 4-6 min: evaluación con IA (1 por oferta)
+- Envío de email: ~1 min (si está activado)
+
+### **¿Qué pasa si no tengo Gmail?**
+Podés usar cualquier email. Cuando te pida "Gmail App Password", generá un "App Password" desde las configuraciones de seguridad de tu cuenta de email.
+
+### **¿Funciona offline?**
+No. Necesitás conexión a internet para:
+- Scrapear las plataformas
+- Usar la IA de Gemini
+- Enviar emails
+
+### **¿Puedo compartir mi perfil con amigos?**
+Sí, pero cada amigo necesita su propia API Key de Gemini. La clave es personal y no se debe compartir.
+
+### **¿Qué modelos de IA están disponibles próximamente?**
+Job Hunter está diseñado para aceptar múltiples modelos. Próximamente agregaremos:
+- **Claude (Anthropic)** — excelente para análisis
+- **GPT-4 (OpenAI)** — muy poderoso pero requiere pago
+- **Otros modelos open-source** — alternativas gratuitas
+
+Por ahora solo soporta Gemini porque es gratuito y muy potente.
+
+---
+
+## 🐛 Si algo sale mal
+
+### La app no se abre
 ```bash
-python main.py --dry-run
+# Asegurate de que el venv está activado (ves "(venv)" en la terminal)
+# Luego corre de nuevo:
+streamlit run app.py
 ```
 
-### Directorio de salida personalizado
+### Error: "API key not valid"
+- Copiaste la clave completa? (empieza con "AIza...")
+- ¿Es del proyecto correcto en aistudio.google.com?
+- Intentá generar una nueva clave
 
-El JSON de resultados se guarda por defecto en `./results`. Puedes cambiarlo:
+### Error: "Email configuration invalid"
+- Verificá que escribiste bien el email
+- Verificá que el App Password tiene 16 caracteres (sin espacios)
+- Asegurate de tener verificación en 2 pasos activada en Gmail
 
-```bash
-python main.py --output ./mis_resultados
+### Error: "Streamlit DuplicateElementKey"
+- Actualiza a la última versión: `pip install --upgrade streamlit`
+
+### Python no se encuentra
+- Reinstalá Python y tildá "Add Python to PATH"
+- Reiniciá la terminal después de instalar
+
+### La terminal no reconoce comandos
+- Probá abriendo "Command Prompt" en lugar de PowerShell (Windows)
+- O ejecutá `python -m pip install --upgrade pip` para actualizar
+
+### Necesito más ayuda
+- Abrí un issue en GitHub
+- O contactá directamente al desarrollador
+
+---
+
+## 📁 ¿Qué archivos se crean?
+
+Cuando corres la app, se crean automáticamente:
+
 ```
-
-También puedes combinar opciones:
-
-```bash
-python main.py --dry-run --output ./mis_resultados
-```
-
-## Salidas generadas
-
-- `results/results_YYYYMMDD_HHMM.json`: resumen estructurado del run
-- `job_hunter.log`: log de ejecución
-
-Cada JSON guardado incluye:
-
-- score
-- title
-- company
-- source
-- url
-- remote
-- match_reasons
-- missing_skills
-- summary
-- has_cover_letter
-
-## Cómo funciona el email
-
-El digest se envía solo si:
-
-- no usas `--dry-run`
-- no usas `--no-email`
-- existen ofertas con score suficiente como para generar cover letter
-
-Si no hay matches suficientes, no se envía email.
-
-## Obtener credenciales
-
-### Gemini API Key
-
-La propia configuración del proyecto apunta a Google AI Studio:
-
-https://aistudio.google.com/app/apikey
-
-### Gmail App Password
-
-Si usas Gmail:
-
-1. Activa verificación en dos pasos.
-2. Crea una App Password.
-3. Usa esa contraseña en `EMAIL_PASSWORD`.
-
-## Estructura del proyecto
-
-```text
 job_hunter/
-├── main.py
-├── config.py
-├── ai_engine.py
-├── scrapers.py
-├── notifier.py
-├── requirements.txt
-├── results/
-└── job_hunter.log
+├── venv/                 # Tu entorno virtual (no toques)
+├── results/              # Carpeta con resultados JSON de cada corrida
+│   └── results_20260514_0845.json
+├── app.py                # La aplicación web
+├── config.py             # Archivo de configuración (opcional editar)
+├── scrapers.py           # Código para scrapear plataformas
+├── ai_engine.py          # Código para evaluar con IA
+├── notifier.py           # Código para enviar emails
+├── main.py               # Script de línea de comandos (alternativa a app.py)
+└── requirements.txt      # Lista de dependencias
 ```
 
-## Dependencias
+Los archivos que aparecen como **resultado**:
+- `results/` — guarda un JSON después de cada corrida para que no pierdas datos
+- `job_hunter.log` — log de ejecuciones (solo si usás `main.py`)
 
-Según [requirements.txt](/home/user/proyectos/job_hunter/requirements.txt:1), la app usa:
+---
 
-- `google-genai`
-- `requests`
-- `feedparser`
+## 🔐 Privacidad y Seguridad
 
-## Notas
+### Tus datos están seguros porque:
+- **No se envían a nuestros servidores.** La app corre completamente en tu máquina
+- **Tus credenciales solo se usan localmente** para conectar a Google y Gmail
+- **Los resultados se guardan solo en tu computadora** (carpeta `results/`)
 
-- La evaluación de IA usa Gemini, no Claude.
-- El modelo configurado en el código actual es `models/gemini-2.0-flash-lite`.
-- Los delays y reintentos están implementados en el código para reducir problemas de rate limit.
-- Los scrapers dependen de APIs y feeds externos; si una fuente cambia, puede devolver menos resultados o fallar.
+### Qué información procesa:
+- Job descriptions de las 4 plataformas (públicos)
+- Tu perfil (lo guardás vos)
+- API Key de Gemini (nunca se expone)
+- App Password de Gmail (nunca se expone)
+
+### Qué se envía fuera:
+- Descripción de la oferta + tu perfil → Google Gemini (para evaluar)
+- Email → servidores de Gmail (si envías digest)
+
+**Ambas conexiones son privadas y encriptadas (HTTPS).**
+
+---
+
+## 📝 Licencia
+
+MIT — libre para usar, modificar y distribuir.
+
+---
+
+## 🤝 Contribuciones
+
+¿Encontraste un bug? ¿Tienes una idea?
+- Abrí un issue en GitHub
+- O contactá directamente al desarrollador
+
+**Ideas de mejoras pendientes:**
+- Soporte para LinkedIn e Indeed
+- Dashboard web con historial de aplicaciones
+- Integración con Google Sheets
+- Filtros por salario y seniority
+- Notificaciones en tiempo real
+
+---
+
+## 🙏 Créditos
+
+Construido por **Eliseo Martin Villa** — Backend & Cloud Engineer
+
+¿Preguntas? ¿Sugerencias?
+- GitHub: [github.com/tu-usuario/job-hunter](https://github.com/tu-usuario/job-hunter)
+- Email: [eliseovilla10@gmail.com](mailto:eliseovilla10@gmail.com)
+- LinkedIn: [linkedin.com/in/eliseo-villa](https://linkedin.com/in/eliseo-villa)
+
+---
+
+<div align="center">
+  Hecho con ☕ y mucha paciencia
+</div>
