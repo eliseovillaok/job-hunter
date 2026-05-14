@@ -72,7 +72,27 @@ Buscar trabajo es tedioso:
 
 ---
 
-## 🚀 Instalación paso a paso
+## 🚀 ¿Cómo empezar?
+
+### Opción A — SIN INSTALAR NADA (Recomendado para probar)
+
+**Entra acá y usá directamente en el navegador:**
+### 👉 [https://job-hunter-eliseo.streamlit.app](https://job-hunter-eliseo.streamlit.app)
+
+✅ No necesitás instalar nada
+✅ Funciona en celular y desktop
+✅ Gratis completamente
+✅ 100% seguro (datos locales en el navegador)
+
+**Solo necesitás:**
+1. API Key de Gemini (gratis en [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey))
+2. Opcional: Gmail App Password (si querés digest por email)
+
+---
+
+### Opción B — INSTALAR EN TU COMPUTADORA (Para uso avanzado)
+
+Si querés correrla localmente en tu máquina, seguí estos pasos:
 
 ### Paso 1: Descargar e instalar Python
 
@@ -165,6 +185,10 @@ Solo si querés **recibir las ofertas por email**:
 
 ## 📱 Ejecutar la aplicación
 
+### OPCIÓN A — Online (sin instalar)
+Simplemente entra a: **[job-hunter-eliseo.streamlit.app](https://job-hunter-eliseo.streamlit.app)**
+
+### OPCIÓN B — En tu computadora
 Con el entorno virtual activado, escribí en la terminal:
 
 ```bash
@@ -400,9 +424,9 @@ MIT — libre para usar, modificar y distribuir.
 Construido por **Eliseo Martin Villa** — Backend & Cloud Engineer
 
 ¿Preguntas? ¿Sugerencias?
-- GitHub: [github.com/eliseovillaok/job-hunter](https://github.com/eliseovillaok/job-hunter)
+- GitHub: [github.com/tu-usuario/job-hunter](https://github.com/tu-usuario/job-hunter)
 - Email: [eliseovilla10@gmail.com](mailto:eliseovilla10@gmail.com)
-- LinkedIn: [linkedin.com/in/eliseovilla](https://linkedin.com/in/eliseovilla)
+- LinkedIn: [linkedin.com/in/eliseo-villa](https://linkedin.com/in/eliseo-villa)
 
 ---
 
