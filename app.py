@@ -68,28 +68,28 @@ st.markdown("""
 # ─── Sidebar: Configuración ──────────────────────────────────────────────────
 with st.sidebar:
     st.title("🎯 Job Hunter AI")
-    st.caption("Configurá tu búsqueda y buscá ofertas con IA")
+    st.caption("Configurá tu búsqueda laboral y recibí ofertas recomendadas con IA.")
 
     st.divider()
 
     # ── Credenciales ──────────────────────────────────────────────────────────
-    st.header("🔑 Credenciales")
+    st.header("🔑 Accesos")
 
-    with st.expander("¿Cómo conseguir la API Key de Gemini?", icon="❓"):
+    with st.expander("¿Cómo obtengo la API key de Gemini?", icon="❓"):
         st.markdown("""
 1. Ir a [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)
 2. Iniciar sesión con Google
-3. Click en **Create API Key**
+3. Hacer click en **Create API Key**
 4. Copiar la clave (empieza con `AIza...`)
 
-Es **gratuita** — no necesitás tarjeta.
+Es **gratis** y no necesitás tarjeta.
         """)
 
     gemini_key = st.text_input(
         "API Key de Gemini",
         type="password",
         placeholder="AIzaXXXXXXXXXXXXXXXXX",
-        help="Tu clave de Google Gemini (gratuita)",
+        help="Pegá acá tu clave de Gemini.",
     )
 
     # Selector de modelo dinámico
@@ -101,10 +101,10 @@ Es **gratuita** — no necesitás tarjeta.
         "models/gemini-3.1-pro",
     ]
     selected_model = st.selectbox(
-        "Modelo de IA",
+        "Modelo",
         available_models,
         index=0,
-        help="gemini-3.1-flash-lite tiene el mejor free tier (500 req/día)",
+        help="Elegí el modelo que querés usar para evaluar las ofertas.",
     )
 
     st.divider()
@@ -115,35 +115,35 @@ Es **gratuita** — no necesitás tarjeta.
     email_password = ""
     email_recipient = ""
     
-    send_email = st.checkbox("📧 Enviar digest por email al terminar", value=False)
+    send_email = st.checkbox("📧 Enviarme un resumen por email al finalizar", value=False)
 
     if send_email:
-        with st.expander("¿Cómo conseguir el App Password de Gmail?", icon="❓"):
+        with st.expander("¿Cómo obtengo la contraseña de aplicación de Gmail?", icon="❓"):
             st.markdown("""
 1. Ir a [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords)
-2. Verificación en 2 pasos debe estar **activada**
+2. La verificación en 2 pasos debe estar **activada**
 3. En "Nombre de la app" escribir `Job Hunter`
-4. Click **Crear** → copiar los 16 caracteres
-5. Usarlos abajo (sin espacios)
+4. Hacer click en **Crear** y copiar los 16 caracteres
+5. Pegarlos abajo; si tienen espacios, se eliminan automáticamente
 
-⚠️ **NO** uses tu contraseña normal de Gmail.
+⚠️ **No** uses tu contraseña normal de Gmail.
             """)
 
         email_sender = st.text_input(
-            "Tu Gmail",
+            "Email desde el que se envía",
             placeholder="tu@gmail.com",
         )
         email_password_raw = st.text_input(
-            "App Password (16 caracteres)",
+            "Contraseña de aplicación (16 caracteres)",
             type="password",
             placeholder="abcd efgh ijkl mnop",
             help="Se eliminarán automáticamente los espacios",
         )
         email_password = email_password_raw.replace(" ", "")
         email_recipient = st.text_input(
-            "Email destino del digest",
+            "Email que recibe el resumen",
             placeholder="tu@gmail.com",
-            help="Puede ser el mismo Gmail u otro email",
+            help="Puede ser el mismo email de envío u otro distinto.",
         )
     
     st.divider()
@@ -152,39 +152,39 @@ Es **gratuita** — no necesitás tarjeta.
     st.header("🔍 Búsqueda")
 
     keywords_raw = st.text_area(
-        "Keywords (una por línea)",
+        "Puestos o palabras clave",
         value="frontend developer\nreact developer\nfull stack engineer\nUI engineer\njavascript developer",
         height=120,
-        help="Palabras clave para buscar en las plataformas",
+        help="Escribí una búsqueda por línea. Ejemplo: `frontend developer` o `react developer`.",
     )
 
     min_score = st.slider(
-        "Score mínimo para incluir en digest",
+        "Puntaje mínimo para considerar una oferta interesante",
         min_value=30,
         max_value=90,
         value=65,
         step=5,
-        help="Ofertas con score menor a este valor no aparecen en el email",
+        help="Las ofertas por debajo de este puntaje quedan fuera del resumen y de los mejores resultados.",
     )
 
-    st.subheader("⚙️ Límites (opcional)")
+    st.subheader("⚙️ Límite opcional")
     use_max_results = st.checkbox(
-        "Limitar cantidad de ofertas",
+        "Detener la búsqueda después de cierta cantidad de ofertas",
         value=False,
-        help="Activá para detener la búsqueda después de cierta cantidad",
+        help="Útil para pruebas rápidas o para gastar menos cuota de IA.",
     )
     max_results_limit = 0
     if use_max_results:
         max_results_limit = st.slider(
-            "Máximo de ofertas a buscar",
+            "Cantidad máxima de ofertas",
             min_value=10,
             max_value=1000,
             value=100,
             step=10,
-            help="La búsqueda se detendrá cuando alcance este número",
+            help="La app deja de buscar cuando alcanza este número.",
         )
 
-    st.subheader("Plataformas")
+    st.subheader("Fuentes")
     col1, col2 = st.columns(2)
     with col1:
         use_remotive   = st.checkbox("Remotive",       value=True)
@@ -196,9 +196,9 @@ Es **gratuita** — no necesitás tarjeta.
     st.divider()
 
     # ── Perfil del candidato ───────────────────────────────────────────────────
-    st.header("👤 Tu perfil")
+    st.header("👤 Perfil profesional")
     candidate_profile = st.text_area(
-        "Describí tu perfil (para que la IA evalúe el match)",
+        "Contale a la IA qué tipo de perfil tenés",
         value="""Rol buscado: Frontend Engineer / Full Stack (solo remoto)
 
 Stack técnico:
@@ -221,38 +221,46 @@ Ubicación: Cualquier zona horaria — 100% remoto""",
 
 # ─── Main area ───────────────────────────────────────────────────────────────
 st.title("🎯 Job Hunter AI")
-st.caption("Encontrá ofertas remotas que matcheen con tu perfil, con IA")
+st.caption("Buscá ofertas remotas, priorizalas con IA y generá cartas listas para usar.")
+
+
+def format_duration(seconds):
+    seconds = max(0, int(round(seconds)))
+    minutes, secs = divmod(seconds, 60)
+    if minutes:
+        return f"{minutes} min {secs:02d} s"
+    return f"{secs} s"
 
 # Validación antes de correr
 def validate_config():
     errors = []
     if not gemini_key or not gemini_key.startswith("AIza"):
-        errors.append("❌ API Key de Gemini inválida o vacía")
+        errors.append("❌ Cargá una API key de Gemini válida.")
     
     if send_email:
         if not email_sender or "@" not in email_sender:
-            errors.append("❌ Si envías email: Gmail sender requerido")
+            errors.append("❌ Si querés enviar el resumen por email, completá el email de envío.")
         if not email_password or len(email_password.replace(" ","")) != 16:
-            errors.append("❌ Si envías email: App Password debe tener exactamente 16 caracteres (sin espacios)")
+            errors.append("❌ La contraseña de aplicación de Gmail debe tener exactamente 16 caracteres.")
         if not email_recipient or "@" not in email_recipient:
-            errors.append("❌ Si envías email: email recipient requerido")
+            errors.append("❌ Completá el email que va a recibir el resumen.")
     
     keywords = [k.strip() for k in keywords_raw.strip().splitlines() if k.strip()]
     if not keywords:
-        errors.append("❌ Agregá al menos una keyword")
+        errors.append("❌ Escribí al menos una búsqueda o palabra clave.")
     
     platforms = any([use_remotive, use_arbeitnow, use_wwr, use_himalayas])
     if not platforms:
-        errors.append("❌ Seleccioná al menos una plataforma")
+        errors.append("❌ Seleccioná al menos una fuente de ofertas.")
     
     return errors
 
 # ─── Run button ───────────────────────────────────────────────────────────────
 col_btn, col_info = st.columns([2, 3])
 with col_btn:
-    run_button = st.button("🚀 Buscar ofertas ahora", type="primary", use_container_width=True)
+    run_button = st.button("🚀 Empezar búsqueda", type="primary", use_container_width=True)
 with col_info:
-    st.info("⏱ Tarda ~6-8 min · 90 ofertas · IA evalúa cada una")
+    st.info("⏱️ Una búsqueda completa suele tardar entre 6 y 8 minutos.")
 
 if run_button:
     # Re-leer valores actuales de la UI (sin necesidad de Ctrl+Enter)
@@ -290,11 +298,22 @@ if run_button:
     # Parchear plataformas activas en scrapers
     import scrapers as sc
 
-    # ── STEP 1: Scraping ───────────────────────────────────────────────────────
-    st.divider()
-    st.subheader("Step 1 — Scraping de plataformas")
+    workflow_placeholder = st.empty()
 
-    platform_status = st.empty()
+    def render_workflow_step(step_number, step_title, step_description):
+        with workflow_placeholder.container():
+            st.divider()
+            st.caption(f"Paso actual: {step_number} de 4")
+            st.subheader(step_title)
+            st.caption(step_description)
+            return st.empty(), st.empty(), st.empty()
+
+    # ── STEP 1: Scraping ───────────────────────────────────────────────────────
+    platform_status, platform_notice, platform_eta = render_workflow_step(
+        1,
+        "Paso 1: buscar ofertas",
+        "Estamos recorriendo las fuentes seleccionadas para reunir oportunidades relevantes.",
+    )
     progress_scrape = st.progress(0)
 
     all_jobs = []
@@ -307,11 +326,13 @@ if run_button:
     }
     enabled_list = [p for p, v in platforms_enabled.items() if v]
     total_platforms = len(enabled_list)
+    scrape_started_at = time.monotonic()
 
     for idx, platform_name in enumerate(enabled_list):
-        platform_status.info(f"Scraping **{platform_name}**...")
+        platform_status.info(f"Buscando ofertas en **{platform_name}**...")
         if max_results_limit > 0 and len(all_jobs) >= max_results_limit:
-            platform_status.success(f"✅ Se alcanzó el límite de {max_results_limit} ofertas.")
+            platform_status.success(f"✅ Se alcanzó el límite configurado de {max_results_limit} ofertas.")
+            platform_eta.info("Tiempo restante estimado: 0 s")
             break
         try:
             if platform_name == "Remotive":
@@ -345,31 +366,41 @@ if run_button:
                     break
 
         except Exception as e:
-            st.warning(f"⚠️ Error en {platform_name}: {e}")
+            platform_notice.warning(f"⚠️ Hubo un problema al consultar {platform_name}: {e}")
 
-        progress_scrape.progress((idx + 1) / total_platforms)
+        completed_platforms = idx + 1
+        progress_scrape.progress(completed_platforms / total_platforms)
+        elapsed = time.monotonic() - scrape_started_at
+        avg_per_platform = elapsed / completed_platforms
+        remaining_platforms = total_platforms - completed_platforms
+        eta_seconds = avg_per_platform * remaining_platforms
+        platform_eta.info(f"Tiempo restante estimado: {format_duration(eta_seconds)}")
 
-    platform_status.success(f"✅ Scraping completado — **{len(all_jobs)} ofertas únicas** encontradas")
+    platform_status.success(f"✅ Búsqueda terminada: se encontraron **{len(all_jobs)} ofertas únicas**.")
+    platform_eta.info(f"Tiempo total: {format_duration(time.monotonic() - scrape_started_at)}")
 
     # ── STEP 2: AI Scoring ────────────────────────────────────────────────────
-    st.divider()
-    st.subheader("Step 2 — Evaluación con IA")
-
-    ai_status    = st.empty()
+    ai_status, ai_notice, ai_eta = render_workflow_step(
+        2,
+        "Paso 2: analizar cada oferta con IA",
+        "Ahora evaluamos qué tan bien encaja cada oferta con tu perfil.",
+    )
     progress_ai  = st.progress(0)
     live_results = st.empty()
 
     scored_jobs  = []
     top_so_far   = []
     quota_exceeded = False
+    scoring_started_at = time.monotonic()
+    total_jobs = len(all_jobs)
 
     for i, job in enumerate(all_jobs):
-        ai_status.info(f"Evaluando **{i+1}/{len(all_jobs)}** — {job.title[:50]} @ {job.company}")
+        ai_status.info(f"Analizando oferta **{i+1} de {total_jobs}**: {job.title[:50]} @ {job.company}")
         data  = ai_engine.score_job(job)
         score = data.get("score", 0)
         if data.get("quota_exceeded", False):
             quota_exceeded = True
-            st.error(f"⚠️ Se agotó la cuota diaria de Gemini. Ya se evaluaron {i} ofertas. Vuelve mañana para continuar.")
+            ai_notice.error(f"⚠️ Se agotó la cuota diaria de Gemini. Se alcanzaron a evaluar {i} ofertas. Podés continuar mañana.")
             break
 
         from ai_engine import ScoredJob
@@ -389,7 +420,7 @@ if run_button:
         # Mostrar top matches en tiempo real
         top5 = sorted(scored_jobs, key=lambda x: x.score, reverse=True)[:5]
         with live_results.container():
-            st.caption("🔥 Top matches hasta ahora:")
+            st.caption("Mejores resultados hasta este momento:")
             for t in top5:
                 color = "score-high" if t.score >= 80 else "score-medium" if t.score >= 60 else "score-low"
                 st.markdown(
@@ -398,43 +429,67 @@ if run_button:
                     unsafe_allow_html=True,
                 )
 
-        progress_ai.progress((i + 1) / len(all_jobs))
+        completed_jobs = i + 1
+        progress_ai.progress(completed_jobs / total_jobs)
+        elapsed = time.monotonic() - scoring_started_at
+        avg_per_job = elapsed / completed_jobs
+        remaining_jobs = total_jobs - completed_jobs
+        eta_seconds = avg_per_job * remaining_jobs
+        ai_eta.info(f"Tiempo restante estimado: {format_duration(eta_seconds)}")
         time.sleep(0.1)
 
     scored_jobs.sort(key=lambda x: x.score, reverse=True)
     top_matches = [j for j in scored_jobs if j.score >= min_score]
     if not quota_exceeded:
-        ai_status.success(f"✅ Evaluación completada — **{len(top_matches)} matches** sobre umbral de {min_score}")
+        ai_status.success(f"✅ Análisis terminado: **{len(top_matches)} ofertas** superan el puntaje mínimo de {min_score}.")
+        ai_eta.info(f"Tiempo total: {format_duration(time.monotonic() - scoring_started_at)}")
 
     # ── STEP 3: Cover Letters ─────────────────────────────────────────────────
     if top_matches:
-        st.divider()
-        st.subheader("Step 3 — Generando cover letters")
-        cl_status   = st.empty()
+        cl_status, _, cl_eta = render_workflow_step(
+            3,
+            "Paso 3: generar cartas personalizadas",
+            "Estamos preparando una carta para cada oportunidad recomendada.",
+        )
         progress_cl = st.progress(0)
+        cover_started_at = time.monotonic()
+        total_letters = len(top_matches)
 
         for i, sj in enumerate(top_matches):
-            cl_status.info(f"Cover letter **{i+1}/{len(top_matches)}** — {sj.job.title}")
+            cl_status.info(f"Generando carta **{i+1} de {total_letters}** para {sj.job.title}")
             sj.cover_letter = ai_engine.generate_cover_letter(
                 sj.job, {"match_reasons": sj.match_reasons}
             )
-            progress_cl.progress((i + 1) / len(top_matches))
+            completed_letters = i + 1
+            progress_cl.progress(completed_letters / total_letters)
+            elapsed = time.monotonic() - cover_started_at
+            avg_per_letter = elapsed / completed_letters
+            remaining_letters = total_letters - completed_letters
+            eta_seconds = avg_per_letter * remaining_letters
+            cl_eta.info(f"Tiempo restante estimado: {format_duration(eta_seconds)}")
 
-        cl_status.success("✅ Cover letters generadas")
+        cl_status.success("✅ Cartas generadas.")
+        cl_eta.info(f"Tiempo total: {format_duration(time.monotonic() - cover_started_at)}")
 
     # ── STEP 4: Email opcional ─────────────────────────────────────────────────
     if send_email and top_matches and email_sender and email_password:
-        st.divider()
-        st.subheader("Step 4 — Enviando digest por email")
+        email_status, _, email_eta = render_workflow_step(
+            4,
+            "Paso 4: enviar resumen por email",
+            "Último paso: enviamos el resumen con las mejores oportunidades.",
+        )
         try:
             from notifier import send_digest
             cfg.EMAIL_SENDER    = email_sender
             cfg.EMAIL_PASSWORD  = email_password
             cfg.EMAIL_RECIPIENT = email_recipient
+            email_status.info("Enviando resumen...")
+            email_eta.info("Tiempo estimado: menos de 1 minuto")
             send_digest(scored_jobs)
-            st.success(f"✅ Digest enviado a **{email_recipient}**")
+            email_status.success(f"✅ Se envió el resumen a **{email_recipient}**.")
+            email_eta.info("Tiempo restante estimado: 0 s")
         except Exception as e:
-            st.error(f"❌ Error enviando email: {e}")
+            email_status.error(f"❌ No se pudo enviar el email: {e}")
 
     # ── RESULTADOS ─────────────────────────────────────────────────────────────
     st.divider()
@@ -443,21 +498,21 @@ if run_button:
     # Métricas resumen
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Ofertas analizadas", len(scored_jobs))
-    c2.metric("Matches encontrados", len(top_matches))
+    c2.metric("Ofertas recomendadas", len(top_matches))
     c3.metric(
-        "Top score",
+        "Mejor puntaje",
         f"{scored_jobs[0].score}/100" if scored_jobs else "—",
         scored_jobs[0].job.title[:30] if scored_jobs else "",
     )
     dist_80 = sum(1 for j in scored_jobs if j.score >= 80)
-    c4.metric("Excelentes (80+)", dist_80)
+    c4.metric("Muy buenas (80+)", dist_80)
 
     st.divider()
 
     # ── Tabs: Top matches / Todas las ofertas
     tab1, tab2 = st.tabs([
-        f"🔥 Top matches ({len(top_matches)})",
-        f"📋 Todas las ofertas ({len(scored_jobs)})",
+        f"🔥 Recomendadas ({len(top_matches)})",
+        f"📋 Todas ({len(scored_jobs)})",
     ])
 
     def render_job_card(sj, idx, section):
@@ -486,30 +541,30 @@ if run_button:
                     st.caption(sj.summary)
             with link_col:
                 if sj.job.url:
-                    st.link_button("Ver oferta →", sj.job.url, use_container_width=True)
+                    st.link_button("Abrir oferta", sj.job.url, use_container_width=True)
 
             r1, r2 = st.columns(2)
             with r1:
-                st.markdown("**✅ Por qué matchea**")
+                st.markdown("**✅ Por qué encaja con tu perfil**")
                 for reason in sj.match_reasons:
                     st.markdown(f"- {reason}")
             with r2:
-                st.markdown("**⚠️ Skills faltantes**")
+                st.markdown("**⚠️ Lo que podría faltar**")
                 if sj.missing_skills:
                     for skill in sj.missing_skills:
                         st.markdown(f"- {skill}")
                 else:
-                    st.markdown("- Ninguno crítico")
+                    st.markdown("- No hay faltantes críticos")
 
             if sj.cover_letter:
-                st.markdown("**📝 Cover letter generada**")
+                st.markdown("**📝 Carta generada**")
                 st.markdown(
                     f'<div class="cover-letter-box">{sj.cover_letter}</div>',
                     unsafe_allow_html=True,
                 )
                 unique_key = f"dl_{section}_{sj.job.id}_{idx}"
                 st.download_button(
-                    "⬇ Descargar cover letter",
+                    "⬇ Descargar carta",
                     data=sj.cover_letter,
                     file_name=f"cover_{sj.job.company.replace(' ','_')}_{sj.job.title[:20].replace(' ','_')}.txt",
                     mime="text/plain",
@@ -521,10 +576,10 @@ if run_button:
             for i, sj in enumerate(top_matches):
                 render_job_card(sj, i, "top")
         else:
-            st.info(f"No se encontraron matches sobre {min_score} puntos. Probá bajando el score mínimo en la barra lateral.")
+            st.info(f"No se encontraron ofertas por encima de {min_score} puntos. Probá bajar el puntaje mínimo.")
 
     with tab2:
-        st.caption("Todas las ofertas ordenadas por score")
+        st.caption("Todas las ofertas, ordenadas de mayor a menor puntaje.")
         for i, sj in enumerate(scored_jobs):
             render_job_card(sj, i, "all")
 
@@ -550,7 +605,7 @@ if run_button:
         json.dump(data_out, f, ensure_ascii=False, indent=2)
 
     st.download_button(
-        "⬇ Descargar resultados completos (JSON)",
+        "⬇ Descargar resultados en JSON",
         data=json.dumps(data_out, ensure_ascii=False, indent=2),
         file_name=f"job_hunt_{ts}.json",
         mime="application/json",
@@ -559,17 +614,17 @@ if run_button:
 else:
     # Estado inicial — instrucciones
     st.markdown("""
-### 👈 Configurá todo en la barra lateral y hacé click en **Buscar ofertas ahora**
+### 👈 Completá la barra lateral y después hacé click en **Empezar búsqueda**
 
-**¿Qué hace esta app?**
-1. 🔍 Scrapea ofertas remotas en Remotive, Arbeitnow, WeWorkRemotely e Himalayas
-2. 🤖 Evalúa cada oferta con IA según tu perfil (score 0-100)
-3. ✍️ Genera cover letters personalizadas para los mejores matches
-4. 📧 Opcionalmente te manda un digest al email
+**¿Qué hace esta app por vos?**
+1. Busca ofertas remotas en Remotive, Arbeitnow, WeWorkRemotely e Himalayas
+2. Analiza cada oferta con IA según tu perfil y le da un puntaje de 0 a 100
+3. Genera cartas personalizadas para las oportunidades con mejor encaje
+4. Si querés, te envía un resumen por email al finalizar
 
-**Requisitos:**
-- API Key de Gemini (gratis en [aistudio.google.com](https://aistudio.google.com/app/apikey))
-- Gmail App Password (si querés el digest por email)
+**Qué necesitás para usarla**
+- Una API key de Gemini (gratis en [aistudio.google.com](https://aistudio.google.com/app/apikey))
+- Una contraseña de aplicación de Gmail, solo si querés recibir el resumen por email
     """)
 
-    st.info("💡 **Tip:** Podés correrla sin email y ver los resultados directamente en pantalla.")
+    st.info("💡 Podés usar la app sin email y ver todos los resultados directamente en pantalla.")
