@@ -18,6 +18,17 @@ st.set_page_config(
 
 st.markdown("""
 <style>
+    /* ── Layout centering ─────────────────────────────────────────── */
+    div.block-container {
+        max-width: 1100px;
+        padding-top: 2.5rem;
+        padding-left: 3rem;
+        padding-right: 3rem;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    /* ── Score / source badges ────────────────────────────────────── */
     .score-badge {
         display: inline-block;
         padding: 4px 12px;
@@ -40,11 +51,15 @@ st.markdown("""
     .src-arbeitnow { background: #0ea5e9; }
     .src-wwr       { background: #10b981; }
     .src-himalayas { background: #f59e0b; }
-    div[data-testid="stDialog"] div[data-testid="stForm"] {
+
+    /* ── Keyword form: blend with multiselect ────────────────────── */
+    div[data-testid="stForm"] {
         border: none !important;
         padding: 0 !important;
         background: transparent !important;
     }
+
+    /* ── Cover letter box ─────────────────────────────────────────── */
     .cover-letter-box {
         background: #f8fafc;
         border: 1px solid #e2e8f0;
@@ -55,6 +70,8 @@ st.markdown("""
         line-height: 1.8;
         white-space: pre-wrap;
     }
+
+    /* ── Misc ─────────────────────────────────────────────────────── */
     div[data-testid="stExpander"] { border: 1px solid #e2e8f0; border-radius: 8px; }
     section[data-testid="stSidebar"] { display: none; }
     button[data-testid="collapsedControl"] { display: none; }
@@ -122,206 +139,229 @@ def validate_config():
     return errors
 
 
-# ─── Dialog ───────────────────────────────────────────────────────────────────
-@st.dialog("⚙️ Configurar búsqueda", width="large")
-def config_dialog():
+# ─── Config wizard (inline — no @st.dialog fragment, cierre garantizado) ──────
+def show_config_wizard():
     step = st.session_state.config_step
-    st.progress(step / 3, text=f"Paso {step} de 3")
-    st.divider()
 
-    # ── Paso 1: Credenciales ──────────────────────────────────────────────────
-    if step == 1:
-        st.subheader("🔑 Credenciales")
+    _, card_col, _ = st.columns([1, 3, 1])
+    with card_col:
+        # Header
+        h_title, h_close = st.columns([5, 1])
+        with h_title:
+            st.subheader("⚙️ Configurar búsqueda")
+        with h_close:
+            if st.button("✕ Cerrar", use_container_width=True):
+                st.session_state.show_dialog = False
+                st.rerun()
 
-        with st.expander("¿Cómo obtengo la API key de Gemini?", icon="❓"):
-            st.markdown("""
+        st.progress(step / 3, text=f"Paso {step} de 3")
+        st.divider()
+
+        # ── Paso 1: Credenciales ──────────────────────────────────────────────
+        if step == 1:
+            st.markdown("**🔑 Credenciales**")
+
+            with st.expander("¿Cómo obtengo la API key de Gemini?", icon="❓"):
+                st.markdown("""
 1. Ir a [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)
 2. Iniciar sesión con Google → **Create API Key**
 3. Copiar la clave — es gratis, no requiere tarjeta.
 """)
 
-        st.session_state.gemini_key = st.text_input(
-            "API Key de Gemini", value=st.session_state.gemini_key,
-            type="password", placeholder="AIzaXXXXXXXXXXXXXXXXX",
-        )
+            st.session_state.gemini_key = st.text_input(
+                "API Key de Gemini", value=st.session_state.gemini_key,
+                type="password", placeholder="AIzaXXXXXXXXXXXXXXXXX",
+            )
 
-        _models = [
-            "models/gemini-3.1-pro",
-            "models/gemini-3.1-flash-lite",
-            "models/gemini-3.0-flash",
-            "models/gemini-2.5-pro",
-            "models/gemini-2.5-flash",
-            "models/gemini-2.5-flash-lite",
-            "models/gemini-2.0-flash",
-            "models/gemini-2.0-flash-lite",
-            "models/gemini-1.5-pro",
-            "models/gemini-1.5-flash",
-            "models/gemini-1.5-flash-8b",
-        ]
-        if st.session_state.selected_model not in _models:
-            st.session_state.selected_model = _models[0]
-        _idx = _models.index(st.session_state.selected_model)
-        st.session_state.selected_model = st.selectbox("Modelo de IA", _models, index=_idx)
+            _models = [
+                "models/gemini-3.1-pro",
+                "models/gemini-3.1-flash-lite",
+                "models/gemini-3.0-flash",
+                "models/gemini-2.5-pro",
+                "models/gemini-2.5-flash",
+                "models/gemini-2.5-flash-lite",
+                "models/gemini-2.0-flash",
+                "models/gemini-2.0-flash-lite",
+                "models/gemini-1.5-pro",
+                "models/gemini-1.5-flash",
+                "models/gemini-1.5-flash-8b",
+            ]
+            if st.session_state.selected_model not in _models:
+                st.session_state.selected_model = _models[0]
+            _idx = _models.index(st.session_state.selected_model)
+            st.session_state.selected_model = st.selectbox("Modelo de IA", _models, index=_idx)
 
-        st.divider()
-        st.session_state.send_email = st.checkbox(
-            "📧 Recibir resumen por email al terminar", value=st.session_state.send_email,
-        )
-        if st.session_state.send_email:
-            with st.expander("¿Cómo obtengo la contraseña de aplicación de Gmail?", icon="❓"):
-                st.markdown("""
+            st.divider()
+            st.session_state.send_email = st.checkbox(
+                "📧 Recibir resumen por email al terminar",
+                value=st.session_state.send_email,
+            )
+            if st.session_state.send_email:
+                with st.expander("¿Cómo obtengo la contraseña de aplicación de Gmail?", icon="❓"):
+                    st.markdown("""
 1. [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords)
 2. Verificación en 2 pasos **activada**
 3. Crear app `Job Hunter` → copiar los 16 caracteres
 """)
-            st.session_state.email_sender = st.text_input(
-                "Tu Gmail", value=st.session_state.email_sender, placeholder="tu@gmail.com",
-            )
-            st.session_state.email_password_raw = st.text_input(
-                "Contraseña de app (16 caracteres)", value=st.session_state.email_password_raw,
-                type="password", placeholder="abcd efgh ijkl mnop",
-            )
-            st.session_state.email_recipient = st.text_input(
-                "Email donde recibir resultados", value=st.session_state.email_recipient,
-                placeholder="tu@gmail.com",
-            )
-
-        if st.button("Siguiente →", type="primary", use_container_width=True):
-            err = []
-            if not st.session_state.gemini_key or not st.session_state.gemini_key.startswith("AIza"):
-                err.append("API key inválida.")
-            if st.session_state.send_email:
-                pw = st.session_state.email_password_raw.replace(" ", "")
-                if not st.session_state.email_sender or "@" not in st.session_state.email_sender:
-                    err.append("Email de envío inválido.")
-                if len(pw) != 16:
-                    err.append("La contraseña de app debe tener 16 caracteres.")
-                if not st.session_state.email_recipient or "@" not in st.session_state.email_recipient:
-                    err.append("Email destinatario inválido.")
-            if err:
-                st.toast(" · ".join(err), icon="⚠️")
-            else:
-                st.session_state.config_step = 2
-                st.rerun(scope="app")
-
-    # ── Paso 2: Keywords y fuentes ────────────────────────────────────────────
-    elif step == 2:
-        st.subheader("🔍 Búsqueda")
-
-        # Procesar keyword pendiente ANTES de que el multiselect se instancie
-        if "_pending_add" in st.session_state:
-            _kw = st.session_state.pop("_pending_add")
-            if _kw and _kw not in st.session_state.keywords_list:
-                st.session_state.keywords_list.append(_kw)
-            st.session_state["kw_tags"] = list(st.session_state.keywords_list)
-
-        if "kw_tags" not in st.session_state:
-            st.session_state["kw_tags"] = list(st.session_state.keywords_list)
-
-        _opts = list(st.session_state["kw_tags"])
-        selected = st.multiselect(
-            "Keywords",
-            options=_opts,
-            default=_opts,
-            key="kw_tags",
-            placeholder="Tus keywords — × para quitar",
-            label_visibility="collapsed",
-        )
-        st.session_state.keywords_list = list(selected)
-
-        with st.form("add_kw", clear_on_submit=True):
-            c1, c2 = st.columns([5, 1])
-            with c1:
-                new_kw = st.text_input(
-                    "kw", placeholder="Nueva keyword — Enter para agregar",
-                    label_visibility="collapsed",
+                st.session_state.email_sender = st.text_input(
+                    "Tu Gmail", value=st.session_state.email_sender, placeholder="tu@gmail.com",
                 )
-            with c2:
-                add_submitted = st.form_submit_button("+ Agregar", use_container_width=True)
-            if add_submitted and new_kw.strip():
-                st.session_state["_pending_add"] = new_kw.strip()
-                st.rerun(scope="app")
+                st.session_state.email_password_raw = st.text_input(
+                    "Contraseña de app (16 caracteres)", value=st.session_state.email_password_raw,
+                    type="password", placeholder="abcd efgh ijkl mnop",
+                )
+                st.session_state.email_recipient = st.text_input(
+                    "Email donde recibir resultados", value=st.session_state.email_recipient,
+                    placeholder="tu@gmail.com",
+                )
 
-        st.divider()
+            if st.button("Siguiente →", type="primary", use_container_width=True):
+                err = []
+                if not st.session_state.gemini_key or not st.session_state.gemini_key.startswith("AIza"):
+                    err.append("API key inválida.")
+                if st.session_state.send_email:
+                    pw = st.session_state.email_password_raw.replace(" ", "")
+                    if not st.session_state.email_sender or "@" not in st.session_state.email_sender:
+                        err.append("Email de envío inválido.")
+                    if len(pw) != 16:
+                        err.append("La contraseña de app debe tener 16 caracteres.")
+                    if not st.session_state.email_recipient or "@" not in st.session_state.email_recipient:
+                        err.append("Email destinatario inválido.")
+                if err:
+                    st.toast(" · ".join(err), icon="⚠️")
+                else:
+                    st.session_state.config_step = 2
+                    st.rerun()
 
-        st.session_state.min_score = st.slider(
-            "Puntaje mínimo para recomendar", min_value=30, max_value=90, step=5,
-            value=st.session_state.min_score,
-            help="Las ofertas con puntaje menor a este valor quedan fuera de los resultados recomendados.",
-        )
+        # ── Paso 2: Keywords y fuentes ────────────────────────────────────────
+        elif step == 2:
+            st.markdown("**🔍 Búsqueda**")
 
-        st.markdown("**Fuentes donde buscar**")
-        c1, c2 = st.columns(2)
-        with c1:
-            st.session_state.use_remotive  = st.checkbox("Remotive",       value=st.session_state.use_remotive)
-            st.session_state.use_arbeitnow = st.checkbox("Arbeitnow",      value=st.session_state.use_arbeitnow)
-        with c2:
-            st.session_state.use_wwr       = st.checkbox("WeWorkRemotely", value=st.session_state.use_wwr)
-            st.session_state.use_himalayas = st.checkbox("Himalayas",      value=st.session_state.use_himalayas)
+            # Procesar keyword pendiente ANTES de que el multiselect se instancie
+            if "_pending_add" in st.session_state:
+                _kw = st.session_state.pop("_pending_add")
+                if _kw and _kw not in st.session_state.keywords_list:
+                    st.session_state.keywords_list.append(_kw)
+                st.session_state["kw_tags"] = list(st.session_state.keywords_list)
 
-        st.session_state.use_max_results = st.checkbox(
-            "Limitar cantidad de ofertas a analizar",
-            value=st.session_state.use_max_results,
-            help="Útil para pruebas rápidas o para ahorrar cuota de IA.",
-        )
-        if st.session_state.use_max_results:
-            st.session_state.max_results_limit = st.slider(
-                "Máximo de ofertas", min_value=10, max_value=500, step=10,
-                value=st.session_state.max_results_limit,
+            if "kw_tags" not in st.session_state:
+                st.session_state["kw_tags"] = list(st.session_state.keywords_list)
+
+            _opts = list(st.session_state["kw_tags"])
+            selected = st.multiselect(
+                "Keywords",
+                options=_opts,
+                default=_opts,
+                key="kw_tags",
+                placeholder="Tus keywords — × para quitar",
+                label_visibility="collapsed",
+            )
+            st.session_state.keywords_list = list(selected)
+
+            with st.form("add_kw", clear_on_submit=True):
+                c1, c2 = st.columns([5, 1])
+                with c1:
+                    new_kw = st.text_input(
+                        "kw", placeholder="Nueva keyword — Enter para agregar",
+                        label_visibility="collapsed",
+                    )
+                with c2:
+                    add_submitted = st.form_submit_button("+ Agregar", use_container_width=True)
+                if add_submitted and new_kw.strip():
+                    st.session_state["_pending_add"] = new_kw.strip()
+                    st.rerun()
+
+            st.divider()
+
+            st.session_state.min_score = st.slider(
+                "Puntaje mínimo para recomendar", min_value=30, max_value=90, step=5,
+                value=st.session_state.min_score,
+                help="Las ofertas con puntaje menor quedan fuera de los resultados recomendados.",
             )
 
-        col_back, col_next = st.columns(2)
-        with col_back:
-            if st.button("← Atrás", use_container_width=True):
-                st.session_state.config_step = 1
-                st.rerun(scope="app")
-        with col_next:
-            if st.button("Siguiente →", type="primary", use_container_width=True):
-                if not st.session_state.keywords_list:
-                    st.toast("Agregá al menos una keyword.", icon="⚠️")
-                elif not any([st.session_state.use_remotive, st.session_state.use_arbeitnow,
-                              st.session_state.use_wwr, st.session_state.use_himalayas]):
-                    st.toast("Seleccioná al menos una fuente.", icon="⚠️")
-                else:
-                    st.session_state.config_step = 3
-                    st.rerun(scope="app")
+            st.markdown("**Fuentes donde buscar**")
+            c1, c2 = st.columns(2)
+            with c1:
+                st.session_state.use_remotive  = st.checkbox("Remotive",       value=st.session_state.use_remotive)
+                st.session_state.use_arbeitnow = st.checkbox("Arbeitnow",      value=st.session_state.use_arbeitnow)
+            with c2:
+                st.session_state.use_wwr       = st.checkbox("WeWorkRemotely", value=st.session_state.use_wwr)
+                st.session_state.use_himalayas = st.checkbox("Himalayas",      value=st.session_state.use_himalayas)
 
-    # ── Paso 3: Perfil ────────────────────────────────────────────────────────
-    elif step == 3:
-        st.subheader("👤 Tu perfil profesional")
-        st.caption("La IA usa este texto para evaluar qué tan bien encaja cada oferta con vos.")
+            st.session_state.use_max_results = st.checkbox(
+                "Limitar cantidad de ofertas a analizar",
+                value=st.session_state.use_max_results,
+                help="Útil para pruebas rápidas o para ahorrar cuota de IA.",
+            )
+            if st.session_state.use_max_results:
+                st.session_state.max_results_limit = st.slider(
+                    "Máximo de ofertas", min_value=10, max_value=500, step=10,
+                    value=st.session_state.max_results_limit,
+                )
 
-        st.session_state.candidate_profile = st.text_area(
-            "perfil",
-            value=st.session_state.candidate_profile,
-            height=270,
-            label_visibility="collapsed",
-            placeholder="Rol buscado, stack técnico, experiencia, idiomas...",
-        )
+            col_back, col_next = st.columns(2)
+            with col_back:
+                if st.button("← Atrás", use_container_width=True):
+                    st.session_state.config_step = 1
+                    st.rerun()
+            with col_next:
+                if st.button("Siguiente →", type="primary", use_container_width=True):
+                    if not st.session_state.keywords_list:
+                        st.toast("Agregá al menos una keyword.", icon="⚠️")
+                    elif not any([st.session_state.use_remotive, st.session_state.use_arbeitnow,
+                                  st.session_state.use_wwr, st.session_state.use_himalayas]):
+                        st.toast("Seleccioná al menos una fuente.", icon="⚠️")
+                    else:
+                        st.session_state.config_step = 3
+                        st.rerun()
 
-        col_back, col_start = st.columns(2)
-        with col_back:
-            if st.button("← Atrás", use_container_width=True):
-                st.session_state.config_step = 2
-                st.rerun(scope="app")
-        with col_start:
-            if st.button("🚀 Iniciar búsqueda", type="primary", use_container_width=True):
-                errors = validate_config()
-                if errors:
-                    st.toast(" · ".join(errors), icon="⚠️")
-                else:
-                    st.session_state.show_dialog = False
-                    st.session_state.run_search  = True
-                    st.rerun(scope="app")
+        # ── Paso 3: Perfil ────────────────────────────────────────────────────
+        elif step == 3:
+            st.markdown("**👤 Tu perfil profesional**")
+            st.caption("La IA usa este texto para evaluar qué tan bien encaja cada oferta con vos.")
+
+            st.session_state.candidate_profile = st.text_area(
+                "perfil",
+                value=st.session_state.candidate_profile,
+                height=260,
+                label_visibility="collapsed",
+                placeholder="Rol buscado, stack técnico, experiencia, idiomas...",
+            )
+
+            col_back, col_start = st.columns(2)
+            with col_back:
+                if st.button("← Atrás", use_container_width=True):
+                    st.session_state.config_step = 2
+                    st.rerun()
+            with col_start:
+                if st.button("🚀 Iniciar búsqueda", type="primary", use_container_width=True):
+                    errors = validate_config()
+                    if errors:
+                        st.toast(" · ".join(errors), icon="⚠️")
+                    else:
+                        st.session_state.show_dialog = False
+                        st.session_state.run_search  = True
+                        st.rerun()  # Rerun normal — sin fragment, cierre garantizado
 
 
-# ─── Main area ────────────────────────────────────────────────────────────────
-st.title("🎯 Job Hunter AI")
-st.caption("Buscá ofertas remotas, priorizalas con IA y generá cartas listas para usar.")
+# ─── Título ───────────────────────────────────────────────────────────────────
+st.markdown("""
+<div style="text-align:center; padding: 1rem 0 0.5rem 0;">
+    <h1 style="margin-bottom:0.25rem;">🎯 Job Hunter AI</h1>
+    <p style="color:#64748b; font-size:1.05rem; margin:0;">
+        Buscá ofertas remotas, priorizalas con IA y generá cartas de presentación listas para usar.
+    </p>
+</div>
+""", unsafe_allow_html=True)
 
+# ─── Wizard (toma la página cuando está activo) ────────────────────────────────
 if st.session_state.show_dialog:
-    config_dialog()
+    st.divider()
+    show_config_wizard()
+    st.stop()
 
+# ─── Placeholders (sólo cuando el wizard NO está activo) ──────────────────────
+st.divider()
 action_placeholder      = st.empty()
 workflow_placeholder    = st.empty()
 results_placeholder     = st.empty()
@@ -338,28 +378,29 @@ def format_duration(seconds):
 
 def render_empty_state():
     with empty_state_placeholder.container():
-        st.markdown("""
-### Hacé click en **Configurar y buscar** para empezar
-
-**¿Qué hace esta app?**
-1. Busca ofertas remotas en Remotive, Arbeitnow, WeWorkRemotely e Himalayas
-2. Analiza cada oferta con IA según tu perfil (puntaje 0–100)
-3. Genera cartas de presentación personalizadas
-4. Opcional: te envía un resumen por email al finalizar
-""")
-        st.info("💡 No necesitás configurar el email — podés ver todos los resultados directo en pantalla.")
+        st.markdown("<br>", unsafe_allow_html=True)
+        c1, c2, c3, c4 = st.columns(4)
+        for col, icon, title, desc in [
+            (c1, "🔍", "Busca", "Remotive, Arbeitnow, WeWorkRemotely e Himalayas"),
+            (c2, "🤖", "Analiza", "La IA puntúa cada oferta del 0 al 100 según tu perfil"),
+            (c3, "📝", "Redacta", "Genera cartas de presentación personalizadas"),
+            (c4, "📧", "Envía", "Resumen por email al terminar (opcional)"),
+        ]:
+            with col:
+                with st.container(border=True):
+                    st.markdown(f"**{icon} {title}**")
+                    st.caption(desc)
 
 
 # ─── Botón de acción ──────────────────────────────────────────────────────────
 with action_placeholder.container():
-    col_btn, col_info = st.columns([2, 3])
-    with col_btn:
+    _, btn_col, _ = st.columns([1, 1, 1])
+    with btn_col:
         _label = "🔄 Nueva búsqueda" if st.session_state.search_done else "⚙️ Configurar y buscar"
         if st.button(_label, type="primary", use_container_width=True):
             st.session_state.show_dialog = True
             st.session_state.config_step = 1
             st.rerun()
-    with col_info:
         if not st.session_state.search_done and not st.session_state.run_search:
             st.info("⏱️ Una búsqueda completa suele tardar entre 6 y 8 minutos.")
 
@@ -528,9 +569,9 @@ if st.session_state.run_search:
             )
             time.sleep(0.1)
 
-        scoring_elapsed = time.monotonic() - scoring_started_at
         scored_jobs.sort(key=lambda x: x.score, reverse=True)
         top_matches = [j for j in scored_jobs if j.score >= min_score]
+        scoring_elapsed = time.monotonic() - scoring_started_at
         if not quota_exceeded:
             ai_status.success(
                 f"✅ **{len(top_matches)} recomendadas** de {len(scored_jobs)} analizadas — {format_duration(scoring_elapsed)}"
@@ -605,8 +646,8 @@ if st.session_state.run_search:
         st.header("📊 Resultados")
 
         c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Analizadas", len(scored_jobs))
-        c2.metric("Recomendadas", len(top_matches))
+        c1.metric("Analizadas",    len(scored_jobs))
+        c2.metric("Recomendadas",  len(top_matches))
         c3.metric("Mejor puntaje", f"{scored_jobs[0].score}/100" if scored_jobs else "—")
         c4.metric("Excelentes (80+)", sum(1 for j in scored_jobs if j.score >= 80))
 
