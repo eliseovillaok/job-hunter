@@ -4,6 +4,7 @@ Interfaz web para configurar y correr el job hunter sin tocar código
 """
 
 import streamlit as st
+import streamlit.components.v1 as components
 import json
 import time
 import os
@@ -59,6 +60,18 @@ st.markdown("""
         border-radius: 12px;
         padding: 16px;
         text-align: center;
+    }
+    .workflow-card {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 18px 18px 10px 18px;
+        margin-bottom: 16px;
+    }
+    .results-anchor {
+        display: block;
+        position: relative;
+        top: -12px;
     }
     div[data-testid="stExpander"] { border: 1px solid #e2e8f0; border-radius: 8px; }
 </style>
@@ -302,10 +315,11 @@ if run_button:
 
     def render_workflow_step(step_number, step_title, step_description):
         with workflow_placeholder.container():
-            st.divider()
+            st.markdown('<div class="workflow-card">', unsafe_allow_html=True)
             st.caption(f"Paso actual: {step_number} de 4")
             st.subheader(step_title)
             st.caption(step_description)
+            st.markdown("</div>", unsafe_allow_html=True)
             return st.empty(), st.empty(), st.empty()
 
     # ── STEP 1: Scraping ───────────────────────────────────────────────────────
@@ -491,8 +505,29 @@ if run_button:
         except Exception as e:
             email_status.error(f"❌ No se pudo enviar el email: {e}")
 
+    with workflow_placeholder.container():
+        st.markdown('<div class="workflow-card">', unsafe_allow_html=True)
+        st.success("Proceso completado")
+        st.caption("Los resultados ya están listos para revisar o descargar.")
+        summary_c1, summary_c2, summary_c3 = st.columns(3)
+        summary_c1.metric("Analizadas", len(scored_jobs))
+        summary_c2.metric("Recomendadas", len(top_matches))
+        summary_c3.metric("Cartas", sum(1 for sj in top_matches if sj.cover_letter))
+        st.markdown("</div>", unsafe_allow_html=True)
+
     # ── RESULTADOS ─────────────────────────────────────────────────────────────
-    st.divider()
+    st.markdown('<span id="results-anchor" class="results-anchor"></span>', unsafe_allow_html=True)
+    components.html(
+        """
+        <script>
+        const anchor = window.parent.document.getElementById("results-anchor");
+        if (anchor) {
+          anchor.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+        </script>
+        """,
+        height=0,
+    )
     st.header("📊 Resultados")
 
     # Métricas resumen
@@ -506,14 +541,6 @@ if run_button:
     )
     dist_80 = sum(1 for j in scored_jobs if j.score >= 80)
     c4.metric("Muy buenas (80+)", dist_80)
-
-    st.divider()
-
-    # ── Tabs: Top matches / Todas las ofertas
-    tab1, tab2 = st.tabs([
-        f"🔥 Recomendadas ({len(top_matches)})",
-        f"📋 Todas ({len(scored_jobs)})",
-    ])
 
     def render_job_card(sj, idx, section):
         score = sj.score
@@ -571,15 +598,15 @@ if run_button:
                     key=unique_key,
                 )
 
-    with tab1:
-        if top_matches:
-            for i, sj in enumerate(top_matches):
-                render_job_card(sj, i, "top")
-        else:
-            st.info(f"No se encontraron ofertas por encima de {min_score} puntos. Probá bajar el puntaje mínimo.")
+    if top_matches:
+        st.subheader("Ofertas recomendadas")
+        for i, sj in enumerate(top_matches):
+            render_job_card(sj, i, "top")
+    else:
+        st.info(f"No se encontraron ofertas por encima de {min_score} puntos. Probá bajar el puntaje mínimo.")
 
-    with tab2:
-        st.caption("Todas las ofertas, ordenadas de mayor a menor puntaje.")
+    with st.expander(f"Ver todas las ofertas ({len(scored_jobs)})", expanded=False):
+        st.caption("Listado completo, ordenado de mayor a menor puntaje.")
         for i, sj in enumerate(scored_jobs):
             render_job_card(sj, i, "all")
 
