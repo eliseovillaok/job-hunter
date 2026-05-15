@@ -40,7 +40,6 @@ st.markdown("""
     .src-arbeitnow { background: #0ea5e9; }
     .src-wwr       { background: #10b981; }
     .src-himalayas { background: #f59e0b; }
-    /* Make the keyword add-form blend with the multiselect above it */
     div[data-testid="stDialog"] div[data-testid="stForm"] {
         border: none !important;
         padding: 0 !important;
@@ -55,13 +54,6 @@ st.markdown("""
         font-size: 14px;
         line-height: 1.8;
         white-space: pre-wrap;
-    }
-    .workflow-card {
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 14px;
-        padding: 18px 18px 10px 18px;
-        margin-bottom: 16px;
     }
     div[data-testid="stExpander"] { border: 1px solid #e2e8f0; border-radius: 8px; }
     section[data-testid="stSidebar"] { display: none; }
@@ -148,20 +140,21 @@ def config_dialog():
 3. Copiar la clave — es gratis, no requiere tarjeta.
 """)
 
-        st.session_state.gemini_key = st.text_input(
-            "API Key de Gemini", value=st.session_state.gemini_key,
+        st.text_input(
+            "API Key de Gemini", key="gemini_key",
             type="password", placeholder="AIzaXXXXXXXXXXXXXXXXX",
         )
 
         _models = [
             "models/gemini-2.5-flash", "models/gemini-2.5-flash-lite",
-            "models/gemini-2.0-flash-lite", "models/gemini-3.1-flash-lite", "models/gemini-3.1-pro",
+            "models/gemini-2.0-flash-lite",
         ]
-        _idx = _models.index(st.session_state.selected_model) if st.session_state.selected_model in _models else 0
-        st.session_state.selected_model = st.selectbox("Modelo", _models, index=_idx)
+        if st.session_state.selected_model not in _models:
+            st.session_state.selected_model = _models[0]
+        st.selectbox("Modelo de IA", _models, key="selected_model")
 
         st.divider()
-        st.session_state.send_email = st.checkbox("📧 Recibir resumen por email", value=st.session_state.send_email)
+        st.checkbox("📧 Recibir resumen por email al terminar", key="send_email")
         if st.session_state.send_email:
             with st.expander("¿Cómo obtengo la contraseña de aplicación de Gmail?", icon="❓"):
                 st.markdown("""
@@ -169,18 +162,13 @@ def config_dialog():
 2. Verificación en 2 pasos **activada**
 3. Crear app `Job Hunter` → copiar los 16 caracteres
 """)
-            st.session_state.email_sender = st.text_input(
-                "Email de envío", value=st.session_state.email_sender, placeholder="tu@gmail.com",
-            )
-            st.session_state.email_password_raw = st.text_input(
-                "Contraseña de app (16 caracteres)", value=st.session_state.email_password_raw,
+            st.text_input("Tu Gmail", key="email_sender", placeholder="tu@gmail.com")
+            st.text_input(
+                "Contraseña de app (16 caracteres)", key="email_password_raw",
                 type="password", placeholder="abcd efgh ijkl mnop",
             )
-            st.session_state.email_recipient = st.text_input(
-                "Email destinatario", value=st.session_state.email_recipient, placeholder="tu@gmail.com",
-            )
+            st.text_input("Email donde recibir resultados", key="email_recipient", placeholder="tu@gmail.com")
 
-        st.markdown("")
         if st.button("Siguiente →", type="primary", use_container_width=True):
             err = []
             if not st.session_state.gemini_key or not st.session_state.gemini_key.startswith("AIza"):
@@ -199,37 +187,31 @@ def config_dialog():
                 st.session_state.config_step = 2
                 st.rerun()
 
-    # ── Paso 2: Búsqueda y fuentes ────────────────────────────────────────────
+    # ── Paso 2: Keywords y fuentes ────────────────────────────────────────────
     elif step == 2:
         st.subheader("🔍 Búsqueda")
 
-        # Procesar keyword pendiente de agregar ANTES de renderizar el multiselect
+        # Procesar keyword pendiente ANTES de que el multiselect se instancie
         if "_pending_add" in st.session_state:
             _kw = st.session_state.pop("_pending_add")
             if _kw and _kw not in st.session_state.keywords_list:
                 st.session_state.keywords_list.append(_kw)
-            # Pre-cargar el valor del multiselect con la lista actualizada
             st.session_state["kw_tags"] = list(st.session_state.keywords_list)
 
-        # Inicializar el multiselect si todavía no existe
         if "kw_tags" not in st.session_state:
             st.session_state["kw_tags"] = list(st.session_state.keywords_list)
 
-        # Multiselect = tags nativos de Streamlit con × integrado
-        # options = kw_tags (el estado actual del widget, sin ítems eliminados)
         _opts = list(st.session_state["kw_tags"])
         selected = st.multiselect(
             "Keywords",
             options=_opts,
             default=_opts,
             key="kw_tags",
-            placeholder="Tus keywords aparecen acá — × para quitar",
+            placeholder="Tus keywords — × para quitar",
             label_visibility="collapsed",
         )
-        # Sincronizar keywords_list con lo que el usuario haya quitado
         st.session_state.keywords_list = list(selected)
 
-        # Formulario para agregar (Enter o botón)
         with st.form("add_kw", clear_on_submit=True):
             c1, c2 = st.columns([5, 1])
             with c1:
@@ -240,40 +222,34 @@ def config_dialog():
             with c2:
                 add_submitted = st.form_submit_button("+ Agregar", use_container_width=True)
             if add_submitted and new_kw.strip():
-                # Guardar en pendiente: se procesa al inicio del próximo render,
-                # ANTES de que el multiselect se instancie (evita el error de key)
                 st.session_state["_pending_add"] = new_kw.strip()
                 st.rerun()
 
         st.divider()
 
-        st.session_state.min_score = st.slider(
-            "Puntaje mínimo", min_value=30, max_value=90,
-            value=st.session_state.min_score, step=5,
-            help="Ofertas por debajo de este puntaje no aparecen en los resultados.",
+        st.slider(
+            "Puntaje mínimo para recomendar", min_value=30, max_value=90, step=5,
+            key="min_score",
+            help="Las ofertas con puntaje menor a este valor quedan fuera de los resultados recomendados.",
         )
 
-        st.markdown("**Fuentes**")
+        st.markdown("**Fuentes donde buscar**")
         c1, c2 = st.columns(2)
         with c1:
-            st.session_state.use_remotive  = st.checkbox("Remotive",       value=st.session_state.use_remotive)
-            st.session_state.use_arbeitnow = st.checkbox("Arbeitnow",      value=st.session_state.use_arbeitnow)
+            st.checkbox("Remotive",       key="use_remotive")
+            st.checkbox("Arbeitnow",      key="use_arbeitnow")
         with c2:
-            st.session_state.use_wwr       = st.checkbox("WeWorkRemotely", value=st.session_state.use_wwr)
-            st.session_state.use_himalayas = st.checkbox("Himalayas",      value=st.session_state.use_himalayas)
+            st.checkbox("WeWorkRemotely", key="use_wwr")
+            st.checkbox("Himalayas",      key="use_himalayas")
 
-        st.session_state.use_max_results = st.checkbox(
-            "Limitar cantidad de ofertas",
-            value=st.session_state.use_max_results,
+        st.checkbox(
+            "Limitar cantidad de ofertas a analizar",
+            key="use_max_results",
             help="Útil para pruebas rápidas o para ahorrar cuota de IA.",
         )
         if st.session_state.use_max_results:
-            st.session_state.max_results_limit = st.slider(
-                "Máximo de ofertas", min_value=10, max_value=1000,
-                value=st.session_state.max_results_limit, step=10,
-            )
+            st.slider("Máximo de ofertas", min_value=10, max_value=500, step=10, key="max_results_limit")
 
-        st.markdown("")
         col_back, col_next = st.columns(2)
         with col_back:
             if st.button("← Atrás", use_container_width=True):
@@ -292,17 +268,17 @@ def config_dialog():
 
     # ── Paso 3: Perfil ────────────────────────────────────────────────────────
     elif step == 3:
-        st.subheader("👤 Perfil profesional")
+        st.subheader("👤 Tu perfil profesional")
+        st.caption("La IA usa este texto para evaluar qué tan bien encaja cada oferta con vos.")
 
-        st.session_state.candidate_profile = st.text_area(
+        st.text_area(
             "perfil",
-            value=st.session_state.candidate_profile,
-            height=290,
+            height=270,
             label_visibility="collapsed",
             placeholder="Rol buscado, stack técnico, experiencia, idiomas...",
+            key="candidate_profile",
         )
 
-        st.markdown("")
         col_back, col_start = st.columns(2)
         with col_back:
             if st.button("← Atrás", use_container_width=True):
@@ -349,9 +325,9 @@ def render_empty_state():
 1. Busca ofertas remotas en Remotive, Arbeitnow, WeWorkRemotely e Himalayas
 2. Analiza cada oferta con IA según tu perfil (puntaje 0–100)
 3. Genera cartas de presentación personalizadas
-4. Opcional: envía un resumen por email al finalizar
+4. Opcional: te envía un resumen por email al finalizar
 """)
-        st.info("💡 Podés usar la app sin email y ver todos los resultados en pantalla.")
+        st.info("💡 No necesitás configurar el email — podés ver todos los resultados directo en pantalla.")
 
 
 # ─── Botón de acción ──────────────────────────────────────────────────────────
@@ -364,7 +340,8 @@ with action_placeholder.container():
             st.session_state.config_step = 1
             st.rerun()
     with col_info:
-        st.info("⏱️ Una búsqueda completa suele tardar entre 6 y 8 minutos.")
+        if not st.session_state.search_done and not st.session_state.run_search:
+            st.caption("⏱️ Una búsqueda completa tarda entre 6 y 8 minutos.")
 
 if not st.session_state.run_search and not st.session_state.search_done:
     render_empty_state()
@@ -407,26 +384,21 @@ if st.session_state.run_search:
 
     import scrapers as sc
 
-    def render_workflow_step(step_number, step_title, step_description):
+    def render_workflow_step(step_number, step_title):
         with workflow_placeholder.container():
-            st.markdown('<div class="workflow-card">', unsafe_allow_html=True)
-            st.caption(f"Paso actual: {step_number} de 4")
-            st.subheader(step_title)
-            st.caption(step_description)
-            status   = st.empty()
-            notice   = st.empty()
-            eta      = st.empty()
-            progress = st.empty()
-            extra    = st.empty()
-            st.markdown("</div>", unsafe_allow_html=True)
-        return status, notice, eta, progress, extra
+            with st.container(border=True):
+                st.caption(f"Paso {step_number}  ·  {step_title}")
+                status   = st.empty()
+                notice   = st.empty()
+                progress = st.empty()
+                extra    = st.empty()
+        return status, notice, progress, extra
 
     # ── STEP 1: Scraping ──────────────────────────────────────────────────────
-    platform_status, platform_notice, platform_eta, progress_scrape, _ = render_workflow_step(
-        1, "Paso 1: buscar ofertas",
-        "Estamos recorriendo las fuentes seleccionadas para reunir oportunidades relevantes.",
+    platform_status, platform_notice, progress_scrape, _ = render_workflow_step(
+        1, "Buscar ofertas",
     )
-    progress_scrape.progress(0)
+    progress_scrape.progress(0, text="Iniciando...")
 
     all_jobs    = []
     seen_global = set()
@@ -441,10 +413,8 @@ if st.session_state.run_search:
     scrape_started_at = time.monotonic()
 
     for idx, platform_name in enumerate(enabled_list):
-        platform_status.info(f"Buscando ofertas en **{platform_name}**...")
+        platform_status.info(f"Buscando en **{platform_name}**...")
         if max_results_limit > 0 and len(all_jobs) >= max_results_limit:
-            platform_status.success(f"✅ Se alcanzó el límite de {max_results_limit} ofertas.")
-            platform_eta.info("Tiempo restante estimado: 0 s")
             break
         try:
             remaining = max_results_limit - len(all_jobs) if max_results_limit > 0 else 0
@@ -466,120 +436,133 @@ if st.session_state.run_search:
                 if max_results_limit > 0 and len(all_jobs) >= max_results_limit:
                     break
         except Exception as e:
-            platform_notice.warning(f"⚠️ Hubo un problema al consultar {platform_name}: {e}")
+            platform_notice.warning(f"⚠️ Error en {platform_name}: {e}")
 
         completed = idx + 1
-        progress_scrape.progress(completed / total_platforms)
-        elapsed = time.monotonic() - scrape_started_at
-        eta_sec = (elapsed / completed) * (total_platforms - completed)
-        platform_eta.info(f"Tiempo restante estimado: {format_duration(eta_sec)}")
+        elapsed   = time.monotonic() - scrape_started_at
+        remaining_platforms = total_platforms - completed
+        eta_text  = f"  ·  ~{format_duration((elapsed / completed) * remaining_platforms)} restantes" if remaining_platforms > 0 else ""
+        progress_scrape.progress(
+            completed / total_platforms,
+            text=f"{completed}/{total_platforms} fuentes{eta_text}",
+        )
 
-    platform_status.success(f"✅ Búsqueda terminada: **{len(all_jobs)} ofertas únicas** encontradas.")
-    platform_eta.info(f"Tiempo total: {format_duration(time.monotonic() - scrape_started_at)}")
+    scrape_elapsed = time.monotonic() - scrape_started_at
+    platform_status.success(f"✅ **{len(all_jobs)} ofertas únicas** encontradas — {format_duration(scrape_elapsed)}")
+    progress_scrape.progress(1.0)
 
     # ── STEP 2: AI Scoring ────────────────────────────────────────────────────
-    ai_status, ai_notice, ai_eta, progress_ai, live_results = render_workflow_step(
-        2, "Paso 2: analizar cada oferta con IA",
-        "Ahora evaluamos qué tan bien encaja cada oferta con tu perfil.",
+    ai_status, ai_notice, progress_ai, live_results = render_workflow_step(
+        2, "Analizar con IA",
     )
-    progress_ai.progress(0)
 
     scored_jobs    = []
+    top_matches    = []
     quota_exceeded = False
-    scoring_started_at = time.monotonic()
-    total_jobs = len(all_jobs)
+    total_jobs     = len(all_jobs)
 
-    for i, job in enumerate(all_jobs):
-        ai_status.info(f"Analizando oferta **{i+1} de {total_jobs}**: {job.title[:50]} @ {job.company}")
-        data  = ai_engine.score_job(job)
-        score = data.get("score", 0)
-        if data.get("quota_exceeded", False):
-            quota_exceeded = True
-            ai_notice.error(f"⚠️ Se agotó la cuota diaria de Gemini. Se evaluaron {i} ofertas. Podés continuar mañana.")
-            break
+    if total_jobs == 0:
+        ai_status.warning("No se encontraron ofertas para analizar.")
+        progress_ai.progress(1.0)
+    else:
+        progress_ai.progress(0, text="Iniciando análisis...")
+        scoring_started_at = time.monotonic()
 
-        from ai_engine import ScoredJob
-        sj = ScoredJob(
-            job=job, score=score,
-            match_reasons=data.get("match_reasons", []),
-            missing_skills=data.get("missing_skills", []),
-            cover_letter=None,
-            summary=data.get("summary", ""),
-        )
-        scored_jobs.append(sj)
+        for i, job in enumerate(all_jobs):
+            ai_status.info(f"Analizando **{i + 1}/{total_jobs}**: {job.title[:50]} @ {job.company}")
+            data  = ai_engine.score_job(job)
+            score = data.get("score", 0)
+            if data.get("quota_exceeded", False):
+                quota_exceeded = True
+                ai_notice.error(f"Se agotó la cuota diaria de Gemini. Se analizaron {i} de {total_jobs} ofertas.")
+                break
 
-        top5 = sorted(scored_jobs, key=lambda x: x.score, reverse=True)[:5]
-        with live_results.container():
-            st.caption("Mejores resultados hasta este momento:")
-            for t in top5:
-                color = "score-high" if t.score >= 80 else "score-medium" if t.score >= 60 else "score-low"
-                st.markdown(
-                    f'<span class="score-badge {color}">{t.score}/100</span> '
-                    f'**{t.job.title}** @ {t.job.company}',
-                    unsafe_allow_html=True,
-                )
+            from ai_engine import ScoredJob
+            sj = ScoredJob(
+                job=job, score=score,
+                match_reasons=data.get("match_reasons", []),
+                missing_skills=data.get("missing_skills", []),
+                cover_letter=None,
+                summary=data.get("summary", ""),
+            )
+            scored_jobs.append(sj)
 
-        completed = i + 1
-        progress_ai.progress(completed / total_jobs)
-        elapsed = time.monotonic() - scoring_started_at
-        eta_sec = (elapsed / completed) * (total_jobs - completed)
-        ai_eta.info(f"Tiempo restante estimado: {format_duration(eta_sec)}")
-        time.sleep(0.1)
+            top5 = sorted(scored_jobs, key=lambda x: x.score, reverse=True)[:5]
+            with live_results.container():
+                st.caption("Mejores resultados hasta ahora:")
+                for t in top5:
+                    color = "score-high" if t.score >= 80 else "score-medium" if t.score >= 60 else "score-low"
+                    st.markdown(
+                        f'<span class="score-badge {color}">{t.score}/100</span> '
+                        f'**{t.job.title}** @ {t.job.company}',
+                        unsafe_allow_html=True,
+                    )
 
-    scored_jobs.sort(key=lambda x: x.score, reverse=True)
-    top_matches = [j for j in scored_jobs if j.score >= min_score]
-    if not quota_exceeded:
-        ai_status.success(f"✅ Análisis terminado: **{len(top_matches)} ofertas** superan el puntaje mínimo de {min_score}.")
-        ai_eta.info(f"Tiempo total: {format_duration(time.monotonic() - scoring_started_at)}")
+            completed = i + 1
+            elapsed   = time.monotonic() - scoring_started_at
+            remaining_jobs = total_jobs - completed
+            eta_text  = f"  ·  ~{format_duration((elapsed / completed) * remaining_jobs)} restantes" if remaining_jobs > 0 else ""
+            progress_ai.progress(
+                completed / total_jobs,
+                text=f"{completed}/{total_jobs} analizadas{eta_text}",
+            )
+            time.sleep(0.1)
+
+        scoring_elapsed = time.monotonic() - scoring_started_at
+        scored_jobs.sort(key=lambda x: x.score, reverse=True)
+        top_matches = [j for j in scored_jobs if j.score >= min_score]
+        if not quota_exceeded:
+            ai_status.success(
+                f"✅ **{len(top_matches)} recomendadas** de {len(scored_jobs)} analizadas — {format_duration(scoring_elapsed)}"
+            )
+        progress_ai.progress(1.0)
 
     # ── STEP 3: Cover Letters ─────────────────────────────────────────────────
     if top_matches:
-        cl_status, _, cl_eta, progress_cl, _ = render_workflow_step(
-            3, "Paso 3: generar cartas personalizadas",
-            "Estamos preparando una carta para cada oportunidad recomendada.",
-        )
-        progress_cl.progress(0)
+        cl_status, _, progress_cl, _ = render_workflow_step(3, "Generar cartas")
+        progress_cl.progress(0, text="Iniciando...")
         cover_started_at = time.monotonic()
-        total_letters = len(top_matches)
+        total_letters    = len(top_matches)
 
         for i, sj in enumerate(top_matches):
-            cl_status.info(f"Generando carta **{i+1} de {total_letters}** para {sj.job.title}")
+            cl_status.info(f"Generando carta **{i + 1}/{total_letters}** — {sj.job.title}")
             sj.cover_letter = ai_engine.generate_cover_letter(sj.job, {"match_reasons": sj.match_reasons})
             completed = i + 1
-            progress_cl.progress(completed / total_letters)
-            elapsed = time.monotonic() - cover_started_at
-            eta_sec = (elapsed / completed) * (total_letters - completed)
-            cl_eta.info(f"Tiempo restante estimado: {format_duration(eta_sec)}")
+            elapsed   = time.monotonic() - cover_started_at
+            remaining_letters = total_letters - completed
+            eta_text  = f"  ·  ~{format_duration((elapsed / completed) * remaining_letters)} restantes" if remaining_letters > 0 else ""
+            progress_cl.progress(
+                completed / total_letters,
+                text=f"{completed}/{total_letters} cartas{eta_text}",
+            )
 
-        cl_status.success("✅ Cartas generadas.")
-        cl_eta.info(f"Tiempo total: {format_duration(time.monotonic() - cover_started_at)}")
+        cover_elapsed = time.monotonic() - cover_started_at
+        cl_status.success(
+            f"✅ {total_letters} {'carta generada' if total_letters == 1 else 'cartas generadas'} — {format_duration(cover_elapsed)}"
+        )
+        progress_cl.progress(1.0)
 
     # ── STEP 4: Email ─────────────────────────────────────────────────────────
     if send_email and top_matches and email_sender and email_password:
-        email_status, _, email_eta, _, _ = render_workflow_step(
-            4, "Paso 4: enviar resumen por email",
-            "Último paso: enviamos el resumen con las mejores oportunidades.",
-        )
+        email_status, _, _, _ = render_workflow_step(4, "Enviar resumen por email")
         try:
             from notifier import send_digest
             cfg.EMAIL_SENDER    = email_sender
             cfg.EMAIL_PASSWORD  = email_password
             cfg.EMAIL_RECIPIENT = email_recipient
-            email_status.info("Enviando resumen...")
-            email_eta.info("Tiempo estimado: menos de 1 minuto")
+            email_status.info(f"Enviando resumen a {email_recipient}...")
             send_digest(scored_jobs)
             email_status.success(f"✅ Resumen enviado a **{email_recipient}**.")
-            email_eta.info("Tiempo restante estimado: 0 s")
         except Exception as e:
-            email_status.error(f"❌ No se pudo enviar el email: {e}")
+            email_status.error(f"No se pudo enviar el email: {e}")
 
     workflow_placeholder.empty()
 
     results_dir = Path("results")
     results_dir.mkdir(exist_ok=True)
-    ts = datetime.now().strftime("%Y%m%d_%H%M")
+    ts          = datetime.now().strftime("%Y%m%d_%H%M")
     result_file = results_dir / f"results_{ts}.json"
-    data_out = [
+    data_out    = [
         {
             "score":            sj.score,
             "title":            sj.job.title,
@@ -600,17 +583,12 @@ if st.session_state.run_search:
     # ── Resultados ────────────────────────────────────────────────────────────
     with results_placeholder.container():
         st.header("📊 Resultados")
-        st.caption("Revisá las mejores oportunidades y descargá las cartas o el resumen completo.")
 
         c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Ofertas analizadas",   len(scored_jobs))
-        c2.metric("Ofertas recomendadas", len(top_matches))
-        c3.metric(
-            "Mejor puntaje",
-            f"{scored_jobs[0].score}/100" if scored_jobs else "—",
-            scored_jobs[0].job.title[:30] if scored_jobs else "",
-        )
-        c4.metric("Muy buenas (80+)", sum(1 for j in scored_jobs if j.score >= 80))
+        c1.metric("Analizadas", len(scored_jobs))
+        c2.metric("Recomendadas", len(top_matches))
+        c3.metric("Mejor puntaje", f"{scored_jobs[0].score}/100" if scored_jobs else "—")
+        c4.metric("Excelentes (80+)", sum(1 for j in scored_jobs if j.score >= 80))
 
         def render_job_card(sj, idx, section):
             score     = sj.score
@@ -647,7 +625,7 @@ if st.session_state.run_search:
                         for skill in sj.missing_skills:
                             st.markdown(f"- {skill}")
                     else:
-                        st.markdown("- No hay faltantes críticos")
+                        st.markdown("- Sin faltantes críticos")
 
                 if sj.cover_letter:
                     st.markdown("**📝 Carta generada**")
@@ -655,7 +633,7 @@ if st.session_state.run_search:
                     st.download_button(
                         "⬇ Descargar carta",
                         data=sj.cover_letter,
-                        file_name=f"cover_{sj.job.company.replace(' ','_')}_{sj.job.title[:20].replace(' ','_')}.txt",
+                        file_name=f"cover_{sj.job.company.replace(' ', '_')}_{sj.job.title[:20].replace(' ', '_')}.txt",
                         mime="text/plain",
                         key=f"dl_{section}_{sj.job.id}_{idx}",
                     )
@@ -669,14 +647,14 @@ if st.session_state.run_search:
                 for i, sj in enumerate(top_matches):
                     render_job_card(sj, i, "top")
             else:
-                st.info(f"No se encontraron ofertas por encima de {min_score} puntos. Probá bajar el puntaje mínimo.")
+                st.info(f"Ninguna oferta superó el puntaje mínimo de {min_score}. Probá bajar el valor en la configuración.")
         with all_tab:
-            st.caption("Listado completo, ordenado de mayor a menor puntaje.")
+            st.caption("Ordenadas de mayor a menor puntaje.")
             for i, sj in enumerate(scored_jobs):
                 render_job_card(sj, i, "all")
 
         st.download_button(
-            "⬇ Descargar resultados en JSON",
+            "⬇ Descargar resultados completos (JSON)",
             data=json.dumps(data_out, ensure_ascii=False, indent=2),
             file_name=f"job_hunt_{ts}.json",
             mime="application/json",
