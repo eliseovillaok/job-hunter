@@ -75,7 +75,7 @@ _defaults = {
     "email_sender":       "",
     "email_password_raw": "",
     "email_recipient":    "",
-    "keywords_raw":       "frontend developer\nreact developer\nfull stack engineer\nUI engineer\njavascript developer",
+    "keywords_list":      ["frontend developer", "react developer", "full stack engineer", "UI engineer", "javascript developer"],
     "min_score":          65,
     "use_max_results":    False,
     "max_results_limit":  100,
@@ -105,7 +105,7 @@ for _k, _v in _defaults.items():
         st.session_state[_k] = _v
 
 
-# ─── Validación ───────────────────────────────────────────────────────────────
+# ─── Validación global ────────────────────────────────────────────────────────
 def validate_config():
     errors = []
     if not st.session_state.gemini_key or not st.session_state.gemini_key.startswith("AIza"):
@@ -117,8 +117,8 @@ def validate_config():
             errors.append("❌ La contraseña de aplicación debe tener 16 caracteres.")
         if not st.session_state.email_recipient or "@" not in st.session_state.email_recipient:
             errors.append("❌ Completá el email destinatario.")
-    if not [k for k in st.session_state.keywords_raw.splitlines() if k.strip()]:
-        errors.append("❌ Escribí al menos una búsqueda o palabra clave.")
+    if not st.session_state.keywords_list:
+        errors.append("❌ Agregá al menos una palabra clave.")
     if not any([st.session_state.use_remotive, st.session_state.use_arbeitnow,
                 st.session_state.use_wwr, st.session_state.use_himalayas]):
         errors.append("❌ Seleccioná al menos una fuente de ofertas.")
@@ -141,9 +141,7 @@ def config_dialog():
 1. Ir a [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)
 2. Iniciar sesión con Google
 3. Hacer click en **Create API Key**
-4. Copiar la clave (empieza con `AIza...`)
-
-Es **gratis** y no necesitás tarjeta.
+4. Copiar la clave (empieza con `AIza...`) — es **gratis**, no necesitás tarjeta.
 """)
 
         st.session_state.gemini_key = st.text_input(
@@ -173,32 +171,36 @@ Es **gratis** y no necesitás tarjeta.
                 st.markdown("""
 1. Ir a [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords)
 2. La verificación en 2 pasos debe estar **activada**
-3. En "Nombre de la app" escribir `Job Hunter` y hacer click en **Crear**
-4. Copiar los 16 caracteres generados
+3. Crear una app llamada `Job Hunter` y copiar los 16 caracteres
 
 ⚠️ **No** uses tu contraseña normal de Gmail.
 """)
             st.session_state.email_sender = st.text_input(
-                "Email desde el que se envía",
-                value=st.session_state.email_sender,
-                placeholder="tu@gmail.com",
+                "Email desde el que se envía", value=st.session_state.email_sender, placeholder="tu@gmail.com",
             )
             st.session_state.email_password_raw = st.text_input(
-                "Contraseña de aplicación (16 caracteres)",
-                value=st.session_state.email_password_raw,
-                type="password",
-                placeholder="abcd efgh ijkl mnop",
+                "Contraseña de aplicación (16 caracteres)", value=st.session_state.email_password_raw,
+                type="password", placeholder="abcd efgh ijkl mnop",
             )
             st.session_state.email_recipient = st.text_input(
-                "Email que recibe el resumen",
-                value=st.session_state.email_recipient,
-                placeholder="tu@gmail.com",
+                "Email que recibe el resumen", value=st.session_state.email_recipient, placeholder="tu@gmail.com",
             )
 
         st.markdown("")
         if st.button("Siguiente →", type="primary", use_container_width=True):
             if not st.session_state.gemini_key or not st.session_state.gemini_key.startswith("AIza"):
-                st.error("❌ Ingresá una API key de Gemini válida antes de continuar.")
+                st.error("❌ Ingresá una API key de Gemini válida para continuar.")
+            elif st.session_state.send_email:
+                pw = st.session_state.email_password_raw.replace(" ", "")
+                if not st.session_state.email_sender or "@" not in st.session_state.email_sender:
+                    st.error("❌ Completá el email de envío.")
+                elif len(pw) != 16:
+                    st.error("❌ La contraseña de aplicación debe tener 16 caracteres.")
+                elif not st.session_state.email_recipient or "@" not in st.session_state.email_recipient:
+                    st.error("❌ Completá el email destinatario.")
+                else:
+                    st.session_state.config_step = 2
+                    st.rerun()
             else:
                 st.session_state.config_step = 2
                 st.rerun()
@@ -207,13 +209,46 @@ Es **gratis** y no necesitás tarjeta.
     elif step == 2:
         st.subheader("🔍 Búsqueda y fuentes")
 
-        st.session_state.keywords_raw = st.text_area(
-            "Puestos o palabras clave (una por línea)",
-            value=st.session_state.keywords_raw,
-            height=130,
-            help="Ejemplo: `frontend developer`, `react developer`.",
-        )
+        # ── Keywords como tags ────────────────────────────────────────────────
+        st.markdown("**Palabras clave**")
 
+        # Inicializar el multiselect con los keywords actuales si no existe
+        if "kw_ms" not in st.session_state:
+            st.session_state.kw_ms = list(st.session_state.keywords_list)
+
+        # Multiselect: muestra los tags actuales con × para quitar
+        st.multiselect(
+            "keywords",
+            options=st.session_state.kw_ms,
+            default=st.session_state.kw_ms,
+            key="kw_ms",
+            label_visibility="collapsed",
+            placeholder="Tus keywords aparecerán acá — hacé click en × para quitar",
+        )
+        # Sincronizar keywords_list desde el multiselect
+        st.session_state.keywords_list = list(st.session_state.kw_ms)
+
+        # Form para agregar nueva keyword (Enter o botón)
+        with st.form("add_kw", clear_on_submit=True):
+            col_in, col_btn = st.columns([5, 1])
+            with col_in:
+                new_kw = st.text_input(
+                    "add",
+                    placeholder="Escribí una keyword y presioná Enter para agregar...",
+                    label_visibility="collapsed",
+                )
+            with col_btn:
+                submitted = st.form_submit_button("+ Agregar", use_container_width=True)
+            if submitted and new_kw.strip():
+                kw = new_kw.strip()
+                if kw not in st.session_state.kw_ms:
+                    st.session_state.kw_ms = list(st.session_state.kw_ms) + [kw]
+                    st.session_state.keywords_list = list(st.session_state.kw_ms)
+                st.rerun()
+
+        st.divider()
+
+        # ── Puntaje mínimo ────────────────────────────────────────────────────
         st.session_state.min_score = st.slider(
             "Puntaje mínimo para considerar una oferta interesante",
             min_value=30, max_value=90,
@@ -222,6 +257,7 @@ Es **gratis** y no necesitás tarjeta.
             help="Las ofertas por debajo de este puntaje quedan fuera del resumen.",
         )
 
+        # ── Fuentes ───────────────────────────────────────────────────────────
         st.markdown("**Fuentes**")
         c1, c2 = st.columns(2)
         with c1:
@@ -231,6 +267,7 @@ Es **gratis** y no necesitás tarjeta.
             st.session_state.use_wwr       = st.checkbox("WeWorkRemotely", value=st.session_state.use_wwr)
             st.session_state.use_himalayas = st.checkbox("Himalayas",      value=st.session_state.use_himalayas)
 
+        # ── Límite opcional ───────────────────────────────────────────────────
         st.session_state.use_max_results = st.checkbox(
             "Limitar cantidad de ofertas a analizar",
             value=st.session_state.use_max_results,
@@ -240,8 +277,7 @@ Es **gratis** y no necesitás tarjeta.
             st.session_state.max_results_limit = st.slider(
                 "Cantidad máxima de ofertas",
                 min_value=10, max_value=1000,
-                value=st.session_state.max_results_limit,
-                step=10,
+                value=st.session_state.max_results_limit, step=10,
             )
 
         st.markdown("")
@@ -252,9 +288,8 @@ Es **gratis** y no necesitás tarjeta.
                 st.rerun()
         with col_next:
             if st.button("Siguiente →", type="primary", use_container_width=True):
-                kws = [k.strip() for k in st.session_state.keywords_raw.splitlines() if k.strip()]
-                if not kws:
-                    st.error("❌ Escribí al menos una búsqueda.")
+                if not st.session_state.keywords_list:
+                    st.error("❌ Agregá al menos una palabra clave.")
                 elif not any([st.session_state.use_remotive, st.session_state.use_arbeitnow,
                               st.session_state.use_wwr, st.session_state.use_himalayas]):
                     st.error("❌ Seleccioná al menos una fuente.")
@@ -298,9 +333,9 @@ st.caption("Buscá ofertas remotas, priorizalas con IA y generá cartas listas p
 if st.session_state.show_dialog:
     config_dialog()
 
-action_placeholder    = st.empty()
-workflow_placeholder  = st.empty()
-results_placeholder   = st.empty()
+action_placeholder      = st.empty()
+workflow_placeholder    = st.empty()
+results_placeholder     = st.empty()
 empty_state_placeholder = st.empty()
 
 
@@ -332,6 +367,9 @@ with action_placeholder.container():
     with col_btn:
         _label = "🔄 Nueva búsqueda" if st.session_state.search_done else "⚙️ Configurar y buscar"
         if st.button(_label, type="primary", use_container_width=True):
+            # Reiniciar el multiselect de keywords para sincronizar con el estado actual
+            if "kw_ms" in st.session_state:
+                del st.session_state["kw_ms"]
             st.session_state.show_dialog = True
             st.session_state.config_step = 1
             st.rerun()
@@ -347,14 +385,14 @@ if st.session_state.run_search:
     empty_state_placeholder.empty()
     results_placeholder.empty()
 
-    gemini_key      = st.session_state.gemini_key
-    selected_model  = st.session_state.selected_model
-    send_email      = st.session_state.send_email
-    email_sender    = st.session_state.email_sender
-    email_password  = st.session_state.email_password_raw.replace(" ", "")
-    email_recipient = st.session_state.email_recipient
-    keywords        = [k.strip() for k in st.session_state.keywords_raw.splitlines() if k.strip()]
-    min_score       = st.session_state.min_score
+    gemini_key        = st.session_state.gemini_key
+    selected_model    = st.session_state.selected_model
+    send_email        = st.session_state.send_email
+    email_sender      = st.session_state.email_sender
+    email_password    = st.session_state.email_password_raw.replace(" ", "")
+    email_recipient   = st.session_state.email_recipient
+    keywords          = list(st.session_state.keywords_list)
+    min_score         = st.session_state.min_score
     max_results_limit = st.session_state.max_results_limit if st.session_state.use_max_results else 0
     candidate_profile = st.session_state.candidate_profile
 
@@ -395,8 +433,7 @@ if st.session_state.run_search:
 
     # ── STEP 1: Scraping ──────────────────────────────────────────────────────
     platform_status, platform_notice, platform_eta, progress_scrape, _ = render_workflow_step(
-        1,
-        "Paso 1: buscar ofertas",
+        1, "Paso 1: buscar ofertas",
         "Estamos recorriendo las fuentes seleccionadas para reunir oportunidades relevantes.",
     )
     progress_scrape.progress(0)
@@ -453,8 +490,7 @@ if st.session_state.run_search:
 
     # ── STEP 2: AI Scoring ────────────────────────────────────────────────────
     ai_status, ai_notice, ai_eta, progress_ai, live_results = render_workflow_step(
-        2,
-        "Paso 2: analizar cada oferta con IA",
+        2, "Paso 2: analizar cada oferta con IA",
         "Ahora evaluamos qué tan bien encaja cada oferta con tu perfil.",
     )
     progress_ai.progress(0)
@@ -475,8 +511,7 @@ if st.session_state.run_search:
 
         from ai_engine import ScoredJob
         sj = ScoredJob(
-            job=job,
-            score=score,
+            job=job, score=score,
             match_reasons=data.get("match_reasons", []),
             missing_skills=data.get("missing_skills", []),
             cover_letter=None,
@@ -511,8 +546,7 @@ if st.session_state.run_search:
     # ── STEP 3: Cover Letters ─────────────────────────────────────────────────
     if top_matches:
         cl_status, _, cl_eta, progress_cl, _ = render_workflow_step(
-            3,
-            "Paso 3: generar cartas personalizadas",
+            3, "Paso 3: generar cartas personalizadas",
             "Estamos preparando una carta para cada oportunidad recomendada.",
         )
         progress_cl.progress(0)
@@ -534,8 +568,7 @@ if st.session_state.run_search:
     # ── STEP 4: Email ─────────────────────────────────────────────────────────
     if send_email and top_matches and email_sender and email_password:
         email_status, _, email_eta, _, _ = render_workflow_step(
-            4,
-            "Paso 4: enviar resumen por email",
+            4, "Paso 4: enviar resumen por email",
             "Último paso: enviamos el resumen con las mejores oportunidades.",
         )
         try:
