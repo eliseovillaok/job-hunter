@@ -235,6 +235,9 @@ Ubicación: Cualquier zona horaria — 100% remoto""",
 # ─── Main area ───────────────────────────────────────────────────────────────
 st.title("🎯 Job Hunter AI")
 st.caption("Buscá ofertas remotas, priorizalas con IA y generá cartas listas para usar.")
+results_placeholder = st.empty()
+action_placeholder = st.empty()
+empty_state_placeholder = st.empty()
 
 
 def format_duration(seconds):
@@ -269,11 +272,12 @@ def validate_config():
     return errors
 
 # ─── Run button ───────────────────────────────────────────────────────────────
-col_btn, col_info = st.columns([2, 3])
-with col_btn:
-    run_button = st.button("🚀 Empezar búsqueda", type="primary", use_container_width=True)
-with col_info:
-    st.info("⏱️ Una búsqueda completa suele tardar entre 6 y 8 minutos.")
+with action_placeholder.container():
+    col_btn, col_info = st.columns([2, 3])
+    with col_btn:
+        run_button = st.button("🚀 Empezar búsqueda", type="primary", use_container_width=True)
+    with col_info:
+        st.info("⏱️ Una búsqueda completa suele tardar entre 6 y 8 minutos.")
 
 if run_button:
     # Re-leer valores actuales de la UI (sin necesidad de Ctrl+Enter)
@@ -505,112 +509,10 @@ if run_button:
         except Exception as e:
             email_status.error(f"❌ No se pudo enviar el email: {e}")
 
-    with workflow_placeholder.container():
-        st.markdown('<div class="workflow-card">', unsafe_allow_html=True)
-        st.success("Proceso completado")
-        st.caption("Los resultados ya están listos para revisar o descargar.")
-        summary_c1, summary_c2, summary_c3 = st.columns(3)
-        summary_c1.metric("Analizadas", len(scored_jobs))
-        summary_c2.metric("Recomendadas", len(top_matches))
-        summary_c3.metric("Cartas", sum(1 for sj in top_matches if sj.cover_letter))
-        st.markdown("</div>", unsafe_allow_html=True)
+    action_placeholder.empty()
+    workflow_placeholder.empty()
+    empty_state_placeholder.empty()
 
-    # ── RESULTADOS ─────────────────────────────────────────────────────────────
-    st.markdown('<span id="results-anchor" class="results-anchor"></span>', unsafe_allow_html=True)
-    components.html(
-        """
-        <script>
-        const anchor = window.parent.document.getElementById("results-anchor");
-        if (anchor) {
-          anchor.scrollIntoView({ behavior: "smooth", block: "start" });
-        }
-        </script>
-        """,
-        height=0,
-    )
-    st.header("📊 Resultados")
-
-    # Métricas resumen
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Ofertas analizadas", len(scored_jobs))
-    c2.metric("Ofertas recomendadas", len(top_matches))
-    c3.metric(
-        "Mejor puntaje",
-        f"{scored_jobs[0].score}/100" if scored_jobs else "—",
-        scored_jobs[0].job.title[:30] if scored_jobs else "",
-    )
-    dist_80 = sum(1 for j in scored_jobs if j.score >= 80)
-    c4.metric("Muy buenas (80+)", dist_80)
-
-    def render_job_card(sj, idx, section):
-        score = sj.score
-        color  = "score-high"   if score >= 80 else \
-                 "score-medium" if score >= 60 else "score-low"
-        src_class = {
-            "Remotive":       "src-remotive",
-            "Arbeitnow":      "src-arbeitnow",
-            "WeWorkRemotely": "src-wwr",
-            "Himalayas":      "src-himalayas",
-        }.get(sj.job.source, "src-remotive")
-
-        with st.expander(
-            f"{score}/100 — {sj.job.title}  @  {sj.job.company}",
-            expanded=(idx == 0),
-        ):
-            header_col, link_col = st.columns([3, 1])
-            with header_col:
-                st.markdown(
-                    f'<span class="score-badge {color}">{score}/100</span> '
-                    f'<span class="source-badge {src_class}">{sj.job.source}</span>',
-                    unsafe_allow_html=True,
-                )
-                if sj.summary:
-                    st.caption(sj.summary)
-            with link_col:
-                if sj.job.url:
-                    st.link_button("Abrir oferta", sj.job.url, use_container_width=True)
-
-            r1, r2 = st.columns(2)
-            with r1:
-                st.markdown("**✅ Por qué encaja con tu perfil**")
-                for reason in sj.match_reasons:
-                    st.markdown(f"- {reason}")
-            with r2:
-                st.markdown("**⚠️ Lo que podría faltar**")
-                if sj.missing_skills:
-                    for skill in sj.missing_skills:
-                        st.markdown(f"- {skill}")
-                else:
-                    st.markdown("- No hay faltantes críticos")
-
-            if sj.cover_letter:
-                st.markdown("**📝 Carta generada**")
-                st.markdown(
-                    f'<div class="cover-letter-box">{sj.cover_letter}</div>',
-                    unsafe_allow_html=True,
-                )
-                unique_key = f"dl_{section}_{sj.job.id}_{idx}"
-                st.download_button(
-                    "⬇ Descargar carta",
-                    data=sj.cover_letter,
-                    file_name=f"cover_{sj.job.company.replace(' ','_')}_{sj.job.title[:20].replace(' ','_')}.txt",
-                    mime="text/plain",
-                    key=unique_key,
-                )
-
-    if top_matches:
-        st.subheader("Ofertas recomendadas")
-        for i, sj in enumerate(top_matches):
-            render_job_card(sj, i, "top")
-    else:
-        st.info(f"No se encontraron ofertas por encima de {min_score} puntos. Probá bajar el puntaje mínimo.")
-
-    with st.expander(f"Ver todas las ofertas ({len(scored_jobs)})", expanded=False):
-        st.caption("Listado completo, ordenado de mayor a menor puntaje.")
-        for i, sj in enumerate(scored_jobs):
-            render_job_card(sj, i, "all")
-
-    # Guardar resultados en JSON
     results_dir = Path("results")
     results_dir.mkdir(exist_ok=True)
     ts = datetime.now().strftime("%Y%m%d_%H%M")
@@ -631,16 +533,118 @@ if run_button:
     with open(result_file, "w", encoding="utf-8") as f:
         json.dump(data_out, f, ensure_ascii=False, indent=2)
 
-    st.download_button(
-        "⬇ Descargar resultados en JSON",
-        data=json.dumps(data_out, ensure_ascii=False, indent=2),
-        file_name=f"job_hunt_{ts}.json",
-        mime="application/json",
-    )
+    # ── RESULTADOS ─────────────────────────────────────────────────────────────
+    with results_placeholder.container():
+        st.markdown('<span id="results-anchor" class="results-anchor"></span>', unsafe_allow_html=True)
+        components.html(
+            """
+            <script>
+            const anchor = window.parent.document.getElementById("results-anchor");
+            if (anchor) {
+              anchor.scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+            </script>
+            """,
+            height=0,
+        )
+        st.header("📊 Resultados")
+        st.caption("Revisá las mejores oportunidades y descargá las cartas o el resumen completo.")
+
+        # Métricas resumen
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Ofertas analizadas", len(scored_jobs))
+        c2.metric("Ofertas recomendadas", len(top_matches))
+        c3.metric(
+            "Mejor puntaje",
+            f"{scored_jobs[0].score}/100" if scored_jobs else "—",
+            scored_jobs[0].job.title[:30] if scored_jobs else "",
+        )
+        dist_80 = sum(1 for j in scored_jobs if j.score >= 80)
+        c4.metric("Muy buenas (80+)", dist_80)
+
+        def render_job_card(sj, idx, section):
+            score = sj.score
+            color  = "score-high"   if score >= 80 else \
+                     "score-medium" if score >= 60 else "score-low"
+            src_class = {
+                "Remotive":       "src-remotive",
+                "Arbeitnow":      "src-arbeitnow",
+                "WeWorkRemotely": "src-wwr",
+                "Himalayas":      "src-himalayas",
+            }.get(sj.job.source, "src-remotive")
+
+            with st.expander(
+                f"{score}/100 — {sj.job.title}  @  {sj.job.company}",
+                expanded=(idx == 0),
+            ):
+                header_col, link_col = st.columns([3, 1])
+                with header_col:
+                    st.markdown(
+                        f'<span class="score-badge {color}">{score}/100</span> '
+                        f'<span class="source-badge {src_class}">{sj.job.source}</span>',
+                        unsafe_allow_html=True,
+                    )
+                    if sj.summary:
+                        st.caption(sj.summary)
+                with link_col:
+                    if sj.job.url:
+                        st.link_button("Abrir oferta", sj.job.url, use_container_width=True)
+
+                r1, r2 = st.columns(2)
+                with r1:
+                    st.markdown("**✅ Por qué encaja con tu perfil**")
+                    for reason in sj.match_reasons:
+                        st.markdown(f"- {reason}")
+                with r2:
+                    st.markdown("**⚠️ Lo que podría faltar**")
+                    if sj.missing_skills:
+                        for skill in sj.missing_skills:
+                            st.markdown(f"- {skill}")
+                    else:
+                        st.markdown("- No hay faltantes críticos")
+
+                if sj.cover_letter:
+                    st.markdown("**📝 Carta generada**")
+                    st.markdown(
+                        f'<div class="cover-letter-box">{sj.cover_letter}</div>',
+                        unsafe_allow_html=True,
+                    )
+                    unique_key = f"dl_{section}_{sj.job.id}_{idx}"
+                    st.download_button(
+                        "⬇ Descargar carta",
+                        data=sj.cover_letter,
+                        file_name=f"cover_{sj.job.company.replace(' ','_')}_{sj.job.title[:20].replace(' ','_')}.txt",
+                        mime="text/plain",
+                        key=unique_key,
+                    )
+
+        top_tab, all_tab = st.tabs([
+            f"🔥 Recomendadas ({len(top_matches)})",
+            f"📋 Todas ({len(scored_jobs)})",
+        ])
+
+        with top_tab:
+            if top_matches:
+                for i, sj in enumerate(top_matches):
+                    render_job_card(sj, i, "top")
+            else:
+                st.info(f"No se encontraron ofertas por encima de {min_score} puntos. Probá bajar el puntaje mínimo.")
+
+        with all_tab:
+            st.caption("Listado completo, ordenado de mayor a menor puntaje.")
+            for i, sj in enumerate(scored_jobs):
+                render_job_card(sj, i, "all")
+        st.download_button(
+            "⬇ Descargar resultados en JSON",
+            data=json.dumps(data_out, ensure_ascii=False, indent=2),
+            file_name=f"job_hunt_{ts}.json",
+            mime="application/json",
+        )
 
 else:
     # Estado inicial — instrucciones
-    st.markdown("""
+    with empty_state_placeholder.container():
+        st.markdown("""
 ### 👈 Completá la barra lateral y después hacé click en **Empezar búsqueda**
 
 **¿Qué hace esta app por vos?**
@@ -654,4 +658,4 @@ else:
 - Una contraseña de aplicación de Gmail, solo si querés recibir el resumen por email
     """)
 
-    st.info("💡 Podés usar la app sin email y ver todos los resultados directamente en pantalla.")
+        st.info("💡 Podés usar la app sin email y ver todos los resultados directamente en pantalla.")
