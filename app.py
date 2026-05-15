@@ -140,8 +140,8 @@ def config_dialog():
 3. Copiar la clave — es gratis, no requiere tarjeta.
 """)
 
-        st.text_input(
-            "API Key de Gemini", key="gemini_key",
+        st.session_state.gemini_key = st.text_input(
+            "API Key de Gemini", value=st.session_state.gemini_key,
             type="password", placeholder="AIzaXXXXXXXXXXXXXXXXX",
         )
 
@@ -151,10 +151,13 @@ def config_dialog():
         ]
         if st.session_state.selected_model not in _models:
             st.session_state.selected_model = _models[0]
-        st.selectbox("Modelo de IA", _models, key="selected_model")
+        _idx = _models.index(st.session_state.selected_model)
+        st.session_state.selected_model = st.selectbox("Modelo de IA", _models, index=_idx)
 
         st.divider()
-        st.checkbox("📧 Recibir resumen por email al terminar", key="send_email")
+        st.session_state.send_email = st.checkbox(
+            "📧 Recibir resumen por email al terminar", value=st.session_state.send_email,
+        )
         if st.session_state.send_email:
             with st.expander("¿Cómo obtengo la contraseña de aplicación de Gmail?", icon="❓"):
                 st.markdown("""
@@ -162,12 +165,17 @@ def config_dialog():
 2. Verificación en 2 pasos **activada**
 3. Crear app `Job Hunter` → copiar los 16 caracteres
 """)
-            st.text_input("Tu Gmail", key="email_sender", placeholder="tu@gmail.com")
-            st.text_input(
-                "Contraseña de app (16 caracteres)", key="email_password_raw",
+            st.session_state.email_sender = st.text_input(
+                "Tu Gmail", value=st.session_state.email_sender, placeholder="tu@gmail.com",
+            )
+            st.session_state.email_password_raw = st.text_input(
+                "Contraseña de app (16 caracteres)", value=st.session_state.email_password_raw,
                 type="password", placeholder="abcd efgh ijkl mnop",
             )
-            st.text_input("Email donde recibir resultados", key="email_recipient", placeholder="tu@gmail.com")
+            st.session_state.email_recipient = st.text_input(
+                "Email donde recibir resultados", value=st.session_state.email_recipient,
+                placeholder="tu@gmail.com",
+            )
 
         if st.button("Siguiente →", type="primary", use_container_width=True):
             err = []
@@ -185,7 +193,7 @@ def config_dialog():
                 st.toast(" · ".join(err), icon="⚠️")
             else:
                 st.session_state.config_step = 2
-                st.rerun()
+                st.rerun(scope="app")
 
     # ── Paso 2: Keywords y fuentes ────────────────────────────────────────────
     elif step == 2:
@@ -223,38 +231,41 @@ def config_dialog():
                 add_submitted = st.form_submit_button("+ Agregar", use_container_width=True)
             if add_submitted and new_kw.strip():
                 st.session_state["_pending_add"] = new_kw.strip()
-                st.rerun()
+                st.rerun(scope="app")
 
         st.divider()
 
-        st.slider(
+        st.session_state.min_score = st.slider(
             "Puntaje mínimo para recomendar", min_value=30, max_value=90, step=5,
-            key="min_score",
+            value=st.session_state.min_score,
             help="Las ofertas con puntaje menor a este valor quedan fuera de los resultados recomendados.",
         )
 
         st.markdown("**Fuentes donde buscar**")
         c1, c2 = st.columns(2)
         with c1:
-            st.checkbox("Remotive",       key="use_remotive")
-            st.checkbox("Arbeitnow",      key="use_arbeitnow")
+            st.session_state.use_remotive  = st.checkbox("Remotive",       value=st.session_state.use_remotive)
+            st.session_state.use_arbeitnow = st.checkbox("Arbeitnow",      value=st.session_state.use_arbeitnow)
         with c2:
-            st.checkbox("WeWorkRemotely", key="use_wwr")
-            st.checkbox("Himalayas",      key="use_himalayas")
+            st.session_state.use_wwr       = st.checkbox("WeWorkRemotely", value=st.session_state.use_wwr)
+            st.session_state.use_himalayas = st.checkbox("Himalayas",      value=st.session_state.use_himalayas)
 
-        st.checkbox(
+        st.session_state.use_max_results = st.checkbox(
             "Limitar cantidad de ofertas a analizar",
-            key="use_max_results",
+            value=st.session_state.use_max_results,
             help="Útil para pruebas rápidas o para ahorrar cuota de IA.",
         )
         if st.session_state.use_max_results:
-            st.slider("Máximo de ofertas", min_value=10, max_value=500, step=10, key="max_results_limit")
+            st.session_state.max_results_limit = st.slider(
+                "Máximo de ofertas", min_value=10, max_value=500, step=10,
+                value=st.session_state.max_results_limit,
+            )
 
         col_back, col_next = st.columns(2)
         with col_back:
             if st.button("← Atrás", use_container_width=True):
                 st.session_state.config_step = 1
-                st.rerun()
+                st.rerun(scope="app")
         with col_next:
             if st.button("Siguiente →", type="primary", use_container_width=True):
                 if not st.session_state.keywords_list:
@@ -264,26 +275,26 @@ def config_dialog():
                     st.toast("Seleccioná al menos una fuente.", icon="⚠️")
                 else:
                     st.session_state.config_step = 3
-                    st.rerun()
+                    st.rerun(scope="app")
 
     # ── Paso 3: Perfil ────────────────────────────────────────────────────────
     elif step == 3:
         st.subheader("👤 Tu perfil profesional")
         st.caption("La IA usa este texto para evaluar qué tan bien encaja cada oferta con vos.")
 
-        st.text_area(
+        st.session_state.candidate_profile = st.text_area(
             "perfil",
+            value=st.session_state.candidate_profile,
             height=270,
             label_visibility="collapsed",
             placeholder="Rol buscado, stack técnico, experiencia, idiomas...",
-            key="candidate_profile",
         )
 
         col_back, col_start = st.columns(2)
         with col_back:
             if st.button("← Atrás", use_container_width=True):
                 st.session_state.config_step = 2
-                st.rerun()
+                st.rerun(scope="app")
         with col_start:
             if st.button("🚀 Iniciar búsqueda", type="primary", use_container_width=True):
                 errors = validate_config()
@@ -341,7 +352,7 @@ with action_placeholder.container():
             st.rerun()
     with col_info:
         if not st.session_state.search_done and not st.session_state.run_search:
-            st.caption("⏱️ Una búsqueda completa tarda entre 6 y 8 minutos.")
+            st.info("⏱️ Una búsqueda completa suele tardar entre 6 y 8 minutos.")
 
 if not st.session_state.run_search and not st.session_state.search_done:
     render_empty_state()
