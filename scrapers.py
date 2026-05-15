@@ -38,11 +38,13 @@ class JobPosting:
 # =============================================================================
 # Remotive — https://remotive.com/api/remote-jobs
 # =============================================================================
-def scrape_remotive(keywords: list[str]) -> list[JobPosting]:
+def scrape_remotive(keywords: list[str], max_results: int = 0) -> list[JobPosting]:
     jobs = []
     seen = set()
 
     for keyword in keywords:
+        if max_results > 0 and len(jobs) >= max_results:
+            break
         try:
             resp = requests.get(
                 "https://remotive.com/api/remote-jobs",
@@ -54,6 +56,8 @@ def scrape_remotive(keywords: list[str]) -> list[JobPosting]:
             log.info(f"[Remotive] '{keyword}' → {len(data)} ofertas")
 
             for item in data:
+                if max_results > 0 and len(jobs) >= max_results:
+                    break
                 jid = f"rem-{item.get('id', '')}"
                 if jid in seen:
                     continue
@@ -82,46 +86,63 @@ def scrape_remotive(keywords: list[str]) -> list[JobPosting]:
 # =============================================================================
 # Arbeitnow — https://www.arbeitnow.com/api/job-board-api
 # =============================================================================
-def scrape_arbeitnow(keywords: list[str]) -> list[JobPosting]:
+def scrape_arbeitnow(keywords: list[str], max_results: int = 0) -> list[JobPosting]:
     jobs = []
     seen = set()
 
     for keyword in keywords:
-        try:
-            resp = requests.get(
-                "https://www.arbeitnow.com/api/job-board-api",
-                params={"search": keyword, "remote": "true" if ONLY_REMOTE else ""},
-                headers=HEADERS, timeout=15
-            )
-            resp.raise_for_status()
-            data = resp.json().get("data", [])
-            log.info(f"[Arbeitnow] '{keyword}' → {len(data)} ofertas")
+        if max_results > 0 and len(jobs) >= max_results:
+            break
+        page = 1
+        while True:
+            if max_results > 0 and len(jobs) >= max_results:
+                log.info(f"[Arbeitnow] Alcanzado límite de {max_results} ofertas")
+                break
+            try:
+                resp = requests.get(
+                    "https://www.arbeitnow.com/api/job-board-api",
+                    params={
+                        "search": keyword,
+                        "remote": "true" if ONLY_REMOTE else "",
+                        "page": page,
+                    },
+                    headers=HEADERS, timeout=15
+                )
+                resp.raise_for_status()
+                data = resp.json().get("data", [])
+                if not data:
+                    break
+                log.info(f"[Arbeitnow] '{keyword}' (página {page}) → {len(data)} ofertas")
 
-            for item in data:
-                is_remote = item.get("remote", False)
-                if ONLY_REMOTE and not is_remote:
-                    continue
+                for item in data:
+                    if max_results > 0 and len(jobs) >= max_results:
+                        break
+                    is_remote = item.get("remote", False)
+                    if ONLY_REMOTE and not is_remote:
+                        continue
 
-                jid = f"arb-{item.get('slug', item.get('title', ''))[:40]}"
-                if jid in seen:
-                    continue
-                seen.add(jid)
+                    jid = f"arb-{item.get('slug', item.get('title', ''))[:40]}"
+                    if jid in seen:
+                        continue
+                    seen.add(jid)
 
-                jobs.append(JobPosting(
-                    id=jid,
-                    title=item.get("title", ""),
-                    company=item.get("company_name", ""),
-                    description=item.get("description", "")[:3000],
-                    location=item.get("location", "Remote"),
-                    remote=is_remote,
-                    url=item.get("url", ""),
-                    source="Arbeitnow",
-                    published_at=str(item.get("created_at", "")),
-                    tags=item.get("tags", []),
-                ))
-            time.sleep(1)
-        except Exception as e:
-            log.error(f"[Arbeitnow] Error '{keyword}': {e}")
+                    jobs.append(JobPosting(
+                        id=jid,
+                        title=item.get("title", ""),
+                        company=item.get("company_name", ""),
+                        description=item.get("description", "")[:3000],
+                        location=item.get("location", "Remote"),
+                        remote=is_remote,
+                        url=item.get("url", ""),
+                        source="Arbeitnow",
+                        published_at=str(item.get("created_at", "")),
+                        tags=item.get("tags", []),
+                    ))
+                page += 1
+                time.sleep(1)
+            except Exception as e:
+                log.error(f"[Arbeitnow] Error '{keyword}' página {page}: {e}")
+                break
 
     return jobs
 
@@ -129,7 +150,7 @@ def scrape_arbeitnow(keywords: list[str]) -> list[JobPosting]:
 # =============================================================================
 # We Work Remotely — RSS por categorías
 # =============================================================================
-def scrape_weworkremotely() -> list[JobPosting]:
+def scrape_weworkremotely(max_results: int = 0) -> list[JobPosting]:
     jobs = []
     seen = set()
 
@@ -139,12 +160,16 @@ def scrape_weworkremotely() -> list[JobPosting]:
     ]
 
     for feed_url, category in feeds:
+        if max_results > 0 and len(jobs) >= max_results:
+            break
         try:
             feed = feedparser.parse(feed_url)
             entries = feed.get("entries", [])
             log.info(f"[WeWorkRemotely] {category} → {len(entries)} ofertas")
 
             for entry in entries:
+                if max_results > 0 and len(jobs) >= max_results:
+                    break
                 jid = f"wwr-{entry.get('id', entry.get('link',''))[:50]}"
                 if jid in seen:
                     continue
@@ -179,11 +204,13 @@ def scrape_weworkremotely() -> list[JobPosting]:
 # =============================================================================
 # Himalayas — https://himalayas.app/jobs/api
 # =============================================================================
-def scrape_himalayas(keywords: list[str]) -> list[JobPosting]:
+def scrape_himalayas(keywords: list[str], max_results: int = 0) -> list[JobPosting]:
     jobs = []
     seen = set()
 
     for keyword in keywords:
+        if max_results > 0 and len(jobs) >= max_results:
+            break
         try:
             resp = requests.get(
                 "https://himalayas.app/jobs/api",
@@ -195,6 +222,8 @@ def scrape_himalayas(keywords: list[str]) -> list[JobPosting]:
             log.info(f"[Himalayas] '{keyword}' → {len(data)} ofertas")
 
             for item in data:
+                if max_results > 0 and len(jobs) >= max_results:
+                    break
                 jid = f"him-{item.get('slug', item.get('title', ''))[:40]}"
                 if jid in seen:
                     continue

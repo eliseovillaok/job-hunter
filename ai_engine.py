@@ -17,7 +17,7 @@ from scrapers import JobPosting
 log = logging.getLogger(__name__)
 
 client = genai.Client(api_key=GEMINI_API_KEY)
-MODEL = "models/gemini-3.1-flash-lite"   # ← free tier disponible
+MODEL = "gemini-1.5-flash"   # ← free tier disponible (2.0-flash NO tiene free tier)
 
 # Free tier: 15 req/min → esperar 4s entre requests para no pasarse
 REQUEST_DELAY = 4.0
@@ -34,15 +34,20 @@ class ScoredJob:
     summary: str
 
 
-def _generate(prompt: str) -> str:
-    """Llama a Gemini con retry automático ante 429."""
+def _generate(prompt: str) -> tuple[str, bool]:
+    """Llama a Gemini con retry automático ante 429.
+    Retorna (response_text, quota_exceeded_bool).
+    """
     for attempt in range(MAX_RETRIES):
         try:
             resp = client.models.generate_content(model=MODEL, contents=prompt)
-            return resp.text.strip()
+            return resp.text.strip(), False
         except Exception as e:
             err_str = str(e)
             if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
+                if "limit: 0" in err_str:
+                    log.error("CUOTA DIARIA AGOTADA — No hay más tokens disponibles hoy")
+                    return "", True
                 # Extraer retryDelay del mensaje si está disponible
                 wait = 60  # default
                 match = re.search(r"retryDelay.*?(\d+)s", err_str)
@@ -56,7 +61,7 @@ def _generate(prompt: str) -> str:
                     raise
             else:
                 raise
-    return ""
+    return "", False
 
 
 def _parse_json(raw: str) -> dict:
@@ -93,17 +98,22 @@ Return ONLY a raw JSON object, no markdown, no explanation:
 {{"score": <integer 0-100>, "match_reasons": ["reason1", "reason2"], "missing_skills": ["skill"], "summary": "one line summary", "apply_recommended": <true or false>}}
 
 Scoring: 80-100 excellent | 60-79 good | 40-59 partial | 0-39 poor match
-Candidate is a Java/Spring Boot backend engineer seeking remote work."""
+    Candidate is a Java/Spring Boot backend engineer seeking remote work."""
 
     try:
-        raw = _generate(prompt)
+        raw, quota_exceeded = _generate(prompt)
+        if quota_exceeded:
+            return {"score": 0, "match_reasons": [], "missing_skills": [], "summary": "", "apply_recommended": False, "quota_exceeded": True}
+        if not raw:
+            return {"score": 0, "match_reasons": [], "missing_skills": [], "summary": "", "apply_recommended": False, "quota_exceeded": False}
         result = _parse_json(raw)
         if not result or "score" not in result:
-            return {"score": 0, "match_reasons": [], "missing_skills": [], "summary": "", "apply_recommended": False}
+            return {"score": 0, "match_reasons": [], "missing_skills": [], "summary": "", "apply_recommended": False, "quota_exceeded": False}
+        result["quota_exceeded"] = False
         return result
     except Exception as e:
         log.error(f"Error scoring '{job.title}': {e}")
-        return {"score": 0, "match_reasons": [], "missing_skills": [], "summary": "", "apply_recommended": False}
+        return {"score": 0, "match_reasons": [], "missing_skills": [], "summary": "", "apply_recommended": False, "quota_exceeded": False}
 
 
 # =============================================================================
@@ -127,10 +137,11 @@ Requirements:
 - End with a clear call to action
 - First line: [SUBJECT: suggested email subject]
 
-Output only the cover letter."""
+    Output only the cover letter."""
 
     try:
-        return _generate(prompt)
+        raw, _ = _generate(prompt)
+        return raw
     except Exception as e:
         log.error(f"Error cover letter '{job.title}': {e}")
         return "Error generando cover letter."
