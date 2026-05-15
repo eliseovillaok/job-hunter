@@ -57,6 +57,16 @@ st.markdown("""
         padding: 18px 18px 10px 18px;
         margin-bottom: 16px;
     }
+    .kw-pill {
+        display: inline-block;
+        background: #e0e7ff;
+        color: #3730a3;
+        border: 1px solid #c7d2fe;
+        border-radius: 999px;
+        padding: 3px 13px;
+        font-size: 13px;
+        margin: 2px 3px;
+    }
     div[data-testid="stExpander"] { border: 1px solid #e2e8f0; border-radius: 8px; }
     section[data-testid="stSidebar"] { display: none; }
     button[data-testid="collapsedControl"] { display: none; }
@@ -105,27 +115,33 @@ for _k, _v in _defaults.items():
         st.session_state[_k] = _v
 
 
-# ─── Validación global ────────────────────────────────────────────────────────
+def _render_pills(kws):
+    if not kws:
+        return
+    html = " ".join(f'<span class="kw-pill">{kw}</span>' for kw in kws)
+    st.markdown(f'<div style="margin:4px 0 10px">{html}</div>', unsafe_allow_html=True)
+
+
 def validate_config():
     errors = []
     if not st.session_state.gemini_key or not st.session_state.gemini_key.startswith("AIza"):
-        errors.append("❌ Cargá una API key de Gemini válida.")
+        errors.append("❌ API key de Gemini inválida.")
     if st.session_state.send_email:
         if not st.session_state.email_sender or "@" not in st.session_state.email_sender:
-            errors.append("❌ Completá el email desde el que se envía.")
+            errors.append("❌ Email de envío inválido.")
         if len(st.session_state.email_password_raw.replace(" ", "")) != 16:
             errors.append("❌ La contraseña de aplicación debe tener 16 caracteres.")
         if not st.session_state.email_recipient or "@" not in st.session_state.email_recipient:
-            errors.append("❌ Completá el email destinatario.")
+            errors.append("❌ Email destinatario inválido.")
     if not st.session_state.keywords_list:
-        errors.append("❌ Agregá al menos una palabra clave.")
+        errors.append("❌ Agregá al menos una keyword.")
     if not any([st.session_state.use_remotive, st.session_state.use_arbeitnow,
                 st.session_state.use_wwr, st.session_state.use_himalayas]):
-        errors.append("❌ Seleccioná al menos una fuente de ofertas.")
+        errors.append("❌ Seleccioná al menos una fuente.")
     return errors
 
 
-# ─── Dialog: wizard de configuración ─────────────────────────────────────────
+# ─── Dialog ───────────────────────────────────────────────────────────────────
 @st.dialog("⚙️ Configurar búsqueda", width="large")
 def config_dialog():
     step = st.session_state.config_step
@@ -139,125 +155,109 @@ def config_dialog():
         with st.expander("¿Cómo obtengo la API key de Gemini?", icon="❓"):
             st.markdown("""
 1. Ir a [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)
-2. Iniciar sesión con Google
-3. Hacer click en **Create API Key**
-4. Copiar la clave (empieza con `AIza...`) — es **gratis**, no necesitás tarjeta.
+2. Iniciar sesión con Google → **Create API Key**
+3. Copiar la clave — es gratis, no requiere tarjeta.
 """)
 
         st.session_state.gemini_key = st.text_input(
-            "API Key de Gemini",
-            value=st.session_state.gemini_key,
-            type="password",
-            placeholder="AIzaXXXXXXXXXXXXXXXXX",
+            "API Key de Gemini", value=st.session_state.gemini_key,
+            type="password", placeholder="AIzaXXXXXXXXXXXXXXXXX",
         )
 
         _models = [
-            "models/gemini-2.5-flash",
-            "models/gemini-2.5-flash-lite",
-            "models/gemini-2.0-flash-lite",
-            "models/gemini-3.1-flash-lite",
-            "models/gemini-3.1-pro",
+            "models/gemini-2.5-flash", "models/gemini-2.5-flash-lite",
+            "models/gemini-2.0-flash-lite", "models/gemini-3.1-flash-lite", "models/gemini-3.1-pro",
         ]
         _idx = _models.index(st.session_state.selected_model) if st.session_state.selected_model in _models else 0
-        st.session_state.selected_model = st.selectbox("Modelo de IA", _models, index=_idx)
+        st.session_state.selected_model = st.selectbox("Modelo", _models, index=_idx)
 
         st.divider()
-        st.session_state.send_email = st.checkbox(
-            "📧 Enviarme un resumen por email al finalizar",
-            value=st.session_state.send_email,
-        )
+        st.session_state.send_email = st.checkbox("📧 Recibir resumen por email", value=st.session_state.send_email)
         if st.session_state.send_email:
             with st.expander("¿Cómo obtengo la contraseña de aplicación de Gmail?", icon="❓"):
                 st.markdown("""
-1. Ir a [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords)
-2. La verificación en 2 pasos debe estar **activada**
-3. Crear una app llamada `Job Hunter` y copiar los 16 caracteres
-
-⚠️ **No** uses tu contraseña normal de Gmail.
+1. [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords)
+2. Verificación en 2 pasos **activada**
+3. Crear app `Job Hunter` → copiar los 16 caracteres
 """)
             st.session_state.email_sender = st.text_input(
-                "Email desde el que se envía", value=st.session_state.email_sender, placeholder="tu@gmail.com",
+                "Email de envío", value=st.session_state.email_sender, placeholder="tu@gmail.com",
             )
             st.session_state.email_password_raw = st.text_input(
-                "Contraseña de aplicación (16 caracteres)", value=st.session_state.email_password_raw,
+                "Contraseña de app (16 caracteres)", value=st.session_state.email_password_raw,
                 type="password", placeholder="abcd efgh ijkl mnop",
             )
             st.session_state.email_recipient = st.text_input(
-                "Email que recibe el resumen", value=st.session_state.email_recipient, placeholder="tu@gmail.com",
+                "Email destinatario", value=st.session_state.email_recipient, placeholder="tu@gmail.com",
             )
 
         st.markdown("")
         if st.button("Siguiente →", type="primary", use_container_width=True):
+            err = []
             if not st.session_state.gemini_key or not st.session_state.gemini_key.startswith("AIza"):
-                st.error("❌ Ingresá una API key de Gemini válida para continuar.")
-            elif st.session_state.send_email:
+                err.append("❌ API key inválida.")
+            if st.session_state.send_email:
                 pw = st.session_state.email_password_raw.replace(" ", "")
                 if not st.session_state.email_sender or "@" not in st.session_state.email_sender:
-                    st.error("❌ Completá el email de envío.")
-                elif len(pw) != 16:
-                    st.error("❌ La contraseña de aplicación debe tener 16 caracteres.")
-                elif not st.session_state.email_recipient or "@" not in st.session_state.email_recipient:
-                    st.error("❌ Completá el email destinatario.")
-                else:
-                    st.session_state.config_step = 2
-                    st.rerun()
+                    err.append("❌ Email de envío inválido.")
+                if len(pw) != 16:
+                    err.append("❌ Contraseña de 16 caracteres requerida.")
+                if not st.session_state.email_recipient or "@" not in st.session_state.email_recipient:
+                    err.append("❌ Email destinatario inválido.")
+            if err:
+                for e in err:
+                    st.error(e)
             else:
                 st.session_state.config_step = 2
                 st.rerun()
 
     # ── Paso 2: Búsqueda y fuentes ────────────────────────────────────────────
     elif step == 2:
-        st.subheader("🔍 Búsqueda y fuentes")
+        st.subheader("🔍 Búsqueda")
 
-        # ── Keywords como tags ────────────────────────────────────────────────
-        st.markdown("**Palabras clave**")
+        # Pills slot: se escribe al FINAL del paso para reflejar el estado actual
+        pills_slot = st.empty()
 
-        # Inicializar el multiselect con los keywords actuales si no existe
-        if "kw_ms" not in st.session_state:
-            st.session_state.kw_ms = list(st.session_state.keywords_list)
+        # Botones de remoción — se procesan antes de actualizar pills_slot
+        kws_snapshot = list(st.session_state.keywords_list)
+        if kws_snapshot:
+            remove_cols_per_row = 4
+            for row_i in range(0, len(kws_snapshot), remove_cols_per_row):
+                batch = kws_snapshot[row_i:row_i + remove_cols_per_row]
+                cols = st.columns(remove_cols_per_row)
+                for j, kw in enumerate(batch):
+                    with cols[j]:
+                        if st.button(f"✕  {kw[:18]}", key=f"rmkw_{row_i+j}", use_container_width=True):
+                            st.session_state.keywords_list.remove(kw)
 
-        # Multiselect: muestra los tags actuales con × para quitar
-        st.multiselect(
-            "keywords",
-            options=st.session_state.kw_ms,
-            default=st.session_state.kw_ms,
-            key="kw_ms",
-            label_visibility="collapsed",
-            placeholder="Tus keywords aparecerán acá — hacé click en × para quitar",
-        )
-        # Sincronizar keywords_list desde el multiselect
-        st.session_state.keywords_list = list(st.session_state.kw_ms)
-
-        # Form para agregar nueva keyword (Enter o botón)
+        # Formulario para agregar keyword (Enter o botón)
         with st.form("add_kw", clear_on_submit=True):
-            col_in, col_btn = st.columns([5, 1])
-            with col_in:
-                new_kw = st.text_input(
-                    "add",
-                    placeholder="Escribí una keyword y presioná Enter para agregar...",
-                    label_visibility="collapsed",
-                )
-            with col_btn:
-                submitted = st.form_submit_button("+ Agregar", use_container_width=True)
-            if submitted and new_kw.strip():
-                kw = new_kw.strip()
-                if kw not in st.session_state.kw_ms:
-                    st.session_state.kw_ms = list(st.session_state.kw_ms) + [kw]
-                    st.session_state.keywords_list = list(st.session_state.kw_ms)
-                st.rerun()
+            c1, c2 = st.columns([5, 1])
+            with c1:
+                new_kw = st.text_input("kw", placeholder="Nueva keyword — Enter para agregar", label_visibility="collapsed")
+            with c2:
+                add_submitted = st.form_submit_button("+ Agregar", use_container_width=True)
+            if add_submitted and new_kw.strip():
+                kw_clean = new_kw.strip()
+                if kw_clean not in st.session_state.keywords_list:
+                    st.session_state.keywords_list.append(kw_clean)
+
+        # Actualizar pills con el estado ACTUAL (luego de remoción/adición)
+        kws_now = list(st.session_state.keywords_list)
+        with pills_slot.container():
+            if kws_now:
+                _render_pills(kws_now)
+            else:
+                st.warning("Sin keywords — agregá al menos una.")
 
         st.divider()
 
-        # ── Puntaje mínimo ────────────────────────────────────────────────────
         st.session_state.min_score = st.slider(
-            "Puntaje mínimo para considerar una oferta interesante",
-            min_value=30, max_value=90,
-            value=st.session_state.min_score,
-            step=5,
-            help="Las ofertas por debajo de este puntaje quedan fuera del resumen.",
+            "Puntaje mínimo", min_value=30, max_value=90,
+            value=st.session_state.min_score, step=5,
+            help="Ofertas por debajo de este puntaje no aparecen en los resultados.",
         )
 
-        # ── Fuentes ───────────────────────────────────────────────────────────
         st.markdown("**Fuentes**")
         c1, c2 = st.columns(2)
         with c1:
@@ -267,16 +267,14 @@ def config_dialog():
             st.session_state.use_wwr       = st.checkbox("WeWorkRemotely", value=st.session_state.use_wwr)
             st.session_state.use_himalayas = st.checkbox("Himalayas",      value=st.session_state.use_himalayas)
 
-        # ── Límite opcional ───────────────────────────────────────────────────
         st.session_state.use_max_results = st.checkbox(
-            "Limitar cantidad de ofertas a analizar",
+            "Limitar cantidad de ofertas",
             value=st.session_state.use_max_results,
             help="Útil para pruebas rápidas o para ahorrar cuota de IA.",
         )
         if st.session_state.use_max_results:
             st.session_state.max_results_limit = st.slider(
-                "Cantidad máxima de ofertas",
-                min_value=10, max_value=1000,
+                "Máximo de ofertas", min_value=10, max_value=1000,
                 value=st.session_state.max_results_limit, step=10,
             )
 
@@ -289,7 +287,7 @@ def config_dialog():
         with col_next:
             if st.button("Siguiente →", type="primary", use_container_width=True):
                 if not st.session_state.keywords_list:
-                    st.error("❌ Agregá al menos una palabra clave.")
+                    st.error("❌ Agregá al menos una keyword.")
                 elif not any([st.session_state.use_remotive, st.session_state.use_arbeitnow,
                               st.session_state.use_wwr, st.session_state.use_himalayas]):
                     st.error("❌ Seleccioná al menos una fuente.")
@@ -299,13 +297,14 @@ def config_dialog():
 
     # ── Paso 3: Perfil ────────────────────────────────────────────────────────
     elif step == 3:
-        st.subheader("👤 Tu perfil profesional")
-        st.caption("Cuanto más completo sea tu perfil, más precisos serán los resultados.")
+        st.subheader("👤 Perfil profesional")
 
         st.session_state.candidate_profile = st.text_area(
-            "Contale a la IA qué tipo de perfil tenés",
+            "Describí tu perfil para la IA",
             value=st.session_state.candidate_profile,
             height=290,
+            label_visibility="collapsed",
+            placeholder="Rol buscado, stack técnico, experiencia, idiomas...",
         )
 
         st.markdown("")
@@ -354,11 +353,11 @@ def render_empty_state():
 
 **¿Qué hace esta app?**
 1. Busca ofertas remotas en Remotive, Arbeitnow, WeWorkRemotely e Himalayas
-2. Analiza cada oferta con IA según tu perfil y le da un puntaje de 0 a 100
-3. Genera cartas personalizadas para las oportunidades con mejor encaje
-4. Si querés, te envía un resumen por email al finalizar
+2. Analiza cada oferta con IA según tu perfil (puntaje 0–100)
+3. Genera cartas de presentación personalizadas
+4. Opcional: envía un resumen por email al finalizar
 """)
-        st.info("💡 Podés usar la app sin email y ver todos los resultados directamente en pantalla.")
+        st.info("💡 Podés usar la app sin email y ver todos los resultados en pantalla.")
 
 
 # ─── Botón de acción ──────────────────────────────────────────────────────────
@@ -367,9 +366,6 @@ with action_placeholder.container():
     with col_btn:
         _label = "🔄 Nueva búsqueda" if st.session_state.search_done else "⚙️ Configurar y buscar"
         if st.button(_label, type="primary", use_container_width=True):
-            # Reiniciar el multiselect de keywords para sincronizar con el estado actual
-            if "kw_ms" in st.session_state:
-                del st.session_state["kw_ms"]
             st.session_state.show_dialog = True
             st.session_state.config_step = 1
             st.rerun()
@@ -468,7 +464,6 @@ if st.session_state.run_search:
                 jobs = sc.scrape_himalayas(keywords, max_results=remaining)
             else:
                 jobs = []
-
             for job in jobs:
                 key = f"{job.title.lower()[:40]}|{job.company.lower()[:30]}"
                 if key not in seen_global:
