@@ -133,11 +133,13 @@ Es **gratuita** — no necesitás tarjeta.
             "Tu Gmail",
             placeholder="tu@gmail.com",
         )
-        email_password = st.text_input(
+        email_password_raw = st.text_input(
             "App Password (16 caracteres)",
             type="password",
-            placeholder="abcdefghijklmnop",
+            placeholder="abcd efgh ijkl mnop",
+            help="Se eliminarán automáticamente los espacios",
         )
+        email_password = email_password_raw.replace(" ", "")
         email_recipient = st.text_input(
             "Email destino del digest",
             placeholder="tu@gmail.com",
@@ -151,7 +153,7 @@ Es **gratuita** — no necesitás tarjeta.
 
     keywords_raw = st.text_area(
         "Keywords (una por línea)",
-        value="backend developer\njava spring boot\ncloud engineer\nbackend engineer\ndevops engineer",
+        value="frontend developer\nreact developer\nfull stack engineer\nUI engineer\njavascript developer",
         height=120,
         help="Palabras clave para buscar en las plataformas",
     )
@@ -164,6 +166,23 @@ Es **gratuita** — no necesitás tarjeta.
         step=5,
         help="Ofertas con score menor a este valor no aparecen en el email",
     )
+
+    st.subheader("⚙️ Límites (opcional)")
+    use_max_results = st.checkbox(
+        "Limitar cantidad de ofertas",
+        value=False,
+        help="Activá para detener la búsqueda después de cierta cantidad",
+    )
+    max_results_limit = 0
+    if use_max_results:
+        max_results_limit = st.slider(
+            "Máximo de ofertas a buscar",
+            min_value=10,
+            max_value=1000,
+            value=100,
+            step=10,
+            help="La búsqueda se detendrá cuando alcance este número",
+        )
 
     st.subheader("Plataformas")
     col1, col2 = st.columns(2)
@@ -180,21 +199,22 @@ Es **gratuita** — no necesitás tarjeta.
     st.header("👤 Tu perfil")
     candidate_profile = st.text_area(
         "Describí tu perfil (para que la IA evalúe el match)",
-        value="""Rol buscado: Backend Engineer / Cloud Engineer (solo remoto)
+        value="""Rol buscado: Frontend Engineer / Full Stack (solo remoto)
 
 Stack técnico:
-- Java, Spring Boot, REST APIs, JWT, SQL (PostgreSQL, MySQL)
-- Python, Bash scripting, automatización
-- Docker, Cloud Deployment, Linux
-- ERP: Odoo (implementación técnica end-to-end)
-- Herramientas: Git, Jira, Scrum
+- JavaScript, React, Vue.js, HTML5, CSS3
+- Node.js, Express, API REST
+- PostgreSQL, MongoDB
+- Git, GitHub, Webpack
+- Testing: Jest, React Testing Library
 
 Experiencia:
-- IT Lead / Backend Engineer en SieteIdeas
-- Java Backend Developer en SISP Tandil
+- Senior Frontend Engineer en StartupXYZ (2 años)
+- Mid-level Developer en TechCorp (1.5 años)
+- Freelance projects en React y Vue
 
-Idiomas: Español (nativo), Inglés (intermedio)
-Ubicación: Argentina — disponible 100% remoto""",
+Idiomas: Español (nativo), Inglés (fluido)
+Ubicación: Cualquier zona horaria — 100% remoto""",
         height=200,
     )
 
@@ -290,15 +310,29 @@ if run_button:
 
     for idx, platform_name in enumerate(enabled_list):
         platform_status.info(f"Scraping **{platform_name}**...")
+        if max_results_limit > 0 and len(all_jobs) >= max_results_limit:
+            platform_status.success(f"✅ Se alcanzó el límite de {max_results_limit} ofertas.")
+            break
         try:
             if platform_name == "Remotive":
-                jobs = sc.scrape_remotive(keywords)
+                jobs = sc.scrape_remotive(
+                    keywords,
+                    max_results=max_results_limit - len(all_jobs) if max_results_limit > 0 else 0,
+                )
             elif platform_name == "Arbeitnow":
-                jobs = sc.scrape_arbeitnow(keywords)
+                jobs = sc.scrape_arbeitnow(
+                    keywords,
+                    max_results=max_results_limit - len(all_jobs) if max_results_limit > 0 else 0,
+                )
             elif platform_name == "WeWorkRemotely":
-                jobs = sc.scrape_weworkremotely()
+                jobs = sc.scrape_weworkremotely(
+                    max_results=max_results_limit - len(all_jobs) if max_results_limit > 0 else 0,
+                )
             elif platform_name == "Himalayas":
-                jobs = sc.scrape_himalayas(keywords)
+                jobs = sc.scrape_himalayas(
+                    keywords,
+                    max_results=max_results_limit - len(all_jobs) if max_results_limit > 0 else 0,
+                )
             else:
                 jobs = []
 
@@ -307,6 +341,8 @@ if run_button:
                 if key not in seen_global:
                     seen_global.add(key)
                     all_jobs.append(job)
+                if max_results_limit > 0 and len(all_jobs) >= max_results_limit:
+                    break
 
         except Exception as e:
             st.warning(f"⚠️ Error en {platform_name}: {e}")
@@ -325,11 +361,16 @@ if run_button:
 
     scored_jobs  = []
     top_so_far   = []
+    quota_exceeded = False
 
     for i, job in enumerate(all_jobs):
         ai_status.info(f"Evaluando **{i+1}/{len(all_jobs)}** — {job.title[:50]} @ {job.company}")
         data  = ai_engine.score_job(job)
         score = data.get("score", 0)
+        if data.get("quota_exceeded", False):
+            quota_exceeded = True
+            st.error(f"⚠️ Se agotó la cuota diaria de Gemini. Ya se evaluaron {i} ofertas. Vuelve mañana para continuar.")
+            break
 
         from ai_engine import ScoredJob
         sj = ScoredJob(
@@ -362,7 +403,8 @@ if run_button:
 
     scored_jobs.sort(key=lambda x: x.score, reverse=True)
     top_matches = [j for j in scored_jobs if j.score >= min_score]
-    ai_status.success(f"✅ Evaluación completada — **{len(top_matches)} matches** sobre umbral de {min_score}")
+    if not quota_exceeded:
+        ai_status.success(f"✅ Evaluación completada — **{len(top_matches)} matches** sobre umbral de {min_score}")
 
     # ── STEP 3: Cover Letters ─────────────────────────────────────────────────
     if top_matches:
