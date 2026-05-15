@@ -247,6 +247,25 @@ def format_duration(seconds):
         return f"{minutes} min {secs:02d} s"
     return f"{secs} s"
 
+
+def render_empty_state():
+    with empty_state_placeholder.container():
+        st.markdown("""
+### 👈 Completá la barra lateral y después hacé click en **Empezar búsqueda**
+
+**¿Qué hace esta app por vos?**
+1. Busca ofertas remotas en Remotive, Arbeitnow, WeWorkRemotely e Himalayas
+2. Analiza cada oferta con IA según tu perfil y le da un puntaje de 0 a 100
+3. Genera cartas personalizadas para las oportunidades con mejor encaje
+4. Si querés, te envía un resumen por email al finalizar
+
+**Qué necesitás para usarla**
+- Una API key de Gemini (gratis en [aistudio.google.com](https://aistudio.google.com/app/apikey))
+- Una contraseña de aplicación de Gmail, solo si querés recibir el resumen por email
+        """)
+
+        st.info("💡 Podés usar la app sin email y ver todos los resultados directamente en pantalla.")
+
 # Validación antes de correr
 def validate_config():
     errors = []
@@ -278,6 +297,8 @@ with action_placeholder.container():
         run_button = st.button("🚀 Empezar búsqueda", type="primary", use_container_width=True)
     with col_info:
         st.info("⏱️ Una búsqueda completa suele tardar entre 6 y 8 minutos.")
+
+render_empty_state()
 
 if run_button:
     # Re-leer valores actuales de la UI (sin necesidad de Ctrl+Enter)
@@ -323,16 +344,21 @@ if run_button:
             st.caption(f"Paso actual: {step_number} de 4")
             st.subheader(step_title)
             st.caption(step_description)
+            status = st.empty()
+            notice = st.empty()
+            eta = st.empty()
+            progress = st.empty()
+            extra = st.empty()
             st.markdown("</div>", unsafe_allow_html=True)
-            return st.empty(), st.empty(), st.empty()
+            return status, notice, eta, progress, extra
 
     # ── STEP 1: Scraping ───────────────────────────────────────────────────────
-    platform_status, platform_notice, platform_eta = render_workflow_step(
+    platform_status, platform_notice, platform_eta, progress_scrape, _ = render_workflow_step(
         1,
         "Paso 1: buscar ofertas",
         "Estamos recorriendo las fuentes seleccionadas para reunir oportunidades relevantes.",
     )
-    progress_scrape = st.progress(0)
+    progress_scrape.progress(0)
 
     all_jobs = []
     seen_global = set()
@@ -398,13 +424,12 @@ if run_button:
     platform_eta.info(f"Tiempo total: {format_duration(time.monotonic() - scrape_started_at)}")
 
     # ── STEP 2: AI Scoring ────────────────────────────────────────────────────
-    ai_status, ai_notice, ai_eta = render_workflow_step(
+    ai_status, ai_notice, ai_eta, progress_ai, live_results = render_workflow_step(
         2,
         "Paso 2: analizar cada oferta con IA",
         "Ahora evaluamos qué tan bien encaja cada oferta con tu perfil.",
     )
-    progress_ai  = st.progress(0)
-    live_results = st.empty()
+    progress_ai.progress(0)
 
     scored_jobs  = []
     top_so_far   = []
@@ -464,12 +489,12 @@ if run_button:
 
     # ── STEP 3: Cover Letters ─────────────────────────────────────────────────
     if top_matches:
-        cl_status, _, cl_eta = render_workflow_step(
+        cl_status, _, cl_eta, progress_cl, _ = render_workflow_step(
             3,
             "Paso 3: generar cartas personalizadas",
             "Estamos preparando una carta para cada oportunidad recomendada.",
         )
-        progress_cl = st.progress(0)
+        progress_cl.progress(0)
         cover_started_at = time.monotonic()
         total_letters = len(top_matches)
 
@@ -491,7 +516,7 @@ if run_button:
 
     # ── STEP 4: Email opcional ─────────────────────────────────────────────────
     if send_email and top_matches and email_sender and email_password:
-        email_status, _, email_eta = render_workflow_step(
+        email_status, _, email_eta, _, _ = render_workflow_step(
             4,
             "Paso 4: enviar resumen por email",
             "Último paso: enviamos el resumen con las mejores oportunidades.",
@@ -509,9 +534,7 @@ if run_button:
         except Exception as e:
             email_status.error(f"❌ No se pudo enviar el email: {e}")
 
-    action_placeholder.empty()
     workflow_placeholder.empty()
-    empty_state_placeholder.empty()
 
     results_dir = Path("results")
     results_dir.mkdir(exist_ok=True)
@@ -640,22 +663,3 @@ if run_button:
             file_name=f"job_hunt_{ts}.json",
             mime="application/json",
         )
-
-else:
-    # Estado inicial — instrucciones
-    with empty_state_placeholder.container():
-        st.markdown("""
-### 👈 Completá la barra lateral y después hacé click en **Empezar búsqueda**
-
-**¿Qué hace esta app por vos?**
-1. Busca ofertas remotas en Remotive, Arbeitnow, WeWorkRemotely e Himalayas
-2. Analiza cada oferta con IA según tu perfil y le da un puntaje de 0 a 100
-3. Genera cartas personalizadas para las oportunidades con mejor encaje
-4. Si querés, te envía un resumen por email al finalizar
-
-**Qué necesitás para usarla**
-- Una API key de Gemini (gratis en [aistudio.google.com](https://aistudio.google.com/app/apikey))
-- Una contraseña de aplicación de Gmail, solo si querés recibir el resumen por email
-    """)
-
-        st.info("💡 Podés usar la app sin email y ver todos los resultados directamente en pantalla.")
