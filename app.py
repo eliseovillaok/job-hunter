@@ -68,7 +68,7 @@ _defaults = {
     "run_search":         False,
     "search_done":        False,
     "gemini_key":         "",
-    "selected_model":     "models/gemini-2.5-flash",
+    "selected_model":     "models/gemini-3.1-flash-lite",
     "send_email":         False,
     "email_sender":       "",
     "email_password_raw": "",
