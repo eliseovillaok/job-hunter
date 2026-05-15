@@ -4,7 +4,6 @@ Interfaz web para configurar y correr el job hunter sin tocar código
 """
 
 import streamlit as st
-import streamlit.components.v1 as components
 import json
 import time
 import os
@@ -67,11 +66,6 @@ st.markdown("""
         border-radius: 14px;
         padding: 18px 18px 10px 18px;
         margin-bottom: 16px;
-    }
-    .results-anchor {
-        display: block;
-        position: relative;
-        top: -12px;
     }
     div[data-testid="stExpander"] { border: 1px solid #e2e8f0; border-radius: 8px; }
 </style>
@@ -235,8 +229,9 @@ Ubicación: Cualquier zona horaria — 100% remoto""",
 # ─── Main area ───────────────────────────────────────────────────────────────
 st.title("🎯 Job Hunter AI")
 st.caption("Buscá ofertas remotas, priorizalas con IA y generá cartas listas para usar.")
-results_placeholder = st.empty()
 action_placeholder = st.empty()
+workflow_placeholder = st.empty()
+results_placeholder = st.empty()
 empty_state_placeholder = st.empty()
 
 
@@ -301,8 +296,7 @@ with action_placeholder.container():
 render_empty_state()
 
 if run_button:
-    # Re-leer valores actuales de la UI (sin necesidad de Ctrl+Enter)
-    # Streamlit actualiza automáticamente cuando haces click en el botón
+    empty_state_placeholder.empty()
     errors = validate_config()
     if errors:
         for e in errors:
@@ -335,8 +329,6 @@ if run_button:
 
     # Parchear plataformas activas en scrapers
     import scrapers as sc
-
-    workflow_placeholder = st.empty()
 
     def render_workflow_step(step_number, step_title, step_description):
         with workflow_placeholder.container():
@@ -558,18 +550,6 @@ if run_button:
 
     # ── RESULTADOS ─────────────────────────────────────────────────────────────
     with results_placeholder.container():
-        st.markdown('<span id="results-anchor" class="results-anchor"></span>', unsafe_allow_html=True)
-        components.html(
-            """
-            <script>
-            const anchor = window.parent.document.getElementById("results-anchor");
-            if (anchor) {
-              anchor.scrollIntoView({ behavior: "smooth", block: "start" });
-            }
-            </script>
-            """,
-            height=0,
-        )
         st.header("📊 Resultados")
         st.caption("Revisá las mejores oportunidades y descargá las cartas o el resumen completo.")
 
