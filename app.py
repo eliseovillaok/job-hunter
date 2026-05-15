@@ -40,6 +40,12 @@ st.markdown("""
     .src-arbeitnow { background: #0ea5e9; }
     .src-wwr       { background: #10b981; }
     .src-himalayas { background: #f59e0b; }
+    /* Make the keyword add-form blend with the multiselect above it */
+    div[data-testid="stDialog"] div[data-testid="stForm"] {
+        border: none !important;
+        padding: 0 !important;
+        background: transparent !important;
+    }
     .cover-letter-box {
         background: #f8fafc;
         border: 1px solid #e2e8f0;
@@ -310,7 +316,7 @@ def config_dialog():
                 else:
                     st.session_state.show_dialog = False
                     st.session_state.run_search  = True
-                    st.rerun()
+                    st.rerun(scope="app")
 
 
 # ─── Main area ────────────────────────────────────────────────────────────────
