@@ -460,7 +460,7 @@ if run_button:
         f"📋 Todas las ofertas ({len(scored_jobs)})",
     ])
 
-    def render_job_card(sj, idx):
+    def render_job_card(sj, idx, section):
         score = sj.score
         color  = "score-high"   if score >= 80 else \
                  "score-medium" if score >= 60 else "score-low"
@@ -507,8 +507,7 @@ if run_button:
                     f'<div class="cover-letter-box">{sj.cover_letter}</div>',
                     unsafe_allow_html=True,
                 )
-                # Usar URL del job como parte de la key para hacerla única
-                unique_key = f"dl_{hash(sj.job.url)}_{idx}"
+                unique_key = f"dl_{section}_{sj.job.id}_{idx}"
                 st.download_button(
                     "⬇ Descargar cover letter",
                     data=sj.cover_letter,
@@ -520,14 +519,14 @@ if run_button:
     with tab1:
         if top_matches:
             for i, sj in enumerate(top_matches):
-                render_job_card(sj, i)
+                render_job_card(sj, i, "top")
         else:
             st.info(f"No se encontraron matches sobre {min_score} puntos. Probá bajando el score mínimo en la barra lateral.")
 
     with tab2:
         st.caption("Todas las ofertas ordenadas por score")
         for i, sj in enumerate(scored_jobs):
-            render_job_card(sj, i)
+            render_job_card(sj, i, "all")
 
     # Guardar resultados en JSON
     results_dir = Path("results")
