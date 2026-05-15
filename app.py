@@ -146,8 +146,13 @@ def config_dialog():
         )
 
         _models = [
-            "models/gemini-2.5-flash", "models/gemini-2.5-flash-lite",
+            "models/gemini-2.5-pro",
+            "models/gemini-2.5-flash",
+            "models/gemini-2.0-flash",
             "models/gemini-2.0-flash-lite",
+            "models/gemini-1.5-pro",
+            "models/gemini-1.5-flash",
+            "models/gemini-1.5-flash-8b",
         ]
         if st.session_state.selected_model not in _models:
             st.session_state.selected_model = _models[0]
