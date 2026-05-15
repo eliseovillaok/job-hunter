@@ -57,16 +57,6 @@ st.markdown("""
         padding: 18px 18px 10px 18px;
         margin-bottom: 16px;
     }
-    .kw-pill {
-        display: inline-block;
-        background: #e0e7ff;
-        color: #3730a3;
-        border: 1px solid #c7d2fe;
-        border-radius: 999px;
-        padding: 3px 13px;
-        font-size: 13px;
-        margin: 2px 3px;
-    }
     div[data-testid="stExpander"] { border: 1px solid #e2e8f0; border-radius: 8px; }
     section[data-testid="stSidebar"] { display: none; }
     button[data-testid="collapsedControl"] { display: none; }
@@ -115,29 +105,22 @@ for _k, _v in _defaults.items():
         st.session_state[_k] = _v
 
 
-def _render_pills(kws):
-    if not kws:
-        return
-    html = " ".join(f'<span class="kw-pill">{kw}</span>' for kw in kws)
-    st.markdown(f'<div style="margin:4px 0 10px">{html}</div>', unsafe_allow_html=True)
-
-
 def validate_config():
     errors = []
     if not st.session_state.gemini_key or not st.session_state.gemini_key.startswith("AIza"):
-        errors.append("❌ API key de Gemini inválida.")
+        errors.append("API key de Gemini inválida.")
     if st.session_state.send_email:
         if not st.session_state.email_sender or "@" not in st.session_state.email_sender:
-            errors.append("❌ Email de envío inválido.")
+            errors.append("Email de envío inválido.")
         if len(st.session_state.email_password_raw.replace(" ", "")) != 16:
-            errors.append("❌ La contraseña de aplicación debe tener 16 caracteres.")
+            errors.append("La contraseña de app debe tener 16 caracteres.")
         if not st.session_state.email_recipient or "@" not in st.session_state.email_recipient:
-            errors.append("❌ Email destinatario inválido.")
+            errors.append("Email destinatario inválido.")
     if not st.session_state.keywords_list:
-        errors.append("❌ Agregá al menos una keyword.")
+        errors.append("Agregá al menos una keyword.")
     if not any([st.session_state.use_remotive, st.session_state.use_arbeitnow,
                 st.session_state.use_wwr, st.session_state.use_himalayas]):
-        errors.append("❌ Seleccioná al menos una fuente.")
+        errors.append("Seleccioná al menos una fuente.")
     return errors
 
 
@@ -195,18 +178,17 @@ def config_dialog():
         if st.button("Siguiente →", type="primary", use_container_width=True):
             err = []
             if not st.session_state.gemini_key or not st.session_state.gemini_key.startswith("AIza"):
-                err.append("❌ API key inválida.")
+                err.append("API key inválida.")
             if st.session_state.send_email:
                 pw = st.session_state.email_password_raw.replace(" ", "")
                 if not st.session_state.email_sender or "@" not in st.session_state.email_sender:
-                    err.append("❌ Email de envío inválido.")
+                    err.append("Email de envío inválido.")
                 if len(pw) != 16:
-                    err.append("❌ Contraseña de 16 caracteres requerida.")
+                    err.append("La contraseña de app debe tener 16 caracteres.")
                 if not st.session_state.email_recipient or "@" not in st.session_state.email_recipient:
-                    err.append("❌ Email destinatario inválido.")
+                    err.append("Email destinatario inválido.")
             if err:
-                for e in err:
-                    st.error(e)
+                st.toast(" · ".join(err), icon="⚠️")
             else:
                 st.session_state.config_step = 2
                 st.rerun()
@@ -215,40 +197,47 @@ def config_dialog():
     elif step == 2:
         st.subheader("🔍 Búsqueda")
 
-        # Pills slot: se escribe al FINAL del paso para reflejar el estado actual
-        pills_slot = st.empty()
+        # Procesar keyword pendiente de agregar ANTES de renderizar el multiselect
+        if "_pending_add" in st.session_state:
+            _kw = st.session_state.pop("_pending_add")
+            if _kw and _kw not in st.session_state.keywords_list:
+                st.session_state.keywords_list.append(_kw)
+            # Pre-cargar el valor del multiselect con la lista actualizada
+            st.session_state["kw_tags"] = list(st.session_state.keywords_list)
 
-        # Botones de remoción — se procesan antes de actualizar pills_slot
-        kws_snapshot = list(st.session_state.keywords_list)
-        if kws_snapshot:
-            remove_cols_per_row = 4
-            for row_i in range(0, len(kws_snapshot), remove_cols_per_row):
-                batch = kws_snapshot[row_i:row_i + remove_cols_per_row]
-                cols = st.columns(remove_cols_per_row)
-                for j, kw in enumerate(batch):
-                    with cols[j]:
-                        if st.button(f"✕  {kw[:18]}", key=f"rmkw_{row_i+j}", use_container_width=True):
-                            st.session_state.keywords_list.remove(kw)
+        # Inicializar el multiselect si todavía no existe
+        if "kw_tags" not in st.session_state:
+            st.session_state["kw_tags"] = list(st.session_state.keywords_list)
 
-        # Formulario para agregar keyword (Enter o botón)
+        # Multiselect = tags nativos de Streamlit con × integrado
+        # options = kw_tags (el estado actual del widget, sin ítems eliminados)
+        _opts = list(st.session_state["kw_tags"])
+        selected = st.multiselect(
+            "Keywords",
+            options=_opts,
+            default=_opts,
+            key="kw_tags",
+            placeholder="Tus keywords aparecen acá — × para quitar",
+            label_visibility="collapsed",
+        )
+        # Sincronizar keywords_list con lo que el usuario haya quitado
+        st.session_state.keywords_list = list(selected)
+
+        # Formulario para agregar (Enter o botón)
         with st.form("add_kw", clear_on_submit=True):
             c1, c2 = st.columns([5, 1])
             with c1:
-                new_kw = st.text_input("kw", placeholder="Nueva keyword — Enter para agregar", label_visibility="collapsed")
+                new_kw = st.text_input(
+                    "kw", placeholder="Nueva keyword — Enter para agregar",
+                    label_visibility="collapsed",
+                )
             with c2:
                 add_submitted = st.form_submit_button("+ Agregar", use_container_width=True)
             if add_submitted and new_kw.strip():
-                kw_clean = new_kw.strip()
-                if kw_clean not in st.session_state.keywords_list:
-                    st.session_state.keywords_list.append(kw_clean)
-
-        # Actualizar pills con el estado ACTUAL (luego de remoción/adición)
-        kws_now = list(st.session_state.keywords_list)
-        with pills_slot.container():
-            if kws_now:
-                _render_pills(kws_now)
-            else:
-                st.warning("Sin keywords — agregá al menos una.")
+                # Guardar en pendiente: se procesa al inicio del próximo render,
+                # ANTES de que el multiselect se instancie (evita el error de key)
+                st.session_state["_pending_add"] = new_kw.strip()
+                st.rerun()
 
         st.divider()
 
@@ -287,10 +276,10 @@ def config_dialog():
         with col_next:
             if st.button("Siguiente →", type="primary", use_container_width=True):
                 if not st.session_state.keywords_list:
-                    st.error("❌ Agregá al menos una keyword.")
+                    st.toast("Agregá al menos una keyword.", icon="⚠️")
                 elif not any([st.session_state.use_remotive, st.session_state.use_arbeitnow,
                               st.session_state.use_wwr, st.session_state.use_himalayas]):
-                    st.error("❌ Seleccioná al menos una fuente.")
+                    st.toast("Seleccioná al menos una fuente.", icon="⚠️")
                 else:
                     st.session_state.config_step = 3
                     st.rerun()
@@ -300,7 +289,7 @@ def config_dialog():
         st.subheader("👤 Perfil profesional")
 
         st.session_state.candidate_profile = st.text_area(
-            "Describí tu perfil para la IA",
+            "perfil",
             value=st.session_state.candidate_profile,
             height=290,
             label_visibility="collapsed",
@@ -317,8 +306,7 @@ def config_dialog():
             if st.button("🚀 Iniciar búsqueda", type="primary", use_container_width=True):
                 errors = validate_config()
                 if errors:
-                    for e in errors:
-                        st.error(e)
+                    st.toast(" · ".join(errors), icon="⚠️")
                 else:
                     st.session_state.show_dialog = False
                     st.session_state.run_search  = True
