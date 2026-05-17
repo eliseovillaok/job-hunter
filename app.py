@@ -255,7 +255,6 @@ _defaults = {
     "use_wwr":            True,
     "use_himalayas":      True,
     "use_remoteok":       True,
-    "use_jobicy":         True,
     "use_workingnomads":  True,
     "use_themuse":        True,
     "use_remoteco":       True,
@@ -622,9 +621,9 @@ def show_config_wizard():
             with g3:
                 st.session_state.use_remoteok     = st.checkbox("RemoteOK",       value=st.session_state.use_remoteok)
             with g4:
-                st.session_state.use_jobicy       = st.checkbox("Jobicy",         value=st.session_state.use_jobicy)
-            with g5:
                 st.session_state.use_workingnomads = st.checkbox("WorkingNomads", value=st.session_state.use_workingnomads)
+            with g5:
+                st.empty()
 
             st.caption("🇺🇸 EEUU / Anglófono")
             a1, a2, a3, a4, a5 = st.columns(5)
@@ -671,10 +670,10 @@ def show_config_wizard():
                     st.toast("Agregá al menos una keyword.", icon="⚠️")
                 elif not any([st.session_state.use_remotive, st.session_state.use_arbeitnow,
                               st.session_state.use_wwr, st.session_state.use_himalayas,
-                              st.session_state.use_remoteok, st.session_state.use_jobicy,
-                              st.session_state.use_workingnomads, st.session_state.use_themuse,
-                              st.session_state.use_remoteco, st.session_state.use_jobspresso,
-                              st.session_state.use_justjoinit, st.session_state.use_authenticjobs]):
+                              st.session_state.use_remoteok, st.session_state.use_workingnomads,
+                              st.session_state.use_themuse, st.session_state.use_remoteco,
+                              st.session_state.use_jobspresso, st.session_state.use_justjoinit,
+                              st.session_state.use_authenticjobs]):
                     st.toast("Seleccioná al menos una fuente.", icon="⚠️")
                 else:
                     st.session_state.config_step = 4
@@ -845,7 +844,6 @@ if st.session_state.run_search:
         "WeWorkRemotely": st.session_state.use_wwr,
         "Himalayas":      st.session_state.use_himalayas,
         "RemoteOK":       st.session_state.use_remoteok,
-        "Jobicy":         st.session_state.use_jobicy,
         "WorkingNomads":  st.session_state.use_workingnomads,
         "TheMuse":        st.session_state.use_themuse,
         "Remote.co":      st.session_state.use_remoteco,
@@ -873,8 +871,6 @@ if st.session_state.run_search:
                 jobs = sc.scrape_himalayas(keywords, max_results=remaining)
             elif platform_name == "RemoteOK":
                 jobs = sc.scrape_remoteok(keywords, max_results=remaining)
-            elif platform_name == "Jobicy":
-                jobs = sc.scrape_jobicy(keywords, max_results=remaining)
             elif platform_name == "WorkingNomads":
                 jobs = sc.scrape_workingnomads(keywords, max_results=remaining)
             elif platform_name == "TheMuse":
