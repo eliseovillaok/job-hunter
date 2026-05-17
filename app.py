@@ -222,28 +222,25 @@ def _render_stepper(step: int) -> None:
     )
 
 
-def _wizard_cancel_button() -> None:
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown(
-        '<div class="cancel-marker" style="'
-        "padding:0.65rem 1rem;background:#fff5f5;border-radius:6px;"
-        "border-left:3px solid #dc2626;color:#991b1b;font-size:13px;margin-bottom:6px;"
-        '">'
-        "⚠️ <strong>Cancelar</strong> cierra el formulario y vuelve al inicio "
-        "sin ejecutar ninguna búsqueda."
-        "</div>",
-        unsafe_allow_html=True,
-    )
-    if st.button("✕ Cancelar búsqueda", key="wizard_cancel", use_container_width=True):
-        st.session_state.show_dialog = False
-        st.rerun()
-
-
 # ─── Wizard inline (sin @st.dialog para garantizar cierre correcto) ───────────
 def show_config_wizard():
     step = st.session_state.config_step
 
-    st.markdown("## ⚙️ Configurar búsqueda")
+    # Encabezado con botón de cerrar arriba a la derecha
+    h_col, cancel_col = st.columns([5, 1])
+    with h_col:
+        st.markdown("### ⚙️ Configurar búsqueda")
+    with cancel_col:
+        st.markdown('<div class="cancel-marker" style="height:0.55rem;"></div>', unsafe_allow_html=True)
+        if st.button(
+            "✕ Cerrar",
+            use_container_width=True,
+            key="wizard_cancel",
+            help="Cierra el formulario y vuelve al inicio sin ejecutar ninguna búsqueda.",
+        ):
+            st.session_state.show_dialog = False
+            st.rerun()
+
     _render_stepper(step)
 
     # ── Paso 1: Credenciales ──────────────────────────────────────────────
@@ -330,8 +327,6 @@ def show_config_wizard():
                 st.session_state.config_step = 2
                 st.rerun()
 
-        _wizard_cancel_button()
-
     # ── Paso 2: Keywords y fuentes ────────────────────────────────────────
     elif step == 2:
         with st.container(border=True):
@@ -417,8 +412,6 @@ def show_config_wizard():
                     st.session_state.config_step = 3
                     st.rerun()
 
-        _wizard_cancel_button()
-
     # ── Paso 3: Perfil ────────────────────────────────────────────────────
     elif step == 3:
         with st.container(border=True):
@@ -447,8 +440,6 @@ def show_config_wizard():
                     st.session_state.show_dialog = False
                     st.session_state.run_search  = True
                     st.rerun()  # rerun desde contexto principal — siempre full-page
-
-        _wizard_cancel_button()
 
 
 # ─── Título ───────────────────────────────────────────────────────────────────
