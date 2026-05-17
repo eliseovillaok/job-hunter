@@ -97,8 +97,8 @@ Description: {job.description[:1500]}
 Return ONLY a raw JSON object, no markdown, no explanation:
 {{"score": <integer 0-100>, "match_reasons": ["reason1", "reason2"], "missing_skills": ["skill"], "summary": "one line summary", "apply_recommended": <true or false>}}
 
-Scoring: 80-100 excellent | 60-79 good | 40-59 partial | 0-39 poor match
-    Candidate is a Java/Spring Boot backend engineer seeking remote work."""
+Scoring: 80-100 excellent match | 60-79 good match | 40-59 partial match | 0-39 poor match
+Base the evaluation exclusively on the candidate profile provided above."""
 
     try:
         raw, quota_exceeded = _generate(prompt)
@@ -132,12 +132,12 @@ Description: {job.description[:1000]}
 
 Requirements:
 - Professional but warm tone, 3-4 concise paragraphs
-- Use real metrics: 60-80% task reduction, >99% uptime, 20-40% query improvement
-- Connect candidate's stack to this specific role
+- Connect the candidate's actual experience and skills to this specific role
+- If the profile mentions concrete achievements or projects, reference them; do NOT invent metrics or facts not present in the profile
 - End with a clear call to action
 - First line: [SUBJECT: suggested email subject]
 
-    Output only the cover letter."""
+Output only the cover letter, nothing else."""
 
     try:
         raw, _ = _generate(prompt)
