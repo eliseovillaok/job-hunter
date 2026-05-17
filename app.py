@@ -9,29 +9,6 @@ import os
 from datetime import datetime
 from pathlib import Path
 
-# ─── Persistencia local ────────────────────────────────────────────────────────
-PREFS_FILE = Path("user_prefs.json")
-_PREF_KEYS = [
-    "gemini_key", "selected_model", "send_email",
-    "email_sender", "email_password_raw", "email_recipient",
-    "keywords_list", "min_score", "use_max_results", "max_results_limit",
-    "use_remotive", "use_arbeitnow", "use_wwr", "use_himalayas",
-    "candidate_profile",
-]
-
-def load_prefs() -> dict:
-    if PREFS_FILE.exists():
-        try:
-            return json.loads(PREFS_FILE.read_text(encoding="utf-8"))
-        except Exception:
-            return {}
-    return {}
-
-def save_prefs() -> None:
-    data = {k: st.session_state[k] for k in _PREF_KEYS if k in st.session_state}
-    PREFS_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
-
-
 # ─── Página ───────────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="Job Hunter AI",
@@ -114,31 +91,32 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ─── Session state (cargado desde preferencias guardadas) ─────────────────────
-_prefs = load_prefs()
+# ─── Session state ────────────────────────────────────────────────────────────
+# Nada se guarda en disco: cada sesión de navegador empieza limpia.
+# Los datos persisten mientras la pestaña esté abierta.
 _defaults = {
     "show_dialog":        False,
     "config_step":        1,
     "run_search":         False,
     "search_done":        False,
-    "gemini_key":         _prefs.get("gemini_key", ""),
-    "selected_model":     _prefs.get("selected_model", "models/gemini-3.1-flash-lite"),
-    "send_email":         _prefs.get("send_email", False),
-    "email_sender":       _prefs.get("email_sender", ""),
-    "email_password_raw": _prefs.get("email_password_raw", ""),
-    "email_recipient":    _prefs.get("email_recipient", ""),
-    "keywords_list":      _prefs.get("keywords_list", [
+    "gemini_key":         "",
+    "selected_model":     "models/gemini-3.1-flash-lite",
+    "send_email":         False,
+    "email_sender":       "",
+    "email_password_raw": "",
+    "email_recipient":    "",
+    "keywords_list":      [
         "frontend developer", "react developer", "full stack engineer",
         "UI engineer", "javascript developer",
-    ]),
-    "min_score":          _prefs.get("min_score", 65),
-    "use_max_results":    _prefs.get("use_max_results", False),
-    "max_results_limit":  _prefs.get("max_results_limit", 100),
-    "use_remotive":       _prefs.get("use_remotive", True),
-    "use_arbeitnow":      _prefs.get("use_arbeitnow", True),
-    "use_wwr":            _prefs.get("use_wwr", True),
-    "use_himalayas":      _prefs.get("use_himalayas", True),
-    "candidate_profile":  _prefs.get("candidate_profile", """Rol buscado: Frontend Engineer / Full Stack (solo remoto)
+    ],
+    "min_score":          65,
+    "use_max_results":    False,
+    "max_results_limit":  100,
+    "use_remotive":       True,
+    "use_arbeitnow":      True,
+    "use_wwr":            True,
+    "use_himalayas":      True,
+    "candidate_profile":  """Rol buscado: Frontend Engineer / Full Stack (solo remoto)
 
 Stack técnico:
 - JavaScript, React, Vue.js, HTML5, CSS3
@@ -153,7 +131,7 @@ Experiencia:
 - Freelance projects en React y Vue
 
 Idiomas: Español (nativo), Inglés (fluido)
-Ubicación: Cualquier zona horaria — 100% remoto"""),
+Ubicación: Cualquier zona horaria — 100% remoto""",
 }
 for _k, _v in _defaults.items():
     if _k not in st.session_state:
@@ -323,7 +301,6 @@ def show_config_wizard():
             if err:
                 st.toast(" · ".join(err), icon="⚠️")
             else:
-                save_prefs()
                 st.session_state.config_step = 2
                 st.rerun()
 
@@ -408,7 +385,6 @@ def show_config_wizard():
                               st.session_state.use_wwr, st.session_state.use_himalayas]):
                     st.toast("Seleccioná al menos una fuente.", icon="⚠️")
                 else:
-                    save_prefs()
                     st.session_state.config_step = 3
                     st.rerun()
 
@@ -436,7 +412,6 @@ def show_config_wizard():
                 if errors:
                     st.toast(" · ".join(errors), icon="⚠️")
                 else:
-                    save_prefs()
                     st.session_state.show_dialog = False
                     st.session_state.run_search  = True
                     st.rerun()  # rerun desde contexto principal — siempre full-page

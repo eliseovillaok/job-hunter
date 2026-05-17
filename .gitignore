@@ -3,3 +3,4 @@ venv/
 .codex/
 results/
 __pycache__/
+user_prefs.json
