@@ -367,7 +367,7 @@ def _analyze_cv(uploaded_file, api_key: str, model: str) -> dict | None:
         else:
             contents = [
                 types.Part.from_bytes(data=file_bytes, mime_type="application/pdf"),
-                types.Part.from_text(_PROMPT),
+                types.Part.from_text(text=_PROMPT),
             ]
 
         resp = _client.models.generate_content(model=model, contents=contents)
@@ -387,6 +387,7 @@ def _analyze_cv(uploaded_file, api_key: str, model: str) -> dict | None:
 
 # ─── Wizard inline (sin @st.dialog para garantizar cierre correcto) ───────────
 def show_config_wizard():
+    st.markdown('<div style="height:2.5rem;"></div>', unsafe_allow_html=True)
     step = st.session_state.config_step
 
     # Encabezado con botón de cerrar arriba a la derecha
