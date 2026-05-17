@@ -19,75 +19,208 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-    /* ── Centrado ─────────────────────────────────────────────────── */
-    div.block-container,
-    div[data-testid="stMainBlockContainer"] {
-        max-width: 860px !important;
-        padding-top: 2rem !important;
-        padding-left: 2rem !important;
-        padding-right: 2rem !important;
-        margin-left: auto !important;
-        margin-right: auto !important;
-    }
+/* ═══════════════════════════════════════════════════════════════════
+   JOB HUNTER AI — Design System
+   ═══════════════════════════════════════════════════════════════════ */
 
-    /* ── Score / source badges ────────────────────────────────────── */
-    .score-badge {
-        display: inline-block;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-weight: 600;
-        font-size: 14px;
-    }
-    .score-high   { background: #dcfce7; color: #15803d; }
-    .score-medium { background: #fef9c3; color: #a16207; }
-    .score-low    { background: #f1f5f9; color: #64748b; }
-    .source-badge {
-        display: inline-block;
-        padding: 2px 8px;
-        border-radius: 12px;
-        font-size: 12px;
-        font-weight: 500;
-        color: white;
-    }
-    .src-remotive  { background: #6366f1; }
-    .src-arbeitnow { background: #0ea5e9; }
-    .src-wwr       { background: #10b981; }
-    .src-himalayas { background: #f59e0b; }
+/* ── Layout ──────────────────────────────────────────────────────── */
+div.block-container,
+div[data-testid="stMainBlockContainer"] {
+    max-width: 860px !important;
+    padding-top: 1.5rem !important;
+    padding-left: 2rem !important;
+    padding-right: 2rem !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+}
+section[data-testid="stSidebar"] { display: none; }
+button[data-testid="collapsedControl"] { display: none; }
 
-    /* ── Formulario keywords: sin borde extra ────────────────────── */
-    div[data-testid="stForm"] {
-        border: none !important;
-        padding: 0 !important;
-        background: transparent !important;
-    }
+/* ── Buttons — smooth lift & glow ────────────────────────────────── */
+button[data-testid^="baseButton"] {
+    border-radius: 8px !important;
+    font-weight: 500 !important;
+    transition: transform 0.15s ease, box-shadow 0.15s ease,
+                background 0.15s ease, border-color 0.15s ease !important;
+    will-change: transform !important;
+}
+button[data-testid="baseButton-primary"] {
+    background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%) !important;
+    border: none !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(79,70,229,0.28) !important;
+}
+button[data-testid="baseButton-primary"]:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 6px 18px rgba(79,70,229,0.38) !important;
+}
+button[data-testid="baseButton-primary"]:active {
+    transform: translateY(0px) !important;
+    box-shadow: 0 2px 8px rgba(79,70,229,0.28) !important;
+}
+button[data-testid="baseButton-secondary"] {
+    background: #ffffff !important;
+    border: 1.5px solid #d1d5db !important;
+    color: #374151 !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
+}
+button[data-testid="baseButton-secondary"]:hover {
+    transform: translateY(-1px) !important;
+    border-color: #6366f1 !important;
+    color: #4f46e5 !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.09) !important;
+}
 
-    /* ── Cover letter ─────────────────────────────────────────────── */
-    .cover-letter-box {
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 8px;
-        padding: 16px;
-        font-family: Georgia, serif;
-        font-size: 14px;
-        line-height: 1.8;
-        white-space: pre-wrap;
-    }
+/* ── Inputs & textareas ──────────────────────────────────────────── */
+[data-testid="stTextInput"] input,
+[data-testid="stTextArea"] textarea {
+    border: 1.5px solid #d1d5db !important;
+    border-radius: 8px !important;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+[data-testid="stTextInput"] input:focus,
+[data-testid="stTextArea"] textarea:focus {
+    border-color: #4f46e5 !important;
+    box-shadow: 0 0 0 3px rgba(79,70,229,0.12) !important;
+    outline: none !important;
+}
 
-    /* ── Misc ─────────────────────────────────────────────────────── */
-    div[data-testid="stExpander"] { border: 1px solid #e2e8f0; border-radius: 8px; }
-    section[data-testid="stSidebar"] { display: none; }
-    button[data-testid="collapsedControl"] { display: none; }
+/* ── Selectbox / multiselect ─────────────────────────────────────── */
+[data-testid="stSelectbox"] > div > div,
+[data-testid="stMultiSelect"] > div > div:first-child {
+    border: 1.5px solid #d1d5db !important;
+    border-radius: 8px !important;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+[data-testid="stSelectbox"] > div > div:focus-within,
+[data-testid="stMultiSelect"] > div > div:first-child:focus-within {
+    border-color: #4f46e5 !important;
+    box-shadow: 0 0 0 3px rgba(79,70,229,0.12) !important;
+}
 
-    /* ── Botón cancelar (rojo) — selector sibling del marcador ───── */
-    [data-testid="stMarkdownContainer"]:has(.cancel-marker) ~ [data-testid="stButton"] > button {
-        background-color: #fff5f5 !important;
-        color: #dc2626 !important;
-        border: 1.5px solid #fca5a5 !important;
-    }
-    [data-testid="stMarkdownContainer"]:has(.cancel-marker) ~ [data-testid="stButton"] > button:hover {
-        background-color: #fee2e2 !important;
-        border-color: #ef4444 !important;
-    }
+/* ── Containers (border=True) ────────────────────────────────────── */
+[data-testid="stVerticalBlockBorderWrapper"] {
+    border-radius: 12px !important;
+    border: 1.5px solid #e5e7eb !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05) !important;
+    transition: box-shadow 0.18s ease !important;
+    overflow: hidden !important;
+}
+[data-testid="stVerticalBlockBorderWrapper"]:hover {
+    box-shadow: 0 4px 14px rgba(0,0,0,0.08) !important;
+}
+
+/* ── Expanders ───────────────────────────────────────────────────── */
+div[data-testid="stExpander"] {
+    border: 1.5px solid #e5e7eb !important;
+    border-radius: 12px !important;
+    overflow: hidden !important;
+    transition: box-shadow 0.18s ease !important;
+}
+div[data-testid="stExpander"]:hover {
+    box-shadow: 0 4px 14px rgba(0,0,0,0.07) !important;
+}
+
+/* ── File uploader ───────────────────────────────────────────────── */
+[data-testid="stFileUploaderDropzone"] {
+    border: 2px dashed #c7d2fe !important;
+    border-radius: 12px !important;
+    background: linear-gradient(135deg, #fafafe 0%, #f0f4ff 100%) !important;
+    transition: border-color 0.15s ease, background 0.15s ease !important;
+}
+[data-testid="stFileUploaderDropzone"]:hover {
+    border-color: #6366f1 !important;
+    background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%) !important;
+}
+
+/* ── Tabs ────────────────────────────────────────────────────────── */
+[data-testid="stTabs"] button[role="tab"] {
+    border-radius: 8px 8px 0 0 !important;
+    font-weight: 500 !important;
+    transition: color 0.15s ease !important;
+}
+
+/* ── Metric cards ────────────────────────────────────────────────── */
+[data-testid="stMetricValue"] {
+    font-size: 1.75rem !important;
+    font-weight: 700 !important;
+}
+
+/* ── Keywords form (no extra border) ────────────────────────────── */
+div[data-testid="stForm"] {
+    border: none !important;
+    padding: 0 !important;
+    background: transparent !important;
+}
+
+/* ── Score / source badges ───────────────────────────────────────── */
+.score-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 14px;
+}
+.score-high   { background: #dcfce7; color: #15803d; }
+.score-medium { background: #fef9c3; color: #a16207; }
+.score-low    { background: #f1f5f9; color: #64748b; }
+.source-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    color: white;
+}
+.src-remotive  { background: #6366f1; }
+.src-arbeitnow { background: #0ea5e9; }
+.src-wwr       { background: #10b981; }
+.src-himalayas { background: #f59e0b; }
+
+/* ── Cover letter ────────────────────────────────────────────────── */
+.cover-letter-box {
+    background: #f8fafc;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 20px 24px;
+    font-family: Georgia, serif;
+    font-size: 14px;
+    line-height: 1.85;
+    white-space: pre-wrap;
+}
+
+/* ── Feature cards (empty state) ────────────────────────────────── */
+.feature-card {
+    background: #ffffff;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 1.5rem 1rem 1.25rem 1rem;
+    text-align: center;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+.feature-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.09);
+    border-color: #c7d2fe;
+}
+.feature-icon { font-size: 2rem; display: block; margin-bottom: 0.65rem; }
+.feature-title { font-weight: 700; font-size: 1rem; color: #111827; margin-bottom: 0.3rem; }
+.feature-desc  { color: #6b7280; font-size: 0.82rem; line-height: 1.5; }
+
+/* ── Cancel button (rojo) ────────────────────────────────────────── */
+[data-testid="stMarkdownContainer"]:has(.cancel-marker) ~ [data-testid="stButton"] > button {
+    background-color: #fff5f5 !important;
+    color: #dc2626 !important;
+    border: 1.5px solid #fca5a5 !important;
+    box-shadow: none !important;
+}
+[data-testid="stMarkdownContainer"]:has(.cancel-marker) ~ [data-testid="stButton"] > button:hover {
+    background-color: #fee2e2 !important;
+    border-color: #ef4444 !important;
+    transform: none !important;
+    box-shadow: 0 2px 8px rgba(220,38,38,0.18) !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -225,6 +358,12 @@ def _analyze_cv(uploaded_file, api_key: str, model: str) -> dict | None:
         if mime == "text/plain":
             cv_text = file_bytes.decode("utf-8", errors="replace")[:10000]
             contents = f"{_PROMPT}\n\nCV:\n{cv_text}"
+        elif mime == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+            import io
+            from docx import Document as DocxDocument
+            doc = DocxDocument(io.BytesIO(file_bytes))
+            cv_text = "\n".join(p.text for p in doc.paragraphs if p.text.strip())[:10000]
+            contents = f"{_PROMPT}\n\nCV:\n{cv_text}"
         else:
             contents = [
                 types.Part.from_bytes(data=file_bytes, mime_type="application/pdf"),
@@ -359,8 +498,8 @@ def show_config_wizard():
                 "Podés editarlos después o saltear este paso."
             )
             uploaded_file = st.file_uploader(
-                "CV (PDF o TXT)",
-                type=["pdf", "txt"],
+                "CV (PDF, DOCX o TXT)",
+                type=["pdf", "docx", "txt"],
                 label_visibility="collapsed",
                 key="cv_upload",
             )
@@ -522,9 +661,17 @@ def show_config_wizard():
 
 # ─── Título ───────────────────────────────────────────────────────────────────
 st.markdown("""
-<div style="text-align:center; padding: 1.5rem 0 0.5rem 0;">
-    <h1 style="margin-bottom:0.25rem;">🎯 Job Hunter AI</h1>
-    <p style="color:#64748b; font-size:1.05rem; margin:0;">
+<div style="text-align:center; padding: 1.75rem 0 0.75rem 0;">
+    <div style="display:inline-flex; align-items:center; justify-content:center;
+                width:60px; height:60px; border-radius:14px;
+                background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);
+                box-shadow:0 8px 24px rgba(79,70,229,0.32);
+                font-size:28px; margin-bottom:0.9rem;">🎯</div>
+    <h1 style="font-size:2.1rem; font-weight:800; color:#0f172a;
+               margin:0 0 0.45rem 0; letter-spacing:-0.03em; line-height:1.15;">
+        Job Hunter <span style="color:#4f46e5;">AI</span>
+    </h1>
+    <p style="color:#64748b; font-size:1rem; margin:0 auto; max-width:480px; line-height:1.65;">
         Buscá ofertas remotas, priorizalas con IA y generá cartas de presentación listas para usar.
     </p>
 </div>
@@ -546,18 +693,30 @@ empty_state_placeholder = st.empty()
 
 def render_empty_state():
     with empty_state_placeholder.container():
-        st.markdown("<br>", unsafe_allow_html=True)
-        c1, c2, c3, c4 = st.columns(4)
-        for col, icon, title, desc in [
-            (c1, "🔍", "Busca",   "Remotive, Arbeitnow, WeWorkRemotely e Himalayas"),
-            (c2, "🤖", "Analiza", "La IA puntúa cada oferta del 0 al 100 según tu perfil"),
-            (c3, "📝", "Redacta", "Genera cartas de presentación personalizadas"),
-            (c4, "📧", "Envía",   "Resumen por email al terminar (opcional)"),
-        ]:
-            with col:
-                with st.container(border=True):
-                    st.markdown(f"**{icon} {title}**")
-                    st.caption(desc)
+        st.markdown("""
+<div style="display:grid; grid-template-columns:repeat(4,1fr); gap:1rem; margin:1.5rem 0 0.5rem 0;">
+    <div class="feature-card">
+        <span class="feature-icon">🔍</span>
+        <div class="feature-title">Busca</div>
+        <div class="feature-desc">Remotive, Arbeitnow, WeWorkRemotely e Himalayas</div>
+    </div>
+    <div class="feature-card">
+        <span class="feature-icon">🤖</span>
+        <div class="feature-title">Analiza</div>
+        <div class="feature-desc">La IA puntúa cada oferta del 0 al 100 según tu perfil</div>
+    </div>
+    <div class="feature-card">
+        <span class="feature-icon">📝</span>
+        <div class="feature-title">Redacta</div>
+        <div class="feature-desc">Genera cartas de presentación personalizadas</div>
+    </div>
+    <div class="feature-card">
+        <span class="feature-icon">📧</span>
+        <div class="feature-title">Envía</div>
+        <div class="feature-desc">Resumen por email al terminar (opcional)</div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 
 # ─── Botón de acción ──────────────────────────────────────────────────────────
