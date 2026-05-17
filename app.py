@@ -329,7 +329,7 @@ def _render_stepper(step: int) -> None:
 
     st.markdown(
         f'<div style="display:flex;align-items:center;justify-content:center;'
-        f'margin:1.25rem 0 1.75rem 0;">{"".join(parts)}</div>',
+        f'margin:0.5rem 0 0.75rem 0;">{"".join(parts)}</div>',
         unsafe_allow_html=True,
     )
 
@@ -527,14 +527,17 @@ def show_config_wizard():
         if st.session_state.cv_analyzed:
             with st.container(border=True):
                 st.markdown("**📋 Extraído de tu CV — revisá antes de continuar:**")
-                kw_col, _ = st.columns([3, 1])
-                with kw_col:
-                    st.markdown("**Keywords:**  " + "  ".join(
-                        f"`{k}`" for k in st.session_state.keywords_list
-                    ))
-                st.markdown("**Perfil:**")
-                preview = st.session_state.candidate_profile
-                st.text(preview[:400] + ("…" if len(preview) > 400 else ""))
+                kw_html = "".join(
+                    f'<span style="display:inline-block;padding:3px 11px;margin:2px 3px;'
+                    f'background:#ede9fe;color:#4f46e5;border-radius:20px;'
+                    f'font-size:13px;font-weight:500;">{k}</span>'
+                    for k in st.session_state.keywords_list
+                )
+                st.markdown(
+                    f'<div style="margin:0.35rem 0 0.5rem 0;">{kw_html}</div>',
+                    unsafe_allow_html=True,
+                )
+                st.caption("Perfil: " + st.session_state.candidate_profile[:220].replace("\n", " ") + "…")
 
         col_back, col_next = st.columns(2)
         with col_back:
@@ -638,7 +641,7 @@ def show_config_wizard():
             st.session_state.candidate_profile = st.text_area(
                 "perfil",
                 value=st.session_state.candidate_profile,
-                height=280,
+                height=195,
                 label_visibility="collapsed",
                 placeholder="Rol buscado, stack técnico, experiencia, idiomas...",
             )
@@ -659,6 +662,11 @@ def show_config_wizard():
                     st.rerun()  # rerun desde contexto principal — siempre full-page
 
 
+# ─── Wizard (toma la pantalla completa cuando está activo) ────────────────────
+if st.session_state.show_dialog:
+    show_config_wizard()
+    st.stop()
+
 # ─── Título ───────────────────────────────────────────────────────────────────
 st.markdown("""
 <div style="text-align:center; padding: 1.75rem 0 0.75rem 0;">
@@ -676,12 +684,6 @@ st.markdown("""
     </p>
 </div>
 """, unsafe_allow_html=True)
-
-# ─── Wizard (toma la pantalla completa cuando está activo) ────────────────────
-if st.session_state.show_dialog:
-    st.divider()
-    show_config_wizard()
-    st.stop()
 
 # ─── Placeholders ─────────────────────────────────────────────────────────────
 st.divider()
