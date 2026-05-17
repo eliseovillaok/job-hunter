@@ -330,7 +330,6 @@ def show_config_wizard():
             selected = st.multiselect(
                 "Keywords",
                 options=_opts,
-                default=_opts,
                 key="kw_tags",
                 placeholder="Tus keywords — × para quitar",
                 label_visibility="collapsed",
