@@ -28,6 +28,13 @@ log = logging.getLogger(__name__)
 HEADERS = {"User-Agent": "JobHunterBot/1.0 (personal job search automation)"}
 
 
+def _parse_feed(url: str, timeout: int = 15):
+    """Fetch RSS/Atom feed con timeout usando requests, luego parsear con feedparser."""
+    resp = requests.get(url, headers=HEADERS, timeout=timeout)
+    resp.raise_for_status()
+    return feedparser.parse(resp.content)
+
+
 @dataclass
 class JobPosting:
     id: str
@@ -97,14 +104,14 @@ def scrape_remotive(keywords: list[str], max_results: int = 0) -> list[JobPostin
 def scrape_arbeitnow(keywords: list[str], max_results: int = 0) -> list[JobPosting]:
     jobs = []
     seen = set()
+    MAX_PAGES = 3  # más páginas provocan 403 por rate-limit
 
     for keyword in keywords:
         if max_results > 0 and len(jobs) >= max_results:
             break
         page = 1
-        while True:
+        while page <= MAX_PAGES:
             if max_results > 0 and len(jobs) >= max_results:
-                log.info(f"[Arbeitnow] Alcanzado límite de {max_results} ofertas")
                 break
             try:
                 resp = requests.get(
@@ -116,6 +123,9 @@ def scrape_arbeitnow(keywords: list[str], max_results: int = 0) -> list[JobPosti
                     },
                     headers=HEADERS, timeout=15
                 )
+                if resp.status_code == 403:
+                    log.warning(f"[Arbeitnow] 403 rate-limit, deteniendo scraping")
+                    return jobs
                 resp.raise_for_status()
                 data = resp.json().get("data", [])
                 if not data:
@@ -171,7 +181,7 @@ def scrape_weworkremotely(max_results: int = 0) -> list[JobPosting]:
         if max_results > 0 and len(jobs) >= max_results:
             break
         try:
-            feed = feedparser.parse(feed_url)
+            feed = _parse_feed(feed_url)
             entries = feed.get("entries", [])
             log.info(f"[WeWorkRemotely] {category} → {len(entries)} ofertas")
 
@@ -499,7 +509,7 @@ def scrape_remoteco(max_results: int = 0) -> list[JobPosting]:
         if max_results > 0 and len(jobs) >= max_results:
             break
         try:
-            feed = feedparser.parse(feed_url)
+            feed = _parse_feed(feed_url)
             entries = feed.get("entries", [])
             log.info(f"[Remote.co] {feed_url.split('/')[-3]} → {len(entries)} ofertas")
 
@@ -543,7 +553,7 @@ def scrape_jobspresso(max_results: int = 0) -> list[JobPosting]:
     seen = set()
 
     try:
-        feed = feedparser.parse("https://jobspresso.co/feed/")
+        feed = _parse_feed("https://jobspresso.co/feed/")
         entries = feed.get("entries", [])
         log.info(f"[Jobspresso] {len(entries)} ofertas")
 
@@ -635,7 +645,7 @@ def scrape_authenticjobs(max_results: int = 0) -> list[JobPosting]:
     seen = set()
 
     try:
-        feed = feedparser.parse("https://authenticjobs.com/feed/")
+        feed = _parse_feed("https://authenticjobs.com/feed/")
         entries = feed.get("entries", [])
         log.info(f"[AuthenticJobs] {len(entries)} ofertas")
 
