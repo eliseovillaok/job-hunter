@@ -254,6 +254,15 @@ _defaults = {
     "use_arbeitnow":      True,
     "use_wwr":            True,
     "use_himalayas":      True,
+    "use_remoteok":       True,
+    "use_jobicy":         True,
+    "use_workingnomads":  True,
+    "use_themuse":        True,
+    "use_remoteco":       True,
+    "use_jobspresso":     True,
+    "use_justjoinit":     False,
+    "use_authenticjobs":  True,
+    "result_page":        0,
     "candidate_profile":  """Rol buscado: Frontend Engineer / Full Stack (solo remoto)
 
 Stack técnico:
@@ -603,16 +612,42 @@ def show_config_wizard():
                 value=st.session_state.min_score,
                 help="Las ofertas con puntaje menor quedan fuera de los resultados recomendados.",
             )
-            st.markdown("**Fuentes**")
-            c1, c2, c3, c4 = st.columns(4)
-            with c1:
-                st.session_state.use_remotive  = st.checkbox("Remotive",       value=st.session_state.use_remotive)
-            with c2:
-                st.session_state.use_arbeitnow = st.checkbox("Arbeitnow",      value=st.session_state.use_arbeitnow)
-            with c3:
-                st.session_state.use_wwr       = st.checkbox("WeWorkRemotely", value=st.session_state.use_wwr)
-            with c4:
-                st.session_state.use_himalayas = st.checkbox("Himalayas",      value=st.session_state.use_himalayas)
+            st.markdown("**Fuentes de búsqueda**")
+            st.caption("🌍 Remoto global")
+            g1, g2, g3, g4, g5 = st.columns(5)
+            with g1:
+                st.session_state.use_remotive     = st.checkbox("Remotive",       value=st.session_state.use_remotive)
+            with g2:
+                st.session_state.use_himalayas    = st.checkbox("Himalayas",      value=st.session_state.use_himalayas)
+            with g3:
+                st.session_state.use_remoteok     = st.checkbox("RemoteOK",       value=st.session_state.use_remoteok)
+            with g4:
+                st.session_state.use_jobicy       = st.checkbox("Jobicy",         value=st.session_state.use_jobicy)
+            with g5:
+                st.session_state.use_workingnomads = st.checkbox("WorkingNomads", value=st.session_state.use_workingnomads)
+
+            st.caption("🇺🇸 EEUU / Anglófono")
+            a1, a2, a3, a4, a5 = st.columns(5)
+            with a1:
+                st.session_state.use_arbeitnow    = st.checkbox("Arbeitnow",      value=st.session_state.use_arbeitnow)
+            with a2:
+                st.session_state.use_wwr          = st.checkbox("WeWorkRemotely", value=st.session_state.use_wwr)
+            with a3:
+                st.session_state.use_themuse      = st.checkbox("The Muse",       value=st.session_state.use_themuse)
+            with a4:
+                st.session_state.use_jobspresso   = st.checkbox("Jobspresso",     value=st.session_state.use_jobspresso)
+            with a5:
+                st.session_state.use_remoteco     = st.checkbox("Remote.co",      value=st.session_state.use_remoteco)
+
+            st.caption("🇪🇺 Europa")
+            e1, _ = st.columns([1, 4])
+            with e1:
+                st.session_state.use_justjoinit   = st.checkbox("JustJoin.it",   value=st.session_state.use_justjoinit)
+
+            st.caption("📌 Otros")
+            o1, _ = st.columns([1, 4])
+            with o1:
+                st.session_state.use_authenticjobs = st.checkbox("AuthenticJobs", value=st.session_state.use_authenticjobs)
 
             st.session_state.use_max_results = st.checkbox(
                 "Limitar cantidad de ofertas a analizar",
@@ -635,7 +670,11 @@ def show_config_wizard():
                 if not st.session_state.keywords_list:
                     st.toast("Agregá al menos una keyword.", icon="⚠️")
                 elif not any([st.session_state.use_remotive, st.session_state.use_arbeitnow,
-                              st.session_state.use_wwr, st.session_state.use_himalayas]):
+                              st.session_state.use_wwr, st.session_state.use_himalayas,
+                              st.session_state.use_remoteok, st.session_state.use_jobicy,
+                              st.session_state.use_workingnomads, st.session_state.use_themuse,
+                              st.session_state.use_remoteco, st.session_state.use_jobspresso,
+                              st.session_state.use_justjoinit, st.session_state.use_authenticjobs]):
                     st.toast("Seleccioná al menos una fuente.", icon="⚠️")
                 else:
                     st.session_state.config_step = 4
@@ -766,6 +805,8 @@ if st.session_state.run_search:
     os.environ["EMAIL_PASSWORD"]  = email_password
     os.environ["EMAIL_RECIPIENT"] = email_recipient
 
+    st.session_state.result_page = 0
+
     import config as cfg
     cfg.GEMINI_API_KEY    = gemini_key
     cfg.SEARCH_KEYWORDS   = keywords
@@ -803,6 +844,14 @@ if st.session_state.run_search:
         "Arbeitnow":      st.session_state.use_arbeitnow,
         "WeWorkRemotely": st.session_state.use_wwr,
         "Himalayas":      st.session_state.use_himalayas,
+        "RemoteOK":       st.session_state.use_remoteok,
+        "Jobicy":         st.session_state.use_jobicy,
+        "WorkingNomads":  st.session_state.use_workingnomads,
+        "TheMuse":        st.session_state.use_themuse,
+        "Remote.co":      st.session_state.use_remoteco,
+        "Jobspresso":     st.session_state.use_jobspresso,
+        "JustJoin.it":    st.session_state.use_justjoinit,
+        "AuthenticJobs":  st.session_state.use_authenticjobs,
     }
     enabled_list    = [p for p, v in platforms_enabled.items() if v]
     total_platforms = len(enabled_list)
@@ -822,6 +871,22 @@ if st.session_state.run_search:
                 jobs = sc.scrape_weworkremotely(max_results=remaining)
             elif platform_name == "Himalayas":
                 jobs = sc.scrape_himalayas(keywords, max_results=remaining)
+            elif platform_name == "RemoteOK":
+                jobs = sc.scrape_remoteok(keywords, max_results=remaining)
+            elif platform_name == "Jobicy":
+                jobs = sc.scrape_jobicy(keywords, max_results=remaining)
+            elif platform_name == "WorkingNomads":
+                jobs = sc.scrape_workingnomads(keywords, max_results=remaining)
+            elif platform_name == "TheMuse":
+                jobs = sc.scrape_themuse(keywords, max_results=remaining)
+            elif platform_name == "Remote.co":
+                jobs = sc.scrape_remoteco(max_results=remaining)
+            elif platform_name == "Jobspresso":
+                jobs = sc.scrape_jobspresso(max_results=remaining)
+            elif platform_name == "JustJoin.it":
+                jobs = sc.scrape_justjoinit(keywords, max_results=remaining)
+            elif platform_name == "AuthenticJobs":
+                jobs = sc.scrape_authenticjobs(max_results=remaining)
             else:
                 jobs = []
             for job in jobs:
@@ -1025,14 +1090,45 @@ if st.session_state.run_search:
                         key=f"dl_{section}_{sj.job.id}_{idx}",
                     )
 
+        PAGE_SIZE = 15
+
+        def render_paginated(job_list: list, section: str):
+            if not job_list:
+                return
+            total   = len(job_list)
+            pages   = max(1, -(-total // PAGE_SIZE))  # ceil division
+            page    = min(st.session_state.result_page, pages - 1)
+            start   = page * PAGE_SIZE
+            end     = min(start + PAGE_SIZE, total)
+
+            st.caption(f"Mostrando {start + 1}–{end} de {total} ofertas")
+            for i, sj in enumerate(job_list[start:end]):
+                render_job_card(sj, start + i, section)
+
+            if pages > 1:
+                p_left, p_info, p_right = st.columns([1, 2, 1])
+                with p_left:
+                    if st.button("← Anterior", disabled=(page == 0), key=f"prev_{section}", use_container_width=True):
+                        st.session_state.result_page = page - 1
+                        st.rerun()
+                with p_info:
+                    st.markdown(
+                        f'<div style="text-align:center;padding-top:6px;color:#64748b;font-size:14px;">'
+                        f'Página {page + 1} de {pages}</div>',
+                        unsafe_allow_html=True,
+                    )
+                with p_right:
+                    if st.button("Siguiente →", disabled=(page >= pages - 1), key=f"next_{section}", use_container_width=True):
+                        st.session_state.result_page = page + 1
+                        st.rerun()
+
         top_tab, all_tab = st.tabs([
             f"🔥 Recomendadas ({len(top_matches)})",
             f"📋 Todas ({len(scored_jobs)})",
         ])
         with top_tab:
             if top_matches:
-                for i, sj in enumerate(top_matches):
-                    render_job_card(sj, i, "top")
+                render_paginated(top_matches, "top")
             else:
                 st.info(
                     f"Ninguna oferta superó el puntaje mínimo de {min_score}. "
@@ -1040,8 +1136,7 @@ if st.session_state.run_search:
                 )
         with all_tab:
             st.caption("Ordenadas de mayor a menor puntaje.")
-            for i, sj in enumerate(scored_jobs):
-                render_job_card(sj, i, "all")
+            render_paginated(scored_jobs, "all")
 
         st.download_button(
             "⬇ Descargar resultados completos (JSON)",
