@@ -243,6 +243,10 @@ _defaults = {
         "frontend developer", "react developer", "full stack engineer",
         "UI engineer", "javascript developer",
     ],
+    "kw_options":         [
+        "frontend developer", "react developer", "full stack engineer",
+        "UI engineer", "javascript developer",
+    ],
     "min_score":          65,
     "use_max_results":    False,
     "max_results_limit":  100,
@@ -517,6 +521,7 @@ def show_config_wizard():
                         prof = result.get("profile", "").strip()
                         if kws:
                             st.session_state.keywords_list = kws
+                            st.session_state["kw_options"] = list(kws)
                             st.session_state["kw_tags"] = list(kws)
                         if prof:
                             st.session_state.candidate_profile = prof
@@ -558,17 +563,19 @@ def show_config_wizard():
             # Procesar keyword pendiente ANTES de instanciar el multiselect
             if "_pending_add" in st.session_state:
                 _kw = st.session_state.pop("_pending_add")
-                if _kw and _kw not in st.session_state.keywords_list:
-                    st.session_state.keywords_list.append(_kw)
+                if _kw:
+                    if _kw not in st.session_state["kw_options"]:
+                        st.session_state["kw_options"].append(_kw)
+                    if _kw not in st.session_state.keywords_list:
+                        st.session_state.keywords_list.append(_kw)
                 st.session_state["kw_tags"] = list(st.session_state.keywords_list)
 
             if "kw_tags" not in st.session_state:
                 st.session_state["kw_tags"] = list(st.session_state.keywords_list)
 
-            _opts = list(st.session_state["kw_tags"])
             selected = st.multiselect(
                 "Keywords",
-                options=_opts,
+                options=st.session_state["kw_options"],
                 key="kw_tags",
                 placeholder="Tus keywords — × para quitar",
                 label_visibility="collapsed",
