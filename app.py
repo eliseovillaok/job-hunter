@@ -97,6 +97,7 @@ st.markdown("""
 _defaults = {
     "show_dialog":        False,
     "config_step":        1,
+    "cv_analyzed":        False,
     "run_search":         False,
     "search_done":        False,
     "gemini_key":         "",
@@ -165,7 +166,7 @@ def format_duration(seconds):
 
 
 def _render_stepper(step: int) -> None:
-    labels = ["Credenciales", "Búsqueda", "Perfil"]
+    labels = ["Credenciales", "Tu CV", "Búsqueda", "Perfil"]
     parts = []
     for i, label in enumerate(labels, 1):
         done = i < step
@@ -198,6 +199,51 @@ def _render_stepper(step: int) -> None:
         f'margin:1.25rem 0 1.75rem 0;">{"".join(parts)}</div>',
         unsafe_allow_html=True,
     )
+
+
+def _analyze_cv(uploaded_file, api_key: str, model: str) -> dict | None:
+    """Envía el CV a Gemini y devuelve {keywords, profile}."""
+    import json, re
+    from google import genai
+    from google.genai import types
+
+    _PROMPT = (
+        "Analyze this CV/resume carefully. "
+        "Return ONLY a raw JSON object — no markdown, no explanation:\n"
+        '{"keywords": ["8 to 12 specific job-board search terms matching this person\'s role and stack, '
+        'e.g. \\"frontend developer\\", \\"react engineer\\", \\"senior fullstack\\""], '
+        '"profile": "Candidate profile in the same language as the CV. '
+        "Include: target role, full tech stack, years of experience, key achievements, "
+        'spoken languages, and remote/location preference. 3-4 concise paragraphs."}'
+    )
+
+    try:
+        _client = genai.Client(api_key=api_key)
+        file_bytes = uploaded_file.getvalue()
+        mime = uploaded_file.type  # "application/pdf" or "text/plain"
+
+        if mime == "text/plain":
+            cv_text = file_bytes.decode("utf-8", errors="replace")[:10000]
+            contents = f"{_PROMPT}\n\nCV:\n{cv_text}"
+        else:
+            contents = [
+                types.Part.from_bytes(data=file_bytes, mime_type="application/pdf"),
+                types.Part.from_text(_PROMPT),
+            ]
+
+        resp = _client.models.generate_content(model=model, contents=contents)
+        raw = resp.text.strip().replace("```json", "").replace("```", "").strip()
+
+        try:
+            return json.loads(raw)
+        except json.JSONDecodeError:
+            m = re.search(r"\{[\s\S]*\}", raw)
+            if m:
+                return json.loads(m.group())
+        return None
+    except Exception as e:
+        st.error(f"Error analizando el CV: {e}")
+        return None
 
 
 # ─── Wizard inline (sin @st.dialog para garantizar cierre correcto) ───────────
@@ -304,8 +350,65 @@ def show_config_wizard():
                 st.session_state.config_step = 2
                 st.rerun()
 
-    # ── Paso 2: Keywords y fuentes ────────────────────────────────────────
+    # ── Paso 2: CV ────────────────────────────────────────────────────────
     elif step == 2:
+        with st.container(border=True):
+            st.markdown("**📄 Subí tu CV**")
+            st.caption(
+                "La IA extrae keywords y arma tu perfil automáticamente. "
+                "Podés editarlos después o saltear este paso."
+            )
+            uploaded_file = st.file_uploader(
+                "CV (PDF o TXT)",
+                type=["pdf", "txt"],
+                label_visibility="collapsed",
+                key="cv_upload",
+            )
+            if uploaded_file:
+                if st.button("🤖 Analizar CV con IA", type="primary", use_container_width=True):
+                    with st.spinner("Analizando tu CV…"):
+                        result = _analyze_cv(
+                            uploaded_file,
+                            st.session_state.gemini_key,
+                            st.session_state.selected_model,
+                        )
+                    if result:
+                        kws  = [k for k in result.get("keywords", []) if k.strip()]
+                        prof = result.get("profile", "").strip()
+                        if kws:
+                            st.session_state.keywords_list = kws
+                            st.session_state["kw_tags"] = list(kws)
+                        if prof:
+                            st.session_state.candidate_profile = prof
+                        st.session_state.cv_analyzed = True
+                        st.toast(f"✅ {len(kws)} keywords extraídas. Revisalas en el paso siguiente.", icon="✅")
+                    else:
+                        st.toast("No se pudo analizar el CV. Continuá y completá los datos a mano.", icon="⚠️")
+
+        if st.session_state.cv_analyzed:
+            with st.container(border=True):
+                st.markdown("**📋 Extraído de tu CV — revisá antes de continuar:**")
+                kw_col, _ = st.columns([3, 1])
+                with kw_col:
+                    st.markdown("**Keywords:**  " + "  ".join(
+                        f"`{k}`" for k in st.session_state.keywords_list
+                    ))
+                st.markdown("**Perfil:**")
+                preview = st.session_state.candidate_profile
+                st.text(preview[:400] + ("…" if len(preview) > 400 else ""))
+
+        col_back, col_next = st.columns(2)
+        with col_back:
+            if st.button("← Atrás", use_container_width=True):
+                st.session_state.config_step = 1
+                st.rerun()
+        with col_next:
+            if st.button("Siguiente →", type="primary", use_container_width=True):
+                st.session_state.config_step = 3
+                st.rerun()
+
+    # ── Paso 3: Keywords y fuentes ────────────────────────────────────────
+    elif step == 3:
         with st.container(border=True):
             st.markdown("**🔍 Keywords de búsqueda**")
 
@@ -375,7 +478,7 @@ def show_config_wizard():
         col_back, col_next = st.columns(2)
         with col_back:
             if st.button("← Atrás", use_container_width=True):
-                st.session_state.config_step = 1
+                st.session_state.config_step = 2
                 st.rerun()
         with col_next:
             if st.button("Siguiente →", type="primary", use_container_width=True):
@@ -385,11 +488,11 @@ def show_config_wizard():
                               st.session_state.use_wwr, st.session_state.use_himalayas]):
                     st.toast("Seleccioná al menos una fuente.", icon="⚠️")
                 else:
-                    st.session_state.config_step = 3
+                    st.session_state.config_step = 4
                     st.rerun()
 
-    # ── Paso 3: Perfil ────────────────────────────────────────────────────
-    elif step == 3:
+    # ── Paso 4: Perfil ────────────────────────────────────────────────────
+    elif step == 4:
         with st.container(border=True):
             st.markdown("**👤 Tu perfil profesional**")
             st.caption("La IA usa este texto para evaluar qué tan bien encaja cada oferta con vos.")
@@ -404,7 +507,7 @@ def show_config_wizard():
         col_back, col_start = st.columns(2)
         with col_back:
             if st.button("← Atrás", use_container_width=True):
-                st.session_state.config_step = 2
+                st.session_state.config_step = 3
                 st.rerun()
         with col_start:
             if st.button("🚀 Iniciar búsqueda", type="primary", use_container_width=True):
