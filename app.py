@@ -100,6 +100,17 @@ st.markdown("""
     div[data-testid="stExpander"] { border: 1px solid #e2e8f0; border-radius: 8px; }
     section[data-testid="stSidebar"] { display: none; }
     button[data-testid="collapsedControl"] { display: none; }
+
+    /* ── Botón cancelar (rojo) — selector sibling del marcador ───── */
+    [data-testid="stMarkdownContainer"]:has(.cancel-marker) ~ [data-testid="stButton"] > button {
+        background-color: #fff5f5 !important;
+        color: #dc2626 !important;
+        border: 1.5px solid #fca5a5 !important;
+    }
+    [data-testid="stMarkdownContainer"]:has(.cancel-marker) ~ [data-testid="stButton"] > button:hover {
+        background-color: #fee2e2 !important;
+        border-color: #ef4444 !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -211,20 +222,28 @@ def _render_stepper(step: int) -> None:
     )
 
 
+def _wizard_cancel_button() -> None:
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown(
+        '<div class="cancel-marker" style="'
+        "padding:0.65rem 1rem;background:#fff5f5;border-radius:6px;"
+        "border-left:3px solid #dc2626;color:#991b1b;font-size:13px;margin-bottom:6px;"
+        '">'
+        "⚠️ <strong>Cancelar</strong> cierra el formulario y vuelve al inicio "
+        "sin ejecutar ninguna búsqueda."
+        "</div>",
+        unsafe_allow_html=True,
+    )
+    if st.button("✕ Cancelar búsqueda", key="wizard_cancel", use_container_width=True):
+        st.session_state.show_dialog = False
+        st.rerun()
+
+
 # ─── Wizard inline (sin @st.dialog para garantizar cierre correcto) ───────────
 def show_config_wizard():
     step = st.session_state.config_step
 
-    # Encabezado
-    h_col, x_col = st.columns([6, 1])
-    with h_col:
-        st.markdown("## ⚙️ Configurar búsqueda")
-    with x_col:
-        st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("✕ Cancelar", use_container_width=True):
-            st.session_state.show_dialog = False
-            st.rerun()
-
+    st.markdown("## ⚙️ Configurar búsqueda")
     _render_stepper(step)
 
     # ── Paso 1: Credenciales ──────────────────────────────────────────────
@@ -311,6 +330,8 @@ def show_config_wizard():
                 st.session_state.config_step = 2
                 st.rerun()
 
+        _wizard_cancel_button()
+
     # ── Paso 2: Keywords y fuentes ────────────────────────────────────────
     elif step == 2:
         with st.container(border=True):
@@ -396,6 +417,8 @@ def show_config_wizard():
                     st.session_state.config_step = 3
                     st.rerun()
 
+        _wizard_cancel_button()
+
     # ── Paso 3: Perfil ────────────────────────────────────────────────────
     elif step == 3:
         with st.container(border=True):
@@ -424,6 +447,8 @@ def show_config_wizard():
                     st.session_state.show_dialog = False
                     st.session_state.run_search  = True
                     st.rerun()  # rerun desde contexto principal — siempre full-page
+
+        _wizard_cancel_button()
 
 
 # ─── Título ───────────────────────────────────────────────────────────────────
