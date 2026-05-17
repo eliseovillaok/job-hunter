@@ -17,17 +17,12 @@ SMTP_HOST = "smtp.gmail.com"
 SMTP_PORT = 587
 
 # --- Búsqueda ---
-SEARCH_KEYWORDS = [
-    "backend developer",
-    "java spring boot",
-    "cloud engineer",
-    "backend engineer",
-    "devops engineer",
-    "software engineer java",
-]
+# Estos valores son sobreescritos en runtime por el wizard de app.py
+SEARCH_KEYWORDS = []
 
 ONLY_REMOTE = True
 MIN_MATCH_SCORE = 65   # Mínimo score (0–100) para incluir una oferta en el digest
 
 # --- Perfil del candidato (para el AI Engine) ---
-CANDIDATE_PROFILE = """"""
+# Sobreescrito en runtime por el wizard de app.py (cfg.CANDIDATE_PROFILE = ...)
+CANDIDATE_PROFILE = ""
