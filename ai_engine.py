@@ -11,12 +11,11 @@ import logging
 import time
 from dataclasses import dataclass
 from typing import Optional
-from config import GEMINI_API_KEY, CANDIDATE_PROFILE, MIN_MATCH_SCORE
+import config
 from scrapers import JobPosting
 
 log = logging.getLogger(__name__)
 
-client = genai.Client(api_key=GEMINI_API_KEY)
 MODEL = "gemini-1.5-flash"   # ← free tier disponible (2.0-flash NO tiene free tier)
 
 # Free tier: 15 req/min → esperar 4s entre requests para no pasarse
@@ -38,6 +37,7 @@ def _generate(prompt: str) -> tuple[str, bool]:
     """Llama a Gemini con retry automático ante 429.
     Retorna (response_text, quota_exceeded_bool).
     """
+    client = genai.Client(api_key=config.GEMINI_API_KEY)
     for attempt in range(MAX_RETRIES):
         try:
             resp = client.models.generate_content(model=MODEL, contents=prompt)
@@ -86,7 +86,7 @@ def score_job(job: JobPosting) -> dict:
     prompt = f"""You are a senior tech recruiter. Score how well this job matches the candidate.
 
 CANDIDATE PROFILE:
-{CANDIDATE_PROFILE}
+{config.CANDIDATE_PROFILE}
 
 JOB OFFER:
 Title: {job.title}
@@ -123,7 +123,7 @@ def generate_cover_letter(job: JobPosting, score_data: dict) -> str:
     prompt = f"""Write a professional cover letter in ENGLISH (international) or SPANISH (Latin American company).
 
 CANDIDATE:
-{CANDIDATE_PROFILE}
+{config.CANDIDATE_PROFILE}
 
 JOB:
 Title: {job.title} | Company: {job.company} ({job.source})
@@ -184,8 +184,8 @@ def process_jobs(jobs: list[JobPosting]) -> list[ScoredJob]:
     for rng, count in dist.items():
         log.info(f"  {rng}: {count} ofertas")
 
-    top = [j for j in scored_jobs if j.score >= MIN_MATCH_SCORE]
-    log.info(f"→ {len(top)} ofertas superaron umbral de {MIN_MATCH_SCORE}")
+    top = [j for j in scored_jobs if j.score >= config.MIN_MATCH_SCORE]
+    log.info(f"→ {len(top)} ofertas superaron umbral de {config.MIN_MATCH_SCORE}")
 
     if not top:
         log.info("Top 5 scores:")

@@ -173,8 +173,14 @@ def scrape_weworkremotely(max_results: int = 0) -> list[JobPosting]:
     seen = set()
 
     feeds = [
-        ("https://weworkremotely.com/categories/remote-programming-jobs.rss", "Programming"),
-        ("https://weworkremotely.com/categories/remote-devops-sysadmin-jobs.rss", "DevOps"),
+        ("https://weworkremotely.com/categories/remote-programming-jobs.rss",        "Programming"),
+        ("https://weworkremotely.com/categories/remote-devops-sysadmin-jobs.rss",     "DevOps"),
+        ("https://weworkremotely.com/categories/remote-management-business-jobs.rss", "Management"),
+        ("https://weworkremotely.com/categories/remote-sales-jobs.rss",               "Sales"),
+        ("https://weworkremotely.com/categories/remote-customer-support-jobs.rss",    "CustomerSupport"),
+        ("https://weworkremotely.com/categories/remote-marketing-jobs.rss",           "Marketing"),
+        ("https://weworkremotely.com/categories/remote-design-jobs.rss",              "Design"),
+        ("https://weworkremotely.com/categories/remote-writing-jobs.rss",             "Writing"),
     ]
 
     for feed_url, category in feeds:
@@ -382,8 +388,13 @@ def scrape_workingnomads(keywords: list[str], max_results: int = 0) -> list[JobP
     seen = set()
     kw_lower = [k.lower() for k in keywords]
 
-    categories = ["development-programming", "devops-sysadmin", "back-end-programming",
-                  "front-end-programming", "full-stack-programming"]
+    categories = [
+        "development-programming", "devops-sysadmin", "back-end-programming",
+        "front-end-programming", "full-stack-programming",
+        "project-management", "writing-editing", "design",
+        "marketing", "customer-service", "business",
+        "sales", "hr", "finance", "operations",
+    ]
 
     for cat in categories:
         if max_results > 0 and len(jobs) >= max_results:
@@ -445,7 +456,7 @@ def scrape_themuse(keywords: list[str], max_results: int = 0) -> list[JobPosting
         try:
             resp = requests.get(
                 "https://www.themuse.com/api/public/jobs",
-                params={"page": page, "descending": "true", "category": "Software Engineer"},
+                params={"page": page, "descending": "true"},
                 headers=HEADERS, timeout=15,
             )
             resp.raise_for_status()
@@ -503,6 +514,14 @@ def scrape_remoteco(max_results: int = 0) -> list[JobPosting]:
     feeds = [
         "https://remote.co/job-categories/software-dev/feed/",
         "https://remote.co/job-categories/web-design/feed/",
+        "https://remote.co/job-categories/customer-service/feed/",
+        "https://remote.co/job-categories/marketing/feed/",
+        "https://remote.co/job-categories/writing/feed/",
+        "https://remote.co/job-categories/sales/feed/",
+        "https://remote.co/job-categories/human-resources/feed/",
+        "https://remote.co/job-categories/operations/feed/",
+        "https://remote.co/job-categories/business-development/feed/",
+        "https://remote.co/job-categories/finance-legal/feed/",
     ]
 
     for feed_url in feeds:
