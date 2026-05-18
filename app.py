@@ -866,7 +866,7 @@ if st.session_state.run_search:
             elif platform_name == "Arbeitnow":
                 jobs = sc.scrape_arbeitnow(keywords, max_results=remaining)
             elif platform_name == "WeWorkRemotely":
-                jobs = sc.scrape_weworkremotely(max_results=remaining)
+                jobs = sc.scrape_weworkremotely(keywords, max_results=remaining)
             elif platform_name == "Himalayas":
                 jobs = sc.scrape_himalayas(keywords, max_results=remaining)
             elif platform_name == "RemoteOK":
@@ -876,7 +876,7 @@ if st.session_state.run_search:
             elif platform_name == "TheMuse":
                 jobs = sc.scrape_themuse(keywords, max_results=remaining)
             elif platform_name == "Remote.co":
-                jobs = sc.scrape_remoteco(max_results=remaining)
+                jobs = sc.scrape_remoteco(keywords, max_results=remaining)
             elif platform_name == "Jobspresso":
                 jobs = sc.scrape_jobspresso(max_results=remaining)
             elif platform_name == "JustJoin.it":
