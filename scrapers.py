@@ -166,61 +166,52 @@ def scrape_arbeitnow(keywords: list[str], max_results: int = 0) -> list[JobPosti
 
 
 # =============================================================================
-# We Work Remotely — RSS por categorías
+# We Work Remotely — RSS general (todos los empleos remotos)
 # =============================================================================
-def scrape_weworkremotely(max_results: int = 0) -> list[JobPosting]:
+def scrape_weworkremotely(keywords: list[str], max_results: int = 0) -> list[JobPosting]:
     jobs = []
     seen = set()
+    kw_lower = [k.lower() for k in keywords]
 
-    feeds = [
-        ("https://weworkremotely.com/categories/remote-programming-jobs.rss",        "Programming"),
-        ("https://weworkremotely.com/categories/remote-devops-sysadmin-jobs.rss",     "DevOps"),
-        ("https://weworkremotely.com/categories/remote-management-business-jobs.rss", "Management"),
-        ("https://weworkremotely.com/categories/remote-sales-jobs.rss",               "Sales"),
-        ("https://weworkremotely.com/categories/remote-customer-support-jobs.rss",    "CustomerSupport"),
-        ("https://weworkremotely.com/categories/remote-marketing-jobs.rss",           "Marketing"),
-        ("https://weworkremotely.com/categories/remote-design-jobs.rss",              "Design"),
-        ("https://weworkremotely.com/categories/remote-writing-jobs.rss",             "Writing"),
-    ]
+    try:
+        feed = _parse_feed("https://weworkremotely.com/remote-jobs.rss")
+        entries = feed.get("entries", [])
+        log.info(f"[WeWorkRemotely] {len(entries)} ofertas totales, filtrando por keywords")
 
-    for feed_url, category in feeds:
-        if max_results > 0 and len(jobs) >= max_results:
-            break
-        try:
-            feed = _parse_feed(feed_url)
-            entries = feed.get("entries", [])
-            log.info(f"[WeWorkRemotely] {category} → {len(entries)} ofertas")
+        for entry in entries:
+            if max_results > 0 and len(jobs) >= max_results:
+                break
+            title_raw = entry.get("title", "")
+            summary   = entry.get("summary", "")
+            text      = f"{title_raw} {summary}".lower()
+            if keywords and not any(kw in text for kw in kw_lower):
+                continue
 
-            for entry in entries:
-                if max_results > 0 and len(jobs) >= max_results:
-                    break
-                jid = f"wwr-{entry.get('id', entry.get('link',''))[:50]}"
-                if jid in seen:
-                    continue
-                seen.add(jid)
+            jid = f"wwr-{entry.get('id', entry.get('link',''))[:50]}"
+            if jid in seen:
+                continue
+            seen.add(jid)
 
-                title = entry.get("title", "")
-                company = ""
-                # Formato WWR: "Company: Title"
-                if ": " in title:
-                    parts = title.split(": ", 1)
-                    company, title = parts[0].strip(), parts[1].strip()
+            company, title = "", title_raw
+            if ": " in title_raw:
+                parts = title_raw.split(": ", 1)
+                company, title = parts[0].strip(), parts[1].strip()
 
-                jobs.append(JobPosting(
-                    id=jid,
-                    title=title,
-                    company=company,
-                    description=entry.get("summary", "")[:3000],
-                    location="Remote",
-                    remote=True,
-                    url=entry.get("link", ""),
-                    source="WeWorkRemotely",
-                    published_at=entry.get("published", ""),
-                    tags=[category],
-                ))
-            time.sleep(1)
-        except Exception as e:
-            log.error(f"[WeWorkRemotely] Error feed {category}: {e}")
+            jobs.append(JobPosting(
+                id=jid,
+                title=title,
+                company=company,
+                description=summary[:3000],
+                location="Remote",
+                remote=True,
+                url=entry.get("link", ""),
+                source="WeWorkRemotely",
+                published_at=entry.get("published", ""),
+            ))
+    except Exception as e:
+        log.error(f"[WeWorkRemotely] Error: {e}")
+
+    log.info(f"[WeWorkRemotely] {len(jobs)} ofertas tras filtro")
 
     return jobs
 
@@ -381,63 +372,52 @@ def scrape_jobicy(keywords: list[str], max_results: int = 0) -> list[JobPosting]
 
 # =============================================================================
 # Working Nomads — https://www.workingnomads.com/api/exposed_jobs/
-# Sin búsqueda por keyword; filtra client-side.
+# Fetches todos los empleos sin categoría; filtra client-side por keywords.
 # =============================================================================
 def scrape_workingnomads(keywords: list[str], max_results: int = 0) -> list[JobPosting]:
     jobs = []
     seen = set()
     kw_lower = [k.lower() for k in keywords]
 
-    categories = [
-        "development-programming", "devops-sysadmin", "back-end-programming",
-        "front-end-programming", "full-stack-programming",
-        "project-management", "writing-editing", "design",
-        "marketing", "customer-service", "business",
-        "sales", "hr", "finance", "operations",
-    ]
+    try:
+        resp = requests.get(
+            "https://www.workingnomads.com/api/exposed_jobs/",
+            headers=HEADERS, timeout=20,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        log.info(f"[WorkingNomads] {len(data)} ofertas totales, filtrando por keywords")
 
-    for cat in categories:
-        if max_results > 0 and len(jobs) >= max_results:
-            break
-        try:
-            resp = requests.get(
-                "https://www.workingnomads.com/api/exposed_jobs/",
-                params={"category": cat},
-                headers=HEADERS, timeout=15,
-            )
-            resp.raise_for_status()
-            data = resp.json()
-            log.info(f"[WorkingNomads] '{cat}' → {len(data)} ofertas")
+        for item in data:
+            if max_results > 0 and len(jobs) >= max_results:
+                break
+            text = f"{item.get('title', '')} {item.get('description', '')} {item.get('tags', '')}".lower()
+            if keywords and not any(kw in text for kw in kw_lower):
+                continue
 
-            for item in data:
-                if max_results > 0 and len(jobs) >= max_results:
-                    break
-                text = f"{item.get('title', '')} {item.get('description', '')} {item.get('tags', '')}".lower()
-                if keywords and not any(kw in text for kw in kw_lower):
-                    continue
+            jid = f"wn-{item.get('id', item.get('slug', ''))}"
+            if jid in seen:
+                continue
+            seen.add(jid)
 
-                jid = f"wn-{item.get('id', item.get('slug', ''))}"
-                if jid in seen:
-                    continue
-                seen.add(jid)
-
-                jobs.append(JobPosting(
-                    id=jid,
-                    title=item.get("title", ""),
-                    company=item.get("company_name", ""),
-                    description=(item.get("description", "") or "")[:3000],
-                    location=item.get("location", "Remote"),
-                    remote=True,
-                    url=item.get("url", ""),
-                    source="WorkingNomads",
-                    published_at=item.get("pub_date", ""),
-                    tags=[cat],
-                ))
-            time.sleep(1)
-        except Exception as e:
-            log.error(f"[WorkingNomads] Error '{cat}': {e}")
+            jobs.append(JobPosting(
+                id=jid,
+                title=item.get("title", ""),
+                company=item.get("company_name", ""),
+                description=(item.get("description", "") or "")[:3000],
+                location=item.get("location", "Remote"),
+                remote=True,
+                url=item.get("url", ""),
+                source="WorkingNomads",
+                published_at=item.get("pub_date", ""),
+            ))
+        log.info(f"[WorkingNomads] {len(jobs)} ofertas tras filtro")
+    except Exception as e:
+        log.error(f"[WorkingNomads] Error: {e}")
 
     return jobs
+
+
 
 
 # =============================================================================
@@ -507,60 +487,50 @@ def scrape_themuse(keywords: list[str], max_results: int = 0) -> list[JobPosting
 # =============================================================================
 # Remote.co — RSS feed
 # =============================================================================
-def scrape_remoteco(max_results: int = 0) -> list[JobPosting]:
+def scrape_remoteco(keywords: list[str], max_results: int = 0) -> list[JobPosting]:
     jobs = []
     seen = set()
+    kw_lower = [k.lower() for k in keywords]
 
-    feeds = [
-        "https://remote.co/job-categories/software-dev/feed/",
-        "https://remote.co/job-categories/web-design/feed/",
-        "https://remote.co/job-categories/customer-service/feed/",
-        "https://remote.co/job-categories/marketing/feed/",
-        "https://remote.co/job-categories/writing/feed/",
-        "https://remote.co/job-categories/sales/feed/",
-        "https://remote.co/job-categories/human-resources/feed/",
-        "https://remote.co/job-categories/operations/feed/",
-        "https://remote.co/job-categories/business-development/feed/",
-        "https://remote.co/job-categories/finance-legal/feed/",
-    ]
+    try:
+        feed = _parse_feed("https://remote.co/feed/")
+        entries = feed.get("entries", [])
+        log.info(f"[Remote.co] {len(entries)} ofertas totales, filtrando por keywords")
 
-    for feed_url in feeds:
-        if max_results > 0 and len(jobs) >= max_results:
-            break
-        try:
-            feed = _parse_feed(feed_url)
-            entries = feed.get("entries", [])
-            log.info(f"[Remote.co] {feed_url.split('/')[-3]} → {len(entries)} ofertas")
+        for entry in entries:
+            if max_results > 0 and len(jobs) >= max_results:
+                break
+            title_raw = entry.get("title", "")
+            summary   = entry.get("summary", "")
+            text      = f"{title_raw} {summary}".lower()
+            if keywords and not any(kw in text for kw in kw_lower):
+                continue
 
-            for entry in entries:
-                if max_results > 0 and len(jobs) >= max_results:
-                    break
-                jid = f"rco-{entry.get('id', entry.get('link', ''))[:60]}"
-                if jid in seen:
-                    continue
-                seen.add(jid)
+            jid = f"rco-{entry.get('id', entry.get('link', ''))[:60]}"
+            if jid in seen:
+                continue
+            seen.add(jid)
 
-                title = entry.get("title", "")
-                company = ""
-                if " at " in title:
-                    parts = title.rsplit(" at ", 1)
-                    title, company = parts[0].strip(), parts[1].strip()
+            title, company = title_raw, ""
+            if " at " in title_raw:
+                parts = title_raw.rsplit(" at ", 1)
+                title, company = parts[0].strip(), parts[1].strip()
 
-                jobs.append(JobPosting(
-                    id=jid,
-                    title=title,
-                    company=company,
-                    description=entry.get("summary", "")[:3000],
-                    location="Remote",
-                    remote=True,
-                    url=entry.get("link", ""),
-                    source="Remote.co",
-                    published_at=entry.get("published", ""),
-                ))
-            time.sleep(1)
-        except Exception as e:
-            log.error(f"[Remote.co] Error {feed_url}: {e}")
+            jobs.append(JobPosting(
+                id=jid,
+                title=title,
+                company=company,
+                description=summary[:3000],
+                location="Remote",
+                remote=True,
+                url=entry.get("link", ""),
+                source="Remote.co",
+                published_at=entry.get("published", ""),
+            ))
+    except Exception as e:
+        log.error(f"[Remote.co] Error: {e}")
 
+    log.info(f"[Remote.co] {len(jobs)} ofertas tras filtro")
     return jobs
 
 
