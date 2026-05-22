@@ -239,15 +239,10 @@ _defaults = {
     "email_sender":       "",
     "email_password_raw": "",
     "email_recipient":    "",
-    "keywords_list":      [
-        "frontend developer", "react developer", "full stack engineer",
-        "UI engineer", "javascript developer",
-    ],
-    "kw_options":         [
-        "frontend developer", "react developer", "full stack engineer",
-        "UI engineer", "javascript developer",
-    ],
+    "keywords_list":      [],
+    "kw_options":         [],
     "min_score":          65,
+    "only_remote":        False,
     "use_max_results":    False,
     "max_results_limit":  100,
     "use_remotive":       True,
@@ -270,22 +265,7 @@ _defaults = {
     "use_justjoinit":     False,
     "use_authenticjobs":  True,
     "result_page":        0,
-    "candidate_profile":  """Rol buscado: Frontend Engineer / Full Stack (solo remoto)
-
-Stack técnico:
-- JavaScript, React, Vue.js, HTML5, CSS3
-- Node.js, Express, API REST
-- PostgreSQL, MongoDB
-- Git, GitHub, Webpack
-- Testing: Jest, React Testing Library
-
-Experiencia:
-- Senior Frontend Engineer en StartupXYZ (2 años)
-- Mid-level Developer en TechCorp (1.5 años)
-- Freelance projects en React y Vue
-
-Idiomas: Español (nativo), Inglés (fluido)
-Ubicación: Cualquier zona horaria — 100% remoto""",
+    "candidate_profile":  "",
 }
 for _k, _v in _defaults.items():
     if _k not in st.session_state:
@@ -628,11 +608,16 @@ def show_config_wizard():
 
         with st.container(border=True):
             st.markdown("**⚙️ Parámetros**")
+            st.session_state.only_remote = st.checkbox(
+                "Solo ofertas remotas",
+                value=st.session_state.only_remote,
+                help="Activa esta opción solo si tu CV especifica preferencia remota. Desactivado por defecto para no perder ofertas híbridas o presenciales.",
+            )
             st.session_state.min_score = st.slider(
-                "Puntaje mínimo para recomendar",
+                "Puntaje mínimo para 'Recomendadas' y cartas",
                 min_value=30, max_value=90, step=5,
                 value=st.session_state.min_score,
-                help="Las ofertas con puntaje menor quedan fuera de los resultados recomendados.",
+                help="Umbral para la pestaña 'Recomendadas' y generación de cartas. Las ofertas por debajo del umbral siguen visibles en 'Todas'.",
             )
             st.markdown("**Fuentes de búsqueda**")
             st.caption("🌍 Remoto global")
@@ -750,6 +735,13 @@ def show_config_wizard():
                 height=195,
                 label_visibility="collapsed",
                 placeholder="Rol buscado, stack técnico, experiencia, idiomas...",
+            )
+
+        if not st.session_state.candidate_profile.strip():
+            st.warning(
+                "El perfil está vacío. Sin un perfil el scoring de IA no tiene base para evaluar las ofertas — "
+                "todos los puntajes serán bajos o arbitrarios. Completá el texto o volvé al paso anterior para analizar tu CV.",
+                icon="⚠️",
             )
 
         col_back, col_start = st.columns(2)
@@ -872,6 +864,7 @@ if st.session_state.run_search:
     cfg.SEARCH_KEYWORDS   = keywords
     cfg.MIN_MATCH_SCORE   = min_score
     cfg.CANDIDATE_PROFILE = candidate_profile
+    cfg.ONLY_REMOTE       = st.session_state.only_remote
     cfg.EMAIL_SENDER      = email_sender
     cfg.EMAIL_PASSWORD    = email_password
     cfg.EMAIL_RECIPIENT   = email_recipient

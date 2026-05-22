@@ -161,7 +161,7 @@ def _job_from_candidate(candidate: dict, source: str) -> JobPosting:
 
 
 def _run_linkedin_search(page, keyword: str):
-    url = f"https://www.linkedin.com/jobs/search/?keywords={quote_plus(keyword)}&f_WT=2"
+    url = f"https://www.linkedin.com/jobs/search/?keywords={quote_plus(keyword)}"
     page.goto(url, wait_until="domcontentloaded", timeout=60000)
     page.wait_for_timeout(3500)
 

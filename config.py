@@ -20,8 +20,8 @@ SMTP_PORT = 587
 # Estos valores son sobreescritos en runtime por el wizard de app.py
 SEARCH_KEYWORDS = []
 
-ONLY_REMOTE = True
-MIN_MATCH_SCORE = 65   # Mínimo score (0–100) para incluir una oferta en el digest
+ONLY_REMOTE = False
+MIN_MATCH_SCORE = 65   # Mínimo score (0–100) para recomendadas y cartas de presentación
 
 # --- Perfil del candidato (para el AI Engine) ---
 # Sobreescrito en runtime por el wizard de app.py (cfg.CANDIDATE_PROFILE = ...)

@@ -83,22 +83,20 @@ def _parse_json(raw: str) -> dict:
 # STEP 1 — Scoring
 # =============================================================================
 def score_job(job: JobPosting) -> dict:
-    prompt = f"""You are a senior tech recruiter. Score how well this job matches the candidate.
+    prompt = f"""Score how well this job offer matches the candidate profile below. Base the evaluation exclusively on the information provided — do not add assumptions, infer seniority, or apply external criteria.
 
 CANDIDATE PROFILE:
 {config.CANDIDATE_PROFILE}
 
 JOB OFFER:
 Title: {job.title}
-Company: {job.company} | Source: {job.source} | Remote: {"Yes" if job.remote else "No"}
-Tags: {", ".join(job.tags) if job.tags else "N/A"}
+Company: {job.company} | Remote: {"Yes" if job.remote else "No"}
 Description: {job.description[:1500]}
 
 Return ONLY a raw JSON object, no markdown, no explanation:
 {{"score": <integer 0-100>, "match_reasons": ["reason1", "reason2"], "missing_skills": ["skill"], "summary": "one line summary", "apply_recommended": <true or false>}}
 
-Scoring: 80-100 excellent match | 60-79 good match | 40-59 partial match | 0-39 poor match
-Base the evaluation exclusively on the candidate profile provided above."""
+Scoring bands (for calibration): 80-100 strong overlap | 60-79 solid match | 40-59 partial match | 0-39 weak match"""
 
     try:
         raw, quota_exceeded = _generate(prompt)
@@ -120,23 +118,26 @@ Base the evaluation exclusively on the candidate profile provided above."""
 # STEP 2 — Cover Letter
 # =============================================================================
 def generate_cover_letter(job: JobPosting, score_data: dict) -> str:
-    prompt = f"""Write a professional cover letter in ENGLISH (international) or SPANISH (Latin American company).
+    prompt = f"""Write a professional cover letter for the job posting below.
 
-CANDIDATE:
+LANGUAGE RULE: Detect the language of the job posting (title + description) and write the entire letter in that exact language. English job → English letter. Spanish job → Spanish letter. No mixing.
+
+CANDIDATE PROFILE (single source of truth — use only facts explicitly stated here):
 {config.CANDIDATE_PROFILE}
 
-JOB:
-Title: {job.title} | Company: {job.company} ({job.source})
+JOB POSTING:
+Title: {job.title}
+Company: {job.company}
 Why it matches: {", ".join(score_data.get("match_reasons", []))}
-Description: {job.description[:1000]}
+Description: {job.description[:2000]}
 
-Requirements:
-- Professional but warm tone, 3-4 concise paragraphs
-- Connect the candidate's actual experience and skills to this specific role
-- If the profile mentions concrete achievements or projects, reference them; do NOT invent metrics or facts not present in the profile
-- End with a clear call to action
-- First line: [SUBJECT: suggested email subject]
+STRUCTURE (3–4 paragraphs):
+1. Brief introduction: who the candidate is and the role they are applying for.
+2. Skills & experience: connect only the candidate's actual skills and experience from the profile to this specific role. Zero invented metrics, zero invented achievements. If the profile says "colaboró en" or "supported", do not write "led" or "built". Mirror the profile's language.
+3. Why this company: write a specific paragraph about why the candidate wants to work at {job.company}. Base it on concrete details visible in the job description — product, mission, tech stack, culture, market, or problem they solve. Avoid generic praise like "innovative company" unless supported by specific facts from the description.
+4. Call to action: short, direct closing.
 
+First line of output must be: [SUBJECT: suggested email subject in the same language as the letter]
 Output only the cover letter, nothing else."""
 
     try:

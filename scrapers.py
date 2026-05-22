@@ -23,7 +23,8 @@ import json
 import re
 from dataclasses import dataclass, field
 from typing import Optional
-from config import SEARCH_KEYWORDS, ONLY_REMOTE
+import config
+from config import SEARCH_KEYWORDS
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger(__name__)
@@ -169,7 +170,7 @@ def scrape_arbeitnow(keywords: list[str], max_results: int = 0) -> list[JobPosti
                     "https://www.arbeitnow.com/api/job-board-api",
                     params={
                         "search": keyword,
-                        "remote": "true" if ONLY_REMOTE else "",
+                        "remote": "true" if config.ONLY_REMOTE else "",
                         "page": page,
                     },
                     headers=HEADERS, timeout=15
@@ -187,7 +188,7 @@ def scrape_arbeitnow(keywords: list[str], max_results: int = 0) -> list[JobPosti
                     if max_results > 0 and len(jobs) >= max_results:
                         break
                     is_remote = item.get("remote", False)
-                    if ONLY_REMOTE and not is_remote:
+                    if config.ONLY_REMOTE and not is_remote:
                         continue
 
                     jid = f"arb-{item.get('slug', item.get('title', ''))[:40]}"
@@ -482,7 +483,7 @@ def scrape_getonboard(keywords: list[str], max_results: int = 0) -> list[JobPost
                     continue
 
                 remote = "remote" in location.lower() or "work from home" in page_html.lower()
-                if ONLY_REMOTE and not remote:
+                if config.ONLY_REMOTE and not remote:
                     continue
 
                 seen.add(jid)
@@ -496,7 +497,7 @@ def scrape_getonboard(keywords: list[str], max_results: int = 0) -> list[JobPost
                     url=url,
                     source="GetOnBoard",
                     published_at=published_match.group(1) if published_match else None,
-                    tags=[category.replace("-", " ")],
+                    tags=[],
                 ))
                 time.sleep(0.35)
             time.sleep(0.7)
@@ -546,7 +547,7 @@ def scrape_puente(keywords: list[str], max_results: int = 0) -> list[JobPosting]
                 continue
 
             remote = job.get("jobLocationType") == "TELECOMMUTE" or "remote" in description.lower()
-            if ONLY_REMOTE and not remote:
+            if config.ONLY_REMOTE and not remote:
                 continue
 
             seen.add(jid)
@@ -561,7 +562,7 @@ def scrape_puente(keywords: list[str], max_results: int = 0) -> list[JobPosting]
                 source="PuenteTalent",
                 published_at=job.get("datePosted"),
                 salary=salary,
-                tags=["latam", "remote-us"],
+                tags=[],
             ))
     except Exception as e:
         log.error(f"[PuenteTalent] Error: {e}")
@@ -634,7 +635,7 @@ def scrape_latojobs(keywords: list[str], max_results: int = 0) -> list[JobPostin
                     or "remote" in location.lower()
                     or "remote" in description.lower()
                 )
-                if ONLY_REMOTE and not remote:
+                if config.ONLY_REMOTE and not remote:
                     continue
 
                 seen.add(jid)
