@@ -25,11 +25,13 @@ Buscar trabajo es tedioso:
 
 ## ✨ Características principales
 
-### 🔍 Búsqueda automatizada en 4 plataformas
+### 🔍 Búsqueda automatizada en múltiples plataformas
 - **Remotive** — ofertas técnicas remotas curadas
 - **Arbeitnow** — base de datos global de trabajo remoto
 - **We Work Remotely** — comunidad de 100K+ ofertas remotas
 - **Himalayas** — plataforma especializada en talento remoto
+- **Get on Board / LatoJobs / Puente / Jobicy** — foco LatAm
+- **LinkedIn / Bumeran / Computrabajo** — soporte beta con sesión persistente de navegador
 
 ### 🤖 Evaluación inteligente con IA
 - Cada oferta recibe un **score 0-100** basado en tu perfil
@@ -153,6 +155,12 @@ pip install -r requirements.txt
 
 Esto descarga e instala todas las librerías necesarias (streamlit, google-genai, requests, etc.). Tarda ~2 minutos. Verás muchas líneas de texto — es normal.
 
+Si querés usar portales con login desde navegador, instalá además Chromium para Playwright:
+
+```bash
+python -m playwright install chromium
+```
+
 ### Paso 6: Obtener la API Key de Gemini (gratis)
 
 1. Entra a [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)
@@ -217,6 +225,27 @@ Si no se abre automáticamente, entra a `http://localhost:8501`
   - **Tu Gmail:** tu dirección completa (ej: tu@gmail.com)
   - **App Password:** el código de 16 caracteres que generaste
   - **Email destino:** donde querés recibir el digest (puede ser el mismo Gmail)
+
+### Portales con login (beta)
+
+Para activar `LinkedIn`, `Bumeran` o `Computrabajo` desde la app:
+
+1. Guardá una sesión persistente:
+
+```bash
+python browser_login.py linkedin
+python browser_login.py bumeran
+python browser_login.py computrabajo
+```
+
+2. Iniciá sesión manualmente en la ventana que se abre.
+3. Volvé a la terminal y presioná `Enter`.
+4. En la app, activá esas fuentes y apuntá al mismo directorio de sesión si querés usar otro distinto de `.browser_profiles`.
+
+Notas:
+- Este flujo es `beta`.
+- Solo lee listados y links a vacantes.
+- No automatiza postulaciones ni acciones de cuenta.
 
 #### 🔍 Búsqueda
 - **Keywords:** palabras clave para buscar (ej: "backend developer", "java spring boot")

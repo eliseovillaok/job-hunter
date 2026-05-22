@@ -259,6 +259,10 @@ _defaults = {
     "use_getonboard":     True,
     "use_puentetalent":   True,
     "use_latojobs":       True,
+    "use_linkedin_browser": False,
+    "use_bumeran_browser": False,
+    "use_computrabajo_browser": False,
+    "browser_profile_dir": str(Path(".browser_profiles").resolve()),
     "use_workingnomads":  True,
     "use_themuse":        True,
     "use_remoteco":       True,
@@ -309,7 +313,8 @@ def validate_config():
                 st.session_state.use_latojobs, st.session_state.use_workingnomads,
                 st.session_state.use_themuse, st.session_state.use_remoteco,
                 st.session_state.use_jobspresso, st.session_state.use_justjoinit,
-                st.session_state.use_authenticjobs]):
+                st.session_state.use_authenticjobs, st.session_state.use_linkedin_browser,
+                st.session_state.use_bumeran_browser, st.session_state.use_computrabajo_browser]):
         errors.append("Seleccioná al menos una fuente.")
     return errors
 
@@ -656,6 +661,27 @@ def show_config_wizard():
             with l5:
                 st.empty()
 
+            st.caption("🔐 Login requerido (beta)")
+            b1, b2, b3 = st.columns(3)
+            with b1:
+                st.session_state.use_linkedin_browser = st.checkbox("LinkedIn", value=st.session_state.use_linkedin_browser)
+            with b2:
+                st.session_state.use_bumeran_browser = st.checkbox("Bumeran", value=st.session_state.use_bumeran_browser)
+            with b3:
+                st.session_state.use_computrabajo_browser = st.checkbox("Computrabajo", value=st.session_state.use_computrabajo_browser)
+
+            if any([
+                st.session_state.use_linkedin_browser,
+                st.session_state.use_bumeran_browser,
+                st.session_state.use_computrabajo_browser,
+            ]):
+                st.session_state.browser_profile_dir = st.text_input(
+                    "Directorio de sesión del navegador",
+                    value=st.session_state.browser_profile_dir,
+                    help="Usá un perfil persistente creado con `python browser_login.py <portal>`.",
+                )
+                st.caption("Beta: estas fuentes leen vacantes desde una sesión real guardada en Chromium. No automatizan postulaciones.")
+
             st.caption("🇺🇸 EEUU / Anglófono")
             a1, a2, a3, a4, a5 = st.columns(5)
             with a1:
@@ -706,7 +732,8 @@ def show_config_wizard():
                               st.session_state.use_latojobs, st.session_state.use_workingnomads,
                               st.session_state.use_themuse, st.session_state.use_remoteco,
                               st.session_state.use_jobspresso, st.session_state.use_justjoinit,
-                              st.session_state.use_authenticjobs]):
+                              st.session_state.use_authenticjobs, st.session_state.use_linkedin_browser,
+                              st.session_state.use_bumeran_browser, st.session_state.use_computrabajo_browser]):
                     st.toast("Seleccioná al menos una fuente.", icon="⚠️")
                 else:
                     st.session_state.config_step = 4
@@ -831,6 +858,7 @@ if st.session_state.run_search:
     min_score         = st.session_state.min_score
     max_results_limit = st.session_state.max_results_limit if st.session_state.use_max_results else 0
     candidate_profile = st.session_state.candidate_profile
+    browser_profile_dir = st.session_state.browser_profile_dir
 
     os.environ["GEMINI_API_KEY"]  = gemini_key
     os.environ["EMAIL_SENDER"]    = email_sender
@@ -881,6 +909,9 @@ if st.session_state.run_search:
         "GetOnBoard":     st.session_state.use_getonboard,
         "PuenteTalent":   st.session_state.use_puentetalent,
         "LatoJobs":       st.session_state.use_latojobs,
+        "LinkedInBrowser": st.session_state.use_linkedin_browser,
+        "BumeranBrowser":  st.session_state.use_bumeran_browser,
+        "ComputrabajoBrowser": st.session_state.use_computrabajo_browser,
         "WorkingNomads":  st.session_state.use_workingnomads,
         "TheMuse":        st.session_state.use_themuse,
         "Remote.co":      st.session_state.use_remoteco,
@@ -916,6 +947,14 @@ if st.session_state.run_search:
                 jobs = sc.scrape_puente(keywords, max_results=remaining)
             elif platform_name == "LatoJobs":
                 jobs = sc.scrape_latojobs(keywords, max_results=remaining)
+            elif platform_name in ("LinkedInBrowser", "BumeranBrowser", "ComputrabajoBrowser"):
+                import browser_scrapers as bsc
+                jobs = bsc.scrape_browser_portal(
+                    platform_name,
+                    keywords,
+                    profile_dir=browser_profile_dir,
+                    max_results=remaining,
+                )
             elif platform_name == "WorkingNomads":
                 jobs = sc.scrape_workingnomads(keywords, max_results=remaining)
             elif platform_name == "TheMuse":
@@ -1095,6 +1134,9 @@ if st.session_state.run_search:
                 "LatoJobs":       "src-arbeitnow",
                 "PuenteTalent":   "src-himalayas",
                 "Jobicy":         "src-remotive",
+                "LinkedInBrowser": "src-himalayas",
+                "BumeranBrowser":  "src-arbeitnow",
+                "ComputrabajoBrowser": "src-remotive",
             }.get(sj.job.source, "src-remotive")
 
             with st.expander(f"{score}/100 — {sj.job.title}  @  {sj.job.company}", expanded=(idx == 0)):
