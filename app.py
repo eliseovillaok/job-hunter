@@ -255,6 +255,10 @@ _defaults = {
     "use_wwr":            True,
     "use_himalayas":      True,
     "use_remoteok":       True,
+    "use_jobicy":         True,
+    "use_getonboard":     True,
+    "use_puentetalent":   True,
+    "use_latojobs":       True,
     "use_workingnomads":  True,
     "use_themuse":        True,
     "use_remoteco":       True,
@@ -299,7 +303,13 @@ def validate_config():
     if not st.session_state.keywords_list:
         errors.append("Agregá al menos una keyword.")
     if not any([st.session_state.use_remotive, st.session_state.use_arbeitnow,
-                st.session_state.use_wwr, st.session_state.use_himalayas]):
+                st.session_state.use_wwr, st.session_state.use_himalayas,
+                st.session_state.use_remoteok, st.session_state.use_jobicy,
+                st.session_state.use_getonboard, st.session_state.use_puentetalent,
+                st.session_state.use_latojobs, st.session_state.use_workingnomads,
+                st.session_state.use_themuse, st.session_state.use_remoteco,
+                st.session_state.use_jobspresso, st.session_state.use_justjoinit,
+                st.session_state.use_authenticjobs]):
         errors.append("Seleccioná al menos una fuente.")
     return errors
 
@@ -353,13 +363,21 @@ def _analyze_cv(uploaded_file, api_key: str, model: str) -> dict | None:
     from google.genai import types
 
     _PROMPT = (
-        "Analyze this CV/resume carefully. "
-        "Return ONLY a raw JSON object — no markdown, no explanation:\n"
-        '{"keywords": ["8 to 12 specific job-board search terms matching this person\'s role and stack, '
-        'e.g. \\"frontend developer\\", \\"react engineer\\", \\"senior fullstack\\""], '
-        '"profile": "Candidate profile in the same language as the CV. '
-        "Include: target role, full tech stack, years of experience, key achievements, "
-        'spoken languages, and remote/location preference. 3-4 concise paragraphs."}'
+        "Analyze this CV/resume carefully and extract information as faithfully as possible. "
+        "Return ONLY a raw JSON object — no markdown, no explanation.\n\n"
+        "Strict rules:\n"
+        "- Use only information explicitly present in the CV.\n"
+        "- Do NOT infer seniority, expertise, achievements, impact, leadership, ownership, or implementation work unless the CV states it clearly.\n"
+        "- Do NOT upgrade the candidate's level with words such as senior, semi senior, expert, lead, principal, staff, architect, etc. unless those exact levels appear in the CV.\n"
+        "- If the CV says the person analyzed, supported, collaborated, documented, tested, or learned something, describe it exactly that way. Do not rewrite it as implemented, built, led, owned, or delivered.\n"
+        "- If years of experience are not explicit or cannot be calculated reliably from dates in the CV, do not invent them.\n"
+        "- If remote preference, location, languages, or target role are not explicit, say that they are not specified in the CV.\n"
+        "- Prefer detailed factual extraction over polished marketing language.\n\n"
+        "Output schema:\n"
+        '{'
+        '"keywords": ["6 to 12 job-board search terms derived directly from explicit roles, technologies, and domains in the CV. Do not add seniority or stack items that are not clearly mentioned."], '
+        '"profile": "Write in the same language as the CV. 3 to 4 concise paragraphs or compact sections. Include only verifiable details from the CV about: roles/titles mentioned, companies or project types if present, technologies/tools explicitly listed, responsibilities/tasks explicitly described, dates or duration only when stated or directly calculable from CV dates, languages, and location/remote preference. When something is missing, say it is not specified in the CV."'
+        '}'
     )
 
     try:
@@ -621,8 +639,21 @@ def show_config_wizard():
             with g3:
                 st.session_state.use_remoteok     = st.checkbox("RemoteOK",       value=st.session_state.use_remoteok)
             with g4:
-                st.session_state.use_workingnomads = st.checkbox("WorkingNomads", value=st.session_state.use_workingnomads)
+                st.session_state.use_jobicy       = st.checkbox("Jobicy",         value=st.session_state.use_jobicy)
             with g5:
+                st.session_state.use_workingnomads = st.checkbox("WorkingNomads", value=st.session_state.use_workingnomads)
+
+            st.caption("🌎 Latinoamérica")
+            l1, l2, l3, l4, l5 = st.columns(5)
+            with l1:
+                st.session_state.use_getonboard   = st.checkbox("Get on Board",   value=st.session_state.use_getonboard)
+            with l2:
+                st.session_state.use_latojobs     = st.checkbox("LatoJobs",       value=st.session_state.use_latojobs)
+            with l3:
+                st.session_state.use_puentetalent = st.checkbox("Puente Talent",  value=st.session_state.use_puentetalent)
+            with l4:
+                st.empty()
+            with l5:
                 st.empty()
 
             st.caption("🇺🇸 EEUU / Anglófono")
@@ -670,7 +701,9 @@ def show_config_wizard():
                     st.toast("Agregá al menos una keyword.", icon="⚠️")
                 elif not any([st.session_state.use_remotive, st.session_state.use_arbeitnow,
                               st.session_state.use_wwr, st.session_state.use_himalayas,
-                              st.session_state.use_remoteok, st.session_state.use_workingnomads,
+                              st.session_state.use_remoteok, st.session_state.use_jobicy,
+                              st.session_state.use_getonboard, st.session_state.use_puentetalent,
+                              st.session_state.use_latojobs, st.session_state.use_workingnomads,
                               st.session_state.use_themuse, st.session_state.use_remoteco,
                               st.session_state.use_jobspresso, st.session_state.use_justjoinit,
                               st.session_state.use_authenticjobs]):
@@ -746,7 +779,7 @@ def render_empty_state():
     <div class="feature-card">
         <span class="feature-icon">🔍</span>
         <div class="feature-title">Busca</div>
-        <div class="feature-desc">Remotive, Arbeitnow, WeWorkRemotely e Himalayas</div>
+        <div class="feature-desc">Remotive, Get on Board, LatoJobs, Puente, Jobicy y más</div>
     </div>
     <div class="feature-card">
         <span class="feature-icon">🤖</span>
@@ -844,6 +877,10 @@ if st.session_state.run_search:
         "WeWorkRemotely": st.session_state.use_wwr,
         "Himalayas":      st.session_state.use_himalayas,
         "RemoteOK":       st.session_state.use_remoteok,
+        "Jobicy":         st.session_state.use_jobicy,
+        "GetOnBoard":     st.session_state.use_getonboard,
+        "PuenteTalent":   st.session_state.use_puentetalent,
+        "LatoJobs":       st.session_state.use_latojobs,
         "WorkingNomads":  st.session_state.use_workingnomads,
         "TheMuse":        st.session_state.use_themuse,
         "Remote.co":      st.session_state.use_remoteco,
@@ -871,6 +908,14 @@ if st.session_state.run_search:
                 jobs = sc.scrape_himalayas(keywords, max_results=remaining)
             elif platform_name == "RemoteOK":
                 jobs = sc.scrape_remoteok(keywords, max_results=remaining)
+            elif platform_name == "Jobicy":
+                jobs = sc.scrape_jobicy(keywords, max_results=remaining)
+            elif platform_name == "GetOnBoard":
+                jobs = sc.scrape_getonboard(keywords, max_results=remaining)
+            elif platform_name == "PuenteTalent":
+                jobs = sc.scrape_puente(keywords, max_results=remaining)
+            elif platform_name == "LatoJobs":
+                jobs = sc.scrape_latojobs(keywords, max_results=remaining)
             elif platform_name == "WorkingNomads":
                 jobs = sc.scrape_workingnomads(keywords, max_results=remaining)
             elif platform_name == "TheMuse":
@@ -1046,6 +1091,10 @@ if st.session_state.run_search:
                 "Arbeitnow":      "src-arbeitnow",
                 "WeWorkRemotely": "src-wwr",
                 "Himalayas":      "src-himalayas",
+                "GetOnBoard":     "src-wwr",
+                "LatoJobs":       "src-arbeitnow",
+                "PuenteTalent":   "src-himalayas",
+                "Jobicy":         "src-remotive",
             }.get(sj.job.source, "src-remotive")
 
             with st.expander(f"{score}/100 — {sj.job.title}  @  {sj.job.company}", expanded=(idx == 0)):

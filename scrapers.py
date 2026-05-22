@@ -18,6 +18,9 @@ import requests
 import feedparser
 import time
 import logging
+import html
+import json
+import re
 from dataclasses import dataclass, field
 from typing import Optional
 from config import SEARCH_KEYWORDS, ONLY_REMOTE
@@ -26,6 +29,54 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 log = logging.getLogger(__name__)
 
 HEADERS = {"User-Agent": "JobHunterBot/1.0 (personal job search automation)"}
+
+
+def _strip_html(raw_html: str) -> str:
+    """Remove tags and compact whitespace for AI-friendly descriptions."""
+    if not raw_html:
+        return ""
+    text = re.sub(r"<[^>]+>", " ", raw_html)
+    text = html.unescape(text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _matches_keywords(keywords: list[str], *parts: str) -> bool:
+    """Client-side keyword filter for sources without server-side search."""
+    if not keywords:
+        return True
+    haystack = " ".join(p for p in parts if p).lower()
+    return any(kw.lower() in haystack for kw in keywords)
+
+
+def _extract_json_ld_objects(page_html: str) -> list[dict]:
+    """Parse JSON-LD blocks and flatten arrays into a list of dicts."""
+    objects: list[dict] = []
+    for raw in re.findall(r'<script type="application/ld\+json">(.*?)</script>', page_html, re.S):
+        try:
+            parsed = json.loads(html.unescape(raw))
+        except Exception:
+            continue
+        if isinstance(parsed, list):
+            objects.extend(item for item in parsed if isinstance(item, dict))
+        elif isinstance(parsed, dict):
+            objects.append(parsed)
+    return objects
+
+
+def _salary_from_json_ld(job: dict) -> Optional[str]:
+    base = job.get("baseSalary")
+    if not isinstance(base, dict):
+        return None
+    currency = base.get("currency", "")
+    value = base.get("value", {}) if isinstance(base.get("value"), dict) else {}
+    low = value.get("minValue")
+    high = value.get("maxValue")
+    unit = value.get("unitText", "")
+    if low and high:
+        return f"{low}-{high} {currency}/{unit}".strip()
+    if low:
+        return f"{low} {currency}/{unit}".strip()
+    return None
 
 
 def _parse_feed(url: str, timeout: int = 15):
@@ -371,6 +422,245 @@ def scrape_jobicy(keywords: list[str], max_results: int = 0) -> list[JobPosting]
 
 
 # =============================================================================
+# Get on Board — HTML público + detalle SSR
+# =============================================================================
+def scrape_getonboard(keywords: list[str], max_results: int = 0) -> list[JobPosting]:
+    jobs = []
+    seen = set()
+    categories = [
+        "programming",
+        "data-science-analytics",
+        "sysadmin-devops-qa",
+        "machine-learning-ai",
+        "product-innovation-agile",
+        "design-ux",
+        "customer-support",
+        "digital-marketing",
+    ]
+
+    for category in categories:
+        if max_results > 0 and len(jobs) >= max_results:
+            break
+        try:
+            resp = requests.get(
+                f"https://www.getonbrd.com/jobs/{category}",
+                headers=HEADERS,
+                timeout=20,
+            )
+            resp.raise_for_status()
+            listing_html = resp.text
+            urls = []
+            for match in re.findall(r'href="(https://www\.getonbrd\.com/jobs/[^"?#]+)', listing_html):
+                url = html.unescape(match)
+                if url not in urls:
+                    urls.append(url)
+            log.info(f"[GetOnBoard] categoría '{category}' → {len(urls)} links")
+
+            for url in urls:
+                if max_results > 0 and len(jobs) >= max_results:
+                    break
+                jid = f"gob-{url.rsplit('/', 1)[-1][:80]}"
+                if jid in seen:
+                    continue
+
+                detail = requests.get(url, headers=HEADERS, timeout=20)
+                detail.raise_for_status()
+                page_html = detail.text
+
+                title_match = re.search(r'<h1[^>]*>.*?<span itemprop="title">\s*(.*?)\s*</span>', page_html, re.S)
+                company_match = re.search(r'<h1[^>]*>.*?<span class="fake-hidden[^"]*">\s*in\s*(.*?)\s*</span>', page_html, re.S)
+                location_match = re.search(r'<span class="location">\s*(.*?)\s*</span>', page_html, re.S)
+                desc_match = re.search(r'<meta content="([^"]+)" name="description"', page_html)
+                published_match = re.search(r'<meta content="([^"]+)" property="og:updated_time"', page_html)
+
+                title = _strip_html(title_match.group(1)) if title_match else ""
+                company = _strip_html(company_match.group(1)) if company_match else ""
+                location = _strip_html(location_match.group(1)) if location_match else "Not specified"
+                description = html.unescape(desc_match.group(1)) if desc_match else ""
+
+                if not _matches_keywords(keywords, title, company, location, description, category):
+                    continue
+
+                remote = "remote" in location.lower() or "work from home" in page_html.lower()
+                if ONLY_REMOTE and not remote:
+                    continue
+
+                seen.add(jid)
+                jobs.append(JobPosting(
+                    id=jid,
+                    title=title,
+                    company=company,
+                    description=description[:3000],
+                    location=location,
+                    remote=remote,
+                    url=url,
+                    source="GetOnBoard",
+                    published_at=published_match.group(1) if published_match else None,
+                    tags=[category.replace("-", " ")],
+                ))
+                time.sleep(0.35)
+            time.sleep(0.7)
+        except Exception as e:
+            log.error(f"[GetOnBoard] Error categoría '{category}': {e}")
+
+    return jobs
+
+
+# =============================================================================
+# Puente Talent — JSON-LD estructurado, foco LATAM remoto
+# =============================================================================
+def scrape_puente(keywords: list[str], max_results: int = 0) -> list[JobPosting]:
+    jobs = []
+    seen = set()
+
+    try:
+        resp = requests.get("https://puentetalent.com/jobs", headers=HEADERS, timeout=20)
+        resp.raise_for_status()
+        objects = _extract_json_ld_objects(resp.text)
+        item_lists = [
+            obj for obj in objects
+            if obj.get("@type") == "CollectionPage" and isinstance(obj.get("mainEntity"), dict)
+        ]
+        if not item_lists:
+            return jobs
+
+        items = item_lists[0]["mainEntity"].get("itemListElement", [])
+        log.info(f"[PuenteTalent] {len(items)} vacantes estructuradas")
+
+        for entry in items:
+            if max_results > 0 and len(jobs) >= max_results:
+                break
+            job = entry.get("item", {}) if isinstance(entry, dict) else {}
+            if not isinstance(job, dict):
+                continue
+
+            title = job.get("title", "")
+            description = _strip_html(job.get("description", ""))
+            company = job.get("hiringOrganization", {}).get("name", "Puente Talent Partners")
+            location = job.get("applicantLocationRequirements", {}).get("name", "LATAM")
+            salary = _salary_from_json_ld(job)
+            url = job.get("url", entry.get("url", ""))
+            jid = f"pnt-{job.get('identifier', {}).get('value', title)[:40]}"
+
+            if jid in seen or not _matches_keywords(keywords, title, description, location):
+                continue
+
+            remote = job.get("jobLocationType") == "TELECOMMUTE" or "remote" in description.lower()
+            if ONLY_REMOTE and not remote:
+                continue
+
+            seen.add(jid)
+            jobs.append(JobPosting(
+                id=jid,
+                title=title,
+                company=company,
+                description=description[:3000],
+                location=location,
+                remote=remote,
+                url=url,
+                source="PuenteTalent",
+                published_at=job.get("datePosted"),
+                salary=salary,
+                tags=["latam", "remote-us"],
+            ))
+    except Exception as e:
+        log.error(f"[PuenteTalent] Error: {e}")
+
+    return jobs
+
+
+# =============================================================================
+# LatoJobs — SSR + detalle JSON-LD
+# =============================================================================
+def scrape_latojobs(keywords: list[str], max_results: int = 0) -> list[JobPosting]:
+    jobs = []
+    seen = set()
+    pages_to_fetch = 3
+
+    for page in range(1, pages_to_fetch + 1):
+        if max_results > 0 and len(jobs) >= max_results:
+            break
+        try:
+            resp = requests.get(
+                "https://www.latojobs.com/jobs",
+                params={"page": page},
+                headers=HEADERS,
+                timeout=20,
+            )
+            resp.raise_for_status()
+            detail_urls = []
+            for path in re.findall(r'href="(/jobs/[0-9a-f\-]{36})"', resp.text):
+                url = f"https://www.latojobs.com{path}"
+                if url not in detail_urls:
+                    detail_urls.append(url)
+            log.info(f"[LatoJobs] página {page} → {len(detail_urls)} links")
+
+            for url in detail_urls:
+                if max_results > 0 and len(jobs) >= max_results:
+                    break
+                jid = f"lat-{url.rsplit('/', 1)[-1]}"
+                if jid in seen:
+                    continue
+
+                detail = requests.get(url, headers=HEADERS, timeout=20)
+                detail.raise_for_status()
+                objects = _extract_json_ld_objects(detail.text)
+                job = next((obj for obj in objects if obj.get("@type") == "JobPosting"), None)
+                if not job:
+                    continue
+
+                title = job.get("title", "")
+                company = job.get("hiringOrganization", {}).get("name", "")
+                description = _strip_html(job.get("description", ""))
+                location = ""
+                job_location = job.get("jobLocation")
+                if isinstance(job_location, dict):
+                    address = job_location.get("address", {})
+                    if isinstance(address, dict):
+                        location = ", ".join(
+                            part for part in [
+                                address.get("addressLocality", ""),
+                                address.get("addressCountry", ""),
+                            ] if part
+                        )
+                if not location:
+                    location = "Remote" if job.get("jobLocationType") == "TELECOMMUTE" else "Not specified"
+
+                if not _matches_keywords(keywords, title, company, description, location):
+                    continue
+
+                remote = (
+                    job.get("jobLocationType") == "TELECOMMUTE"
+                    or "remote" in location.lower()
+                    or "remote" in description.lower()
+                )
+                if ONLY_REMOTE and not remote:
+                    continue
+
+                seen.add(jid)
+                jobs.append(JobPosting(
+                    id=jid,
+                    title=title,
+                    company=company,
+                    description=description[:3000],
+                    location=location,
+                    remote=remote,
+                    url=url,
+                    source="LatoJobs",
+                    published_at=job.get("datePosted"),
+                    salary=_salary_from_json_ld(job),
+                    tags=[],
+                ))
+                time.sleep(0.3)
+            time.sleep(0.6)
+        except Exception as e:
+            log.error(f"[LatoJobs] Error página {page}: {e}")
+            break
+
+    return jobs
+
+
+# =============================================================================
 # Working Nomads — https://www.workingnomads.com/api/exposed_jobs/
 # Fetches todos los empleos sin categoría; filtra client-side por keywords.
 # =============================================================================
@@ -677,6 +967,10 @@ def get_all_jobs() -> list[JobPosting]:
         ("Remotive",   scrape_remotive),
         ("Arbeitnow",  scrape_arbeitnow),
         ("Himalayas",  scrape_himalayas),
+        ("Jobicy",     scrape_jobicy),
+        ("GetOnBoard", scrape_getonboard),
+        ("PuenteTalent", scrape_puente),
+        ("LatoJobs",   scrape_latojobs),
     ]
     for name, fn in keyword_sources:
         log.info(f"--- {name} ---")
@@ -693,7 +987,7 @@ def get_all_jobs() -> list[JobPosting]:
     # WeWorkRemotely (sin keywords, categorías fijas)
     log.info("--- WeWorkRemotely ---")
     try:
-        jobs = scrape_weworkremotely()
+        jobs = scrape_weworkremotely(SEARCH_KEYWORDS)
         for job in jobs:
             key = f"{job.title.lower()[:40]}|{job.company.lower()[:30]}"
             if key not in seen_global:
