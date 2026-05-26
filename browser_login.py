@@ -37,13 +37,28 @@ def main() -> int:
         context = pw.chromium.launch_persistent_context(
             user_data_dir=args.profile_dir,
             headless=False,
+            # User-agent realista para evitar bloqueos de Cloudflare
+            user_agent=(
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/124.0.0.0 Safari/537.36"
+            ),
         )
         page = context.new_page()
-        page.goto(portal.home_url, wait_until="domcontentloaded", timeout=60000)
+        try:
+            page.goto(portal.home_url, wait_until="domcontentloaded", timeout=90000)
+        except Exception as e:
+            print(f"Advertencia al navegar: {e}")
+            print("La ventana puede haberse abierto igual. Iniciá sesión y presioná Enter.")
         try:
             input()
+        except Exception:
+            pass
         finally:
-            context.close()
+            try:
+                context.close()
+            except Exception:
+                pass  # Contexto ya cerrado (ej: usuario cerró la ventana)
 
     print("Sesión guardada.")
     return 0

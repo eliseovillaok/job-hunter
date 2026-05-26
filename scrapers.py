@@ -376,6 +376,9 @@ def scrape_remoteok(keywords: list[str], max_results: int = 0) -> list[JobPostin
 
 # =============================================================================
 # Jobicy — https://jobicy.com/api/v0/remote-jobs
+# NOTA: A partir de 2026 requiere autenticación (401). La API pública fue
+# discontinuada. La función se mantiene por si el endpoint vuelve a ser libre,
+# pero devuelve [] y loguea un warning en lugar de reintentar 12 veces.
 # =============================================================================
 def scrape_jobicy(keywords: list[str], max_results: int = 0) -> list[JobPosting]:
     jobs = []
@@ -390,6 +393,9 @@ def scrape_jobicy(keywords: list[str], max_results: int = 0) -> list[JobPosting]
                 params={"count": 50, "tag": keyword},
                 headers=HEADERS, timeout=15,
             )
+            if resp.status_code == 401:
+                log.warning("[Jobicy] API requiere autenticación (401) — fuente deshabilitada.")
+                return []
             resp.raise_for_status()
             data = resp.json().get("jobs", [])
             log.info(f"[Jobicy] '{keyword}' → {len(data)} ofertas")
@@ -433,7 +439,7 @@ def scrape_getonboard(keywords: list[str], max_results: int = 0) -> list[JobPost
         "data-science-analytics",
         "sysadmin-devops-qa",
         "machine-learning-ai",
-        "product-innovation-agile",
+        # "product-innovation-agile",  # 404 desde 2026, categoría eliminada
         "design-ux",
         "customer-support",
         "digital-marketing",
@@ -518,14 +524,26 @@ def scrape_puente(keywords: list[str], max_results: int = 0) -> list[JobPosting]
         resp = requests.get("https://puentetalent.com/jobs", headers=HEADERS, timeout=20)
         resp.raise_for_status()
         objects = _extract_json_ld_objects(resp.text)
-        item_lists = [
-            obj for obj in objects
-            if obj.get("@type") == "CollectionPage" and isinstance(obj.get("mainEntity"), dict)
-        ]
-        if not item_lists:
+        # mainEntity puede ser un dict con itemListElement, o directamente una lista
+        items = []
+        for obj in objects:
+            if obj.get("@type") != "CollectionPage":
+                continue
+            main = obj.get("mainEntity", {})
+            if isinstance(main, list):
+                items = main
+            elif isinstance(main, dict):
+                items = main.get("itemListElement", [])
+            if items:
+                break
+        if not items:
+            # Fallback: buscar ItemList directamente
+            for obj in objects:
+                if obj.get("@type") in ("ItemList", "JobPosting"):
+                    items = obj.get("itemListElement", [obj])
+                    break
+        if not items:
             return jobs
-
-        items = item_lists[0]["mainEntity"].get("itemListElement", [])
         log.info(f"[PuenteTalent] {len(items)} vacantes estructuradas")
 
         for entry in items:
