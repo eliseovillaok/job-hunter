@@ -205,6 +205,12 @@ def _run_computrabajo_search(page, keyword: str):
     page.wait_for_timeout(3500)
 
 
+def _run_indeed_search(page, keyword: str):
+    url = f"https://www.indeed.com/jobs?q={quote_plus(keyword)}&remotejob=032b3046-06a3-4876-8dfd-474eb5e7ed11"
+    page.goto(url, wait_until="domcontentloaded", timeout=60000)
+    page.wait_for_timeout(3500)
+
+
 PORTALS: dict[str, BrowserPortal] = {
     "LinkedInBrowser": BrowserPortal(
         key="linkedin",
@@ -226,6 +232,13 @@ PORTALS: dict[str, BrowserPortal] = {
         home_url="https://www.computrabajo.com/",
         href_patterns=("/ofertas-de-trabajo/", "/trabajo-de-"),
         search_runner=_run_computrabajo_search,
+    ),
+    "IndeedBrowser": BrowserPortal(
+        key="indeed",
+        label="Indeed",
+        home_url="https://www.indeed.com/jobs",
+        href_patterns=("/viewjob?", "/rc/clk?"),
+        search_runner=_run_indeed_search,
     ),
 }
 

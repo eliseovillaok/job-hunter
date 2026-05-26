@@ -31,7 +31,7 @@ Buscar trabajo es tedioso:
 - **We Work Remotely** — comunidad de 100K+ ofertas remotas
 - **Himalayas** — plataforma especializada en talento remoto
 - **Get on Board / LatoJobs / Puente / Jobicy** — foco LatAm
-- **LinkedIn / Bumeran / Computrabajo** — soporte beta con sesión persistente de navegador
+- **LinkedIn / Bumeran / Computrabajo / Indeed** — soporte beta con sesión persistente de navegador (solo disponible corriendo la app localmente)
 
 ### 🤖 Evaluación inteligente con IA
 - Cada oferta recibe un **score 0-100** basado en tu perfil
@@ -228,24 +228,37 @@ Si no se abre automáticamente, entra a `http://localhost:8501`
 
 ### Portales con login (beta)
 
-Para activar `LinkedIn`, `Bumeran` o `Computrabajo` desde la app:
+Para activar `LinkedIn`, `Bumeran`, `Computrabajo` o `Indeed` desde la app, necesitás guardar una sesión de navegador una sola vez:
 
-1. Guardá una sesión persistente:
+#### Paso 1 — Instalar Playwright (si no lo hiciste)
+
+```bash
+pip install playwright --break-system-packages
+python -m playwright install chromium
+```
+
+#### Paso 2 — Guardar sesión por portal
+
+Ejecutá el comando correspondiente al portal que querés activar:
 
 ```bash
 python browser_login.py linkedin
 python browser_login.py bumeran
 python browser_login.py computrabajo
+python browser_login.py indeed
 ```
 
-2. Iniciá sesión manualmente en la ventana que se abre.
-3. Volvé a la terminal y presioná `Enter`.
-4. En la app, activá esas fuentes y apuntá al mismo directorio de sesión si querés usar otro distinto de `.browser_profiles`.
+Esto abre una ventana real de Chromium. Iniciá sesión manualmente en esa ventana (usuario + contraseña, verificación de dos pasos si aplica). Cuando termines, volvé a la terminal y presioná `Enter`. La sesión queda guardada en `.browser_profiles/`.
 
-Notas:
-- Este flujo es `beta`.
-- Solo lee listados y links a vacantes.
-- No automatiza postulaciones ni acciones de cuenta.
+#### Paso 3 — Activar en la app
+
+En el paso de configuración "Fuentes de búsqueda", activá el checkbox del portal deseado. La app usa la sesión guardada automáticamente.
+
+> **Notas importantes:**
+> - Este flujo es `beta` — la extracción es best-effort y puede variar según cambios en el HTML de cada sitio.
+> - Solo lee listados públicos de vacantes. No automatiza postulaciones, clics ni acciones de cuenta.
+> - Si la sesión expira, repetí el `browser_login.py` para renovarla.
+> - Indeed bloquea activamente el scraping automatizado. La extracción puede ser parcial o fallar si detecta el bot. Se recomienda usar primero las fuentes sin login.
 
 #### 🔍 Búsqueda
 - **Keywords:** palabras clave para buscar (ej: "backend developer", "java spring boot")
@@ -440,7 +453,6 @@ MIT — libre para usar, modificar y distribuir.
 - O contactá directamente al desarrollador
 
 **Ideas de mejoras pendientes:**
-- Soporte para LinkedIn e Indeed
 - Dashboard web con historial de aplicaciones
 - Integración con Google Sheets
 - Filtros por salario y seniority

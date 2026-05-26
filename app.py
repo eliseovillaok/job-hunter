@@ -254,10 +254,12 @@ _defaults = {
     "use_getonboard":     True,
     "use_puentetalent":   True,
     "use_latojobs":       True,
-    "use_linkedin_browser": False,
-    "use_bumeran_browser": False,
-    "use_computrabajo_browser": False,
-    "browser_profile_dir": str(Path(".browser_profiles").resolve()),
+    # Portales con login (solo disponibles corriendo la app localmente)
+    # "use_linkedin_browser": False,
+    # "use_bumeran_browser": False,
+    # "use_computrabajo_browser": False,
+    # "use_indeed_browser": False,
+    # "browser_profile_dir": str(Path(".browser_profiles").resolve()),
     "use_workingnomads":  True,
     "use_themuse":        True,
     "use_remoteco":       True,
@@ -293,8 +295,7 @@ def validate_config():
                 st.session_state.use_latojobs, st.session_state.use_workingnomads,
                 st.session_state.use_themuse, st.session_state.use_remoteco,
                 st.session_state.use_jobspresso, st.session_state.use_justjoinit,
-                st.session_state.use_authenticjobs, st.session_state.use_linkedin_browser,
-                st.session_state.use_bumeran_browser, st.session_state.use_computrabajo_browser]):
+                st.session_state.use_authenticjobs]):
         errors.append("Seleccioná al menos una fuente.")
     return errors
 
@@ -348,7 +349,8 @@ def _analyze_cv(uploaded_file, api_key: str, model: str) -> dict | None:
     from google.genai import types
 
     _PROMPT = (
-        "Analyze this CV/resume carefully and extract information as faithfully as possible. "
+        "Analyze this CV/resume carefully and extract ALL information as faithfully and completely as possible. "
+        "Your goal is maximum detail — do not summarize, abbreviate, or omit any section. "
         "Return ONLY a raw JSON object — no markdown, no explanation.\n\n"
         "Strict rules:\n"
         "- Use only information explicitly present in the CV.\n"
@@ -357,11 +359,17 @@ def _analyze_cv(uploaded_file, api_key: str, model: str) -> dict | None:
         "- If the CV says the person analyzed, supported, collaborated, documented, tested, or learned something, describe it exactly that way. Do not rewrite it as implemented, built, led, owned, or delivered.\n"
         "- If years of experience are not explicit or cannot be calculated reliably from dates in the CV, do not invent them.\n"
         "- If remote preference, location, languages, or target role are not explicit, say that they are not specified in the CV.\n"
-        "- Prefer detailed factual extraction over polished marketing language.\n\n"
+        "- CRITICAL: Extract EVERY job position, project, technology, tool, certification, education entry, and skill explicitly listed. Do NOT skip items due to length.\n"
+        "- List ALL technologies/tools mentioned anywhere in the CV (in skills sections, job descriptions, projects, certifications, etc.).\n"
+        "- For each work experience, include: company name, role/title, dates (start–end or duration if stated), and ALL responsibilities/tasks described for that role.\n"
+        "- For each project, include: project name, technologies used, and what the candidate did (using the CV's exact verbs).\n"
+        "- For education: include institution, degree, field, and dates if present.\n"
+        "- For certifications/courses: list each one with provider and year if stated.\n"
+        "- Do NOT truncate lists of technologies, responsibilities, or projects — include everything.\n\n"
         "Output schema:\n"
         '{'
-        '"keywords": ["6 to 12 job-board search terms derived directly from explicit roles, technologies, and domains in the CV. Do not add seniority or stack items that are not clearly mentioned."], '
-        '"profile": "Write in the same language as the CV. 3 to 4 concise paragraphs or compact sections. Include only verifiable details from the CV about: roles/titles mentioned, companies or project types if present, technologies/tools explicitly listed, responsibilities/tasks explicitly described, dates or duration only when stated or directly calculable from CV dates, languages, and location/remote preference. When something is missing, say it is not specified in the CV."'
+        '"keywords": ["8 to 15 job-board search terms derived directly from explicit roles, technologies, and domains in the CV. Include ALL main technologies, frameworks, and roles found."], '
+        '"profile": "Write in the same language as the CV. Write as many paragraphs or sections as needed to cover ALL the following — do NOT limit length: (1) Personal info: name, location, contact if present. (2) Professional summary if the CV has one. (3) ALL work experiences in chronological order: company, role, dates, and every responsibility/task listed. (4) ALL projects with technologies and contributions. (5) Education: all entries with institution, degree, field, dates. (6) ALL technical skills and tools explicitly listed. (7) ALL certifications and courses with provider and year. (8) Languages. (9) Any other section present in the CV (e.g. awards, publications, volunteering). When something is not specified in the CV, say so explicitly."'
         '}'
     )
 
@@ -371,13 +379,13 @@ def _analyze_cv(uploaded_file, api_key: str, model: str) -> dict | None:
         mime = uploaded_file.type  # "application/pdf" or "text/plain"
 
         if mime == "text/plain":
-            cv_text = file_bytes.decode("utf-8", errors="replace")[:10000]
+            cv_text = file_bytes.decode("utf-8", errors="replace")[:30000]
             contents = f"{_PROMPT}\n\nCV:\n{cv_text}"
         elif mime == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
             import io
             from docx import Document as DocxDocument
             doc = DocxDocument(io.BytesIO(file_bytes))
-            cv_text = "\n".join(p.text for p in doc.paragraphs if p.text.strip())[:10000]
+            cv_text = "\n".join(p.text for p in doc.paragraphs if p.text.strip())[:30000]
             contents = f"{_PROMPT}\n\nCV:\n{cv_text}"
         else:
             contents = [
@@ -646,26 +654,9 @@ def show_config_wizard():
             with l5:
                 st.empty()
 
-            st.caption("🔐 Login requerido (beta)")
-            b1, b2, b3 = st.columns(3)
-            with b1:
-                st.session_state.use_linkedin_browser = st.checkbox("LinkedIn", value=st.session_state.use_linkedin_browser)
-            with b2:
-                st.session_state.use_bumeran_browser = st.checkbox("Bumeran", value=st.session_state.use_bumeran_browser)
-            with b3:
-                st.session_state.use_computrabajo_browser = st.checkbox("Computrabajo", value=st.session_state.use_computrabajo_browser)
-
-            if any([
-                st.session_state.use_linkedin_browser,
-                st.session_state.use_bumeran_browser,
-                st.session_state.use_computrabajo_browser,
-            ]):
-                st.session_state.browser_profile_dir = st.text_input(
-                    "Directorio de sesión del navegador",
-                    value=st.session_state.browser_profile_dir,
-                    help="Usá un perfil persistente creado con `python browser_login.py <portal>`.",
-                )
-                st.caption("Beta: estas fuentes leen vacantes desde una sesión real guardada en Chromium. No automatizan postulaciones.")
+            # LinkedIn, Bumeran, Computrabajo e Indeed requieren Playwright y sesión
+            # persistente de Chromium — solo funcionan corriendo la app localmente.
+            # Se ocultan en Streamlit Cloud para evitar opciones que siempre fallan.
 
             st.caption("🇺🇸 EEUU / Anglófono")
             a1, a2, a3, a4, a5 = st.columns(5)
@@ -717,8 +708,7 @@ def show_config_wizard():
                               st.session_state.use_latojobs, st.session_state.use_workingnomads,
                               st.session_state.use_themuse, st.session_state.use_remoteco,
                               st.session_state.use_jobspresso, st.session_state.use_justjoinit,
-                              st.session_state.use_authenticjobs, st.session_state.use_linkedin_browser,
-                              st.session_state.use_bumeran_browser, st.session_state.use_computrabajo_browser]):
+                              st.session_state.use_authenticjobs]):
                     st.toast("Seleccioná al menos una fuente.", icon="⚠️")
                 else:
                     st.session_state.config_step = 4
@@ -850,7 +840,7 @@ if st.session_state.run_search:
     min_score         = st.session_state.min_score
     max_results_limit = st.session_state.max_results_limit if st.session_state.use_max_results else 0
     candidate_profile = st.session_state.candidate_profile
-    browser_profile_dir = st.session_state.browser_profile_dir
+    # browser_profile_dir = st.session_state.get("browser_profile_dir", ".browser_profiles")
 
     os.environ["GEMINI_API_KEY"]  = gemini_key
     os.environ["EMAIL_SENDER"]    = email_sender
@@ -902,15 +892,17 @@ if st.session_state.run_search:
         "GetOnBoard":     st.session_state.use_getonboard,
         "PuenteTalent":   st.session_state.use_puentetalent,
         "LatoJobs":       st.session_state.use_latojobs,
-        "LinkedInBrowser": st.session_state.use_linkedin_browser,
-        "BumeranBrowser":  st.session_state.use_bumeran_browser,
-        "ComputrabajoBrowser": st.session_state.use_computrabajo_browser,
         "WorkingNomads":  st.session_state.use_workingnomads,
         "TheMuse":        st.session_state.use_themuse,
         "Remote.co":      st.session_state.use_remoteco,
         "Jobspresso":     st.session_state.use_jobspresso,
         "JustJoin.it":    st.session_state.use_justjoinit,
         "AuthenticJobs":  st.session_state.use_authenticjobs,
+        # Portales con login (solo disponibles localmente, deshabilitados en Streamlit Cloud):
+        # "LinkedInBrowser": False,
+        # "BumeranBrowser":  False,
+        # "ComputrabajoBrowser": False,
+        # "IndeedBrowser":   False,
     }
     enabled_list    = [p for p, v in platforms_enabled.items() if v]
     total_platforms = len(enabled_list)
@@ -940,14 +932,10 @@ if st.session_state.run_search:
                 jobs = sc.scrape_puente(keywords, max_results=remaining)
             elif platform_name == "LatoJobs":
                 jobs = sc.scrape_latojobs(keywords, max_results=remaining)
-            elif platform_name in ("LinkedInBrowser", "BumeranBrowser", "ComputrabajoBrowser"):
-                import browser_scrapers as bsc
-                jobs = bsc.scrape_browser_portal(
-                    platform_name,
-                    keywords,
-                    profile_dir=browser_profile_dir,
-                    max_results=remaining,
-                )
+            # elif platform_name in ("LinkedInBrowser", "BumeranBrowser", "ComputrabajoBrowser", "IndeedBrowser"):
+            #     import browser_scrapers as bsc
+            #     jobs = bsc.scrape_browser_portal(platform_name, keywords,
+            #         profile_dir=".browser_profiles", max_results=remaining)
             elif platform_name == "WorkingNomads":
                 jobs = sc.scrape_workingnomads(keywords, max_results=remaining)
             elif platform_name == "TheMuse":
@@ -1130,6 +1118,7 @@ if st.session_state.run_search:
                 "LinkedInBrowser": "src-himalayas",
                 "BumeranBrowser":  "src-arbeitnow",
                 "ComputrabajoBrowser": "src-remotive",
+                "IndeedBrowser":   "src-wwr",
             }.get(sj.job.source, "src-remotive")
 
             with st.expander(f"{score}/100 — {sj.job.title}  @  {sj.job.company}", expanded=(idx == 0)):
