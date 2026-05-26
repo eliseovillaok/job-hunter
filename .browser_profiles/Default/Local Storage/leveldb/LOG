@@ -1,0 +1,8 @@
+2026/05/26-09:44:33.287 239f Reusing MANIFEST /home/user/proyectos/job_hunter/.browser_profiles/Default/Local Storage/leveldb/MANIFEST-000001
+2026/05/26-09:44:33.296 239f Recovering log #3
+2026/05/26-09:44:33.296 239f Level-0 table #3: started
+2026/05/26-09:44:33.400 239f Level-0 table #3: 54195 bytes OK
+2026/05/26-09:44:33.400 239f Recovering log #4
+2026/05/26-09:44:33.400 239f Reusing old log /home/user/proyectos/job_hunter/.browser_profiles/Default/Local Storage/leveldb/000004.log 
+2026/05/26-09:44:33.436 239f Delete type=0 #3
+2026/05/26-09:44:33.436 239f Delete type=2 #5

@@ -9,6 +9,21 @@ import os
 from datetime import datetime
 from pathlib import Path
 
+# ─── Detección de entorno ─────────────────────────────────────────────────────
+# Streamlit Cloud setea la variable STREAMLIT_SHARING_MODE o bien corre dentro
+# de un contenedor sin Playwright instalado. Detectamos ambas condiciones.
+def _is_cloud() -> bool:
+    """True cuando corre en Streamlit Cloud (o cualquier entorno sin Playwright)."""
+    if os.environ.get("STREAMLIT_SHARING_MODE") or os.environ.get("IS_STREAMLIT_CLOUD"):
+        return True
+    try:
+        from playwright.sync_api import sync_playwright  # noqa: F401
+        return False  # Playwright disponible → entorno local
+    except ImportError:
+        return True
+
+IS_CLOUD = _is_cloud()
+
 # ─── Página ───────────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="Job Hunter AI",
@@ -254,12 +269,12 @@ _defaults = {
     "use_getonboard":     True,
     "use_puentetalent":   True,
     "use_latojobs":       True,
-    # Portales con login (solo disponibles corriendo la app localmente)
-    # "use_linkedin_browser": False,
-    # "use_bumeran_browser": False,
-    # "use_computrabajo_browser": False,
-    # "use_indeed_browser": False,
-    # "browser_profile_dir": str(Path(".browser_profiles").resolve()),
+    # Portales con login — solo se usan cuando IS_CLOUD es False
+    "use_linkedin_browser":      False,
+    "use_bumeran_browser":       False,
+    "use_computrabajo_browser":  False,
+    "use_indeed_browser":        False,
+    "browser_profile_dir":       str(Path(".browser_profiles").resolve()),
     "use_workingnomads":  True,
     "use_themuse":        True,
     "use_remoteco":       True,
@@ -267,7 +282,11 @@ _defaults = {
     "use_justjoinit":     False,
     "use_authenticjobs":  True,
     "result_page":        0,
+    "result_page_all":    0,
     "candidate_profile":  "",
+    "scored_jobs":        [],   # persiste entre reruns de paginación
+    "top_matches":        [],   # idem
+    "min_score_last":     65,   # score usado en la última búsqueda (para métricas)
 }
 for _k, _v in _defaults.items():
     if _k not in st.session_state:
@@ -288,6 +307,12 @@ def validate_config():
             errors.append("Email destinatario inválido.")
     if not st.session_state.keywords_list:
         errors.append("Agregá al menos una keyword.")
+    browser_sources = [] if IS_CLOUD else [
+        st.session_state.use_linkedin_browser,
+        st.session_state.use_bumeran_browser,
+        st.session_state.use_computrabajo_browser,
+        st.session_state.use_indeed_browser,
+    ]
     if not any([st.session_state.use_remotive, st.session_state.use_arbeitnow,
                 st.session_state.use_wwr, st.session_state.use_himalayas,
                 st.session_state.use_remoteok, st.session_state.use_jobicy,
@@ -295,7 +320,7 @@ def validate_config():
                 st.session_state.use_latojobs, st.session_state.use_workingnomads,
                 st.session_state.use_themuse, st.session_state.use_remoteco,
                 st.session_state.use_jobspresso, st.session_state.use_justjoinit,
-                st.session_state.use_authenticjobs]):
+                st.session_state.use_authenticjobs, *browser_sources]):
         errors.append("Seleccioná al menos una fuente.")
     return errors
 
@@ -654,9 +679,30 @@ def show_config_wizard():
             with l5:
                 st.empty()
 
-            # LinkedIn, Bumeran, Computrabajo e Indeed requieren Playwright y sesión
-            # persistente de Chromium — solo funcionan corriendo la app localmente.
-            # Se ocultan en Streamlit Cloud para evitar opciones que siempre fallan.
+            if not IS_CLOUD:
+                st.caption("🔐 Login requerido (beta)")
+                b1, b2, b3, b4 = st.columns(4)
+                with b1:
+                    st.session_state.use_linkedin_browser = st.checkbox("LinkedIn", value=st.session_state.use_linkedin_browser)
+                with b2:
+                    st.session_state.use_bumeran_browser = st.checkbox("Bumeran", value=st.session_state.use_bumeran_browser)
+                with b3:
+                    st.session_state.use_computrabajo_browser = st.checkbox("Computrabajo", value=st.session_state.use_computrabajo_browser)
+                with b4:
+                    st.session_state.use_indeed_browser = st.checkbox("Indeed", value=st.session_state.use_indeed_browser)
+
+                if any([
+                    st.session_state.use_linkedin_browser,
+                    st.session_state.use_bumeran_browser,
+                    st.session_state.use_computrabajo_browser,
+                    st.session_state.use_indeed_browser,
+                ]):
+                    st.session_state.browser_profile_dir = st.text_input(
+                        "Directorio de sesión del navegador",
+                        value=st.session_state.browser_profile_dir,
+                        help="Usá un perfil persistente creado con `python browser_login.py <portal>`.",
+                    )
+                    st.caption("Beta: estas fuentes leen vacantes desde una sesión real guardada en Chromium. No automatizan postulaciones.")
 
             st.caption("🇺🇸 EEUU / Anglófono")
             a1, a2, a3, a4, a5 = st.columns(5)
@@ -699,6 +745,12 @@ def show_config_wizard():
                 st.rerun()
         with col_next:
             if st.button("Siguiente →", type="primary", use_container_width=True):
+                _browser = [] if IS_CLOUD else [
+                    st.session_state.use_linkedin_browser,
+                    st.session_state.use_bumeran_browser,
+                    st.session_state.use_computrabajo_browser,
+                    st.session_state.use_indeed_browser,
+                ]
                 if not st.session_state.keywords_list:
                     st.toast("Agregá al menos una keyword.", icon="⚠️")
                 elif not any([st.session_state.use_remotive, st.session_state.use_arbeitnow,
@@ -708,7 +760,7 @@ def show_config_wizard():
                               st.session_state.use_latojobs, st.session_state.use_workingnomads,
                               st.session_state.use_themuse, st.session_state.use_remoteco,
                               st.session_state.use_jobspresso, st.session_state.use_justjoinit,
-                              st.session_state.use_authenticjobs]):
+                              st.session_state.use_authenticjobs, *_browser]):
                     st.toast("Seleccioná al menos una fuente.", icon="⚠️")
                 else:
                     st.session_state.config_step = 4
@@ -840,14 +892,15 @@ if st.session_state.run_search:
     min_score         = st.session_state.min_score
     max_results_limit = st.session_state.max_results_limit if st.session_state.use_max_results else 0
     candidate_profile = st.session_state.candidate_profile
-    # browser_profile_dir = st.session_state.get("browser_profile_dir", ".browser_profiles")
+    browser_profile_dir = st.session_state.browser_profile_dir
 
     os.environ["GEMINI_API_KEY"]  = gemini_key
     os.environ["EMAIL_SENDER"]    = email_sender
     os.environ["EMAIL_PASSWORD"]  = email_password
     os.environ["EMAIL_RECIPIENT"] = email_recipient
 
-    st.session_state.result_page = 0
+    st.session_state.result_page     = 0
+    st.session_state.result_page_all = 0
 
     import config as cfg
     cfg.GEMINI_API_KEY    = gemini_key
@@ -898,11 +951,11 @@ if st.session_state.run_search:
         "Jobspresso":     st.session_state.use_jobspresso,
         "JustJoin.it":    st.session_state.use_justjoinit,
         "AuthenticJobs":  st.session_state.use_authenticjobs,
-        # Portales con login (solo disponibles localmente, deshabilitados en Streamlit Cloud):
-        # "LinkedInBrowser": False,
-        # "BumeranBrowser":  False,
-        # "ComputrabajoBrowser": False,
-        # "IndeedBrowser":   False,
+        # Portales con login — activos solo en entorno local
+        "LinkedInBrowser":     False if IS_CLOUD else st.session_state.use_linkedin_browser,
+        "BumeranBrowser":      False if IS_CLOUD else st.session_state.use_bumeran_browser,
+        "ComputrabajoBrowser": False if IS_CLOUD else st.session_state.use_computrabajo_browser,
+        "IndeedBrowser":       False if IS_CLOUD else st.session_state.use_indeed_browser,
     }
     enabled_list    = [p for p, v in platforms_enabled.items() if v]
     total_platforms = len(enabled_list)
@@ -932,10 +985,14 @@ if st.session_state.run_search:
                 jobs = sc.scrape_puente(keywords, max_results=remaining)
             elif platform_name == "LatoJobs":
                 jobs = sc.scrape_latojobs(keywords, max_results=remaining)
-            # elif platform_name in ("LinkedInBrowser", "BumeranBrowser", "ComputrabajoBrowser", "IndeedBrowser"):
-            #     import browser_scrapers as bsc
-            #     jobs = bsc.scrape_browser_portal(platform_name, keywords,
-            #         profile_dir=".browser_profiles", max_results=remaining)
+            elif platform_name in ("LinkedInBrowser", "BumeranBrowser", "ComputrabajoBrowser", "IndeedBrowser"):
+                import browser_scrapers as bsc
+                jobs = bsc.scrape_browser_portal(
+                    platform_name,
+                    keywords,
+                    profile_dir=browser_profile_dir,
+                    max_results=remaining,
+                )
             elif platform_name == "WorkingNomads":
                 jobs = sc.scrape_workingnomads(keywords, max_results=remaining)
             elif platform_name == "TheMuse":
@@ -977,6 +1034,8 @@ if st.session_state.run_search:
     scored_jobs    = []
     top_matches    = []
     quota_exceeded = False
+    st.session_state.scored_jobs = []
+    st.session_state.top_matches = []
     total_jobs     = len(all_jobs)
 
     if total_jobs == 0:
@@ -1025,6 +1084,9 @@ if st.session_state.run_search:
 
         scored_jobs.sort(key=lambda x: x.score, reverse=True)
         top_matches = [j for j in scored_jobs if j.score >= min_score]
+        st.session_state.scored_jobs = scored_jobs
+        st.session_state.top_matches = top_matches
+        st.session_state.min_score_last = min_score
         if not quota_exceeded:
             ai_status.success(
                 f"✅ **{len(top_matches)} recomendadas** de {len(scored_jobs)} analizadas"
@@ -1093,15 +1155,20 @@ if st.session_state.run_search:
 
     st.session_state.search_done = True
 
-    # ── Resultados ────────────────────────────────────────────────────────────
+# ── Renderizado de resultados (fuera del bloque run_search, lee de session_state) ──
+if st.session_state.search_done and st.session_state.scored_jobs:
+    _scored = st.session_state.scored_jobs
+    _top    = st.session_state.top_matches
+    _minscore = st.session_state.min_score_last
+
     with results_placeholder.container():
         st.header("📊 Resultados")
 
         c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Analizadas",       len(scored_jobs))
-        c2.metric("Recomendadas",     len(top_matches))
-        c3.metric("Mejor puntaje",    f"{scored_jobs[0].score}/100" if scored_jobs else "—")
-        c4.metric("Excelentes (80+)", sum(1 for j in scored_jobs if j.score >= 80))
+        c1.metric("Analizadas",       len(_scored))
+        c2.metric("Recomendadas",     len(_top))
+        c3.metric("Mejor puntaje",    f"{_scored[0].score}/100" if _scored else "—")
+        c4.metric("Excelentes (80+)", sum(1 for j in _scored if j.score >= 80))
 
         def render_job_card(sj, idx, section):
             score     = sj.score
@@ -1161,14 +1228,18 @@ if st.session_state.run_search:
 
         PAGE_SIZE = 15
 
+        # Cada tab tiene su propio contador de página en session_state
+        _PAGE_KEYS = {"top": "result_page", "all": "result_page_all"}
+
         def render_paginated(job_list: list, section: str):
             if not job_list:
                 return
-            total   = len(job_list)
-            pages   = max(1, -(-total // PAGE_SIZE))  # ceil division
-            page    = min(st.session_state.result_page, pages - 1)
-            start   = page * PAGE_SIZE
-            end     = min(start + PAGE_SIZE, total)
+            page_key = _PAGE_KEYS[section]
+            total    = len(job_list)
+            pages    = max(1, -(-total // PAGE_SIZE))
+            page     = min(st.session_state[page_key], pages - 1)
+            start    = page * PAGE_SIZE
+            end      = min(start + PAGE_SIZE, total)
 
             st.caption(f"Mostrando {start + 1}–{end} de {total} ofertas")
             for i, sj in enumerate(job_list[start:end]):
@@ -1178,7 +1249,7 @@ if st.session_state.run_search:
                 p_left, p_info, p_right = st.columns([1, 2, 1])
                 with p_left:
                     if st.button("← Anterior", disabled=(page == 0), key=f"prev_{section}", use_container_width=True):
-                        st.session_state.result_page = page - 1
+                        st.session_state[page_key] = page - 1
                         st.rerun()
                 with p_info:
                     st.markdown(
@@ -1188,28 +1259,32 @@ if st.session_state.run_search:
                     )
                 with p_right:
                     if st.button("Siguiente →", disabled=(page >= pages - 1), key=f"next_{section}", use_container_width=True):
-                        st.session_state.result_page = page + 1
+                        st.session_state[page_key] = page + 1
                         st.rerun()
 
         top_tab, all_tab = st.tabs([
-            f"🔥 Recomendadas ({len(top_matches)})",
-            f"📋 Todas ({len(scored_jobs)})",
+            f"🔥 Recomendadas ({len(_top)})",
+            f"📋 Todas ({len(_scored)})",
         ])
         with top_tab:
-            if top_matches:
-                render_paginated(top_matches, "top")
+            if _top:
+                render_paginated(_top, "top")
             else:
                 st.info(
-                    f"Ninguna oferta superó el puntaje mínimo de {min_score}. "
+                    f"Ninguna oferta superó el puntaje mínimo de {_minscore}. "
                     f"Probá bajar el valor en la configuración."
                 )
         with all_tab:
             st.caption("Ordenadas de mayor a menor puntaje.")
-            render_paginated(scored_jobs, "all")
+            render_paginated(_scored, "all")
 
-        st.download_button(
-            "⬇ Descargar resultados completos (JSON)",
-            data=json.dumps(data_out, ensure_ascii=False, indent=2),
-            file_name=f"job_hunt_{ts}.json",
-            mime="application/json",
-        )
+        # Descargar JSON (usa el último guardado en disco)
+        _results_files = sorted(Path("results").glob("results_*.json"), reverse=True)
+        if _results_files:
+            _data_raw = _results_files[0].read_text(encoding="utf-8")
+            st.download_button(
+                "⬇ Descargar resultados completos (JSON)",
+                data=_data_raw,
+                file_name=_results_files[0].name,
+                mime="application/json",
+            )

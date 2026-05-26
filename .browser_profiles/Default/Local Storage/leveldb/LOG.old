@@ -1,0 +1,5 @@
+2026/05/26-09:43:22.001 22dd Reusing MANIFEST /home/user/proyectos/job_hunter/.browser_profiles/Default/Local Storage/leveldb/MANIFEST-000001
+2026/05/26-09:43:22.044 22dd Recovering log #3
+2026/05/26-09:43:22.047 22dd Reusing old log /home/user/proyectos/job_hunter/.browser_profiles/Default/Local Storage/leveldb/000003.log 
+2026/05/26-09:44:32.595 22e1 Level-0 table #5: started
+2026/05/26-09:44:32.667 22e1 Level-0 table #5: 54195 bytes OK

@@ -31,7 +31,7 @@ Buscar trabajo es tedioso:
 - **We Work Remotely** — comunidad de 100K+ ofertas remotas
 - **Himalayas** — plataforma especializada en talento remoto
 - **Get on Board / LatoJobs / Puente / Jobicy** — foco LatAm
-- **LinkedIn / Bumeran / Computrabajo / Indeed** — soporte beta con sesión persistente de navegador (solo disponible corriendo la app localmente)
+- **LinkedIn / Bumeran / Computrabajo / Indeed** — soporte beta con sesión persistente de navegador (aparecen automáticamente al correr la app localmente con Playwright instalado)
 
 ### 🤖 Evaluación inteligente con IA
 - Cada oferta recibe un **score 0-100** basado en tu perfil

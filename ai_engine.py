@@ -83,7 +83,14 @@ def _parse_json(raw: str) -> dict:
 # STEP 1 — Scoring
 # =============================================================================
 def score_job(job: JobPosting) -> dict:
-    prompt = f"""Score how well this job offer matches the candidate profile below. Base the evaluation exclusively on the information provided — do not add assumptions, infer seniority, or apply external criteria.
+    prompt = f"""Score how well this job offer matches the candidate profile below.
+
+STRICT RULES — read before scoring:
+- Use ONLY information explicitly stated in the candidate profile. Do not infer, upgrade, or assume anything.
+- SENIORITY IS CRITICAL: if the job requires Senior / Lead / Staff / Principal and the profile does NOT explicitly state that level, that is a major mismatch — penalize heavily (≥20 points off). Knowing a technology does NOT imply senior expertise.
+- If the profile says the candidate "collaborated on", "supported", "learned", or "assisted with" something, that is junior/mid-level involvement — do not treat it as ownership or deep expertise.
+- Score the ACTUAL candidate described, not an idealized version of someone with those technologies.
+- A high score (80+) means the job's requirements closely match what the profile explicitly describes — including seniority level, years of experience, and responsibilities.
 
 CANDIDATE PROFILE:
 {config.CANDIDATE_PROFILE}
@@ -94,9 +101,9 @@ Company: {job.company} | Remote: {"Yes" if job.remote else "No"}
 Description: {job.description[:1500]}
 
 Return ONLY a raw JSON object, no markdown, no explanation:
-{{"score": <integer 0-100>, "match_reasons": ["reason1", "reason2"], "missing_skills": ["skill"], "summary": "one line summary", "apply_recommended": <true or false>}}
+{{"score": <integer 0-100>, "match_reasons": ["reason1", "reason2"], "missing_skills": ["skill1"], "summary": "one line summary", "apply_recommended": <true or false>}}
 
-Scoring bands (for calibration): 80-100 strong overlap | 60-79 solid match | 40-59 partial match | 0-39 weak match"""
+Scoring bands: 80-100 strong match (seniority + skills align) | 60-79 solid match (minor gaps) | 40-59 partial match (seniority mismatch or missing key skills) | 0-39 weak match"""
 
     try:
         raw, quota_exceeded = _generate(prompt)
