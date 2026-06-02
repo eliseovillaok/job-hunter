@@ -27,214 +27,757 @@ IS_CLOUD = _is_cloud()
 # ─── Página ───────────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="Job Hunter AI",
-    page_icon="🎯",
+    page_icon="💼",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
 
 st.markdown("""
 <style>
-/* ═══════════════════════════════════════════════════════════════════
-   JOB HUNTER AI — Design System
-   ═══════════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════════════════
+   JOB HUNTER AI — Design System v3.0
+   Premium SaaS Interface · Inter + Plus Jakarta Sans · Light Mode
+   ═══════════════════════════════════════════════════════════════════════════ */
 
-/* ── Layout ──────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@700;800&display=swap');
+
+/* ── 1. TOKENS ─────────────────────────────────────────────────────────── */
+:root {
+  color-scheme: light only;
+  forced-color-adjust: none;
+
+  /* Brand palette */
+  --blue-50:#eff6ff; --blue-100:#dbeafe; --blue-200:#bfdbfe;
+  --blue-500:#3b82f6; --blue-600:#2563eb; --blue-700:#1d4ed8; --blue-900:#1e3a8a;
+  --violet-50:#f5f3ff; --violet-100:#ede9fe;
+  --violet-500:#8b5cf6; --violet-600:#7c3aed;
+  --emerald-50:#ecfdf5; --emerald-100:#d1fae5;
+  --emerald-600:#059669; --emerald-700:#047857; --emerald-900:#064e3b;
+  --amber-50:#fffbeb; --amber-100:#fef3c7;
+  --amber-600:#d97706; --amber-900:#78350f;
+  --red-50:#fef2f2; --red-100:#fee2e2;
+  --red-600:#dc2626; --red-900:#7f1d1d;
+  --slate-50:#f8fafc; --slate-100:#f1f5f9; --slate-200:#e2e8f0;
+  --slate-300:#cbd5e1; --slate-400:#94a3b8; --slate-500:#64748b;
+  --slate-600:#475569; --slate-700:#334155; --slate-800:#1e293b; --slate-900:#0f172a;
+
+  /* Semantic — surfaces */
+  --bg:        #f8fafc;
+  --surface:   #ffffff;
+  --surface-2: #f1f5f9;
+  --surface-3: #e2e8f0;
+
+  /* Semantic — text */
+  --t1: #0f172a;   /* primary text   */
+  --t2: #475569;   /* secondary text */
+  --t3: #94a3b8;   /* muted text     */
+  --ti: #ffffff;   /* inverse text   */
+
+  /* Semantic — borders */
+  --b1: #e2e8f0;
+  --b2: #cbd5e1;
+
+  /* Semantic — brand */
+  --p:   #2563eb;  --ph:  #1d4ed8;
+  --ps:  #eff6ff;  --pm:  #dbeafe;
+  --a:   #7c3aed;  --as:  #f5f3ff;
+  --ok:  #059669;  --oks: #ecfdf5; --okm: #d1fae5; --okt: #064e3b;
+  --wn:  #d97706;  --wns: #fffbeb; --wnt: #78350f;
+  --er:  #dc2626;  --ers: #fef2f2; --ert: #7f1d1d;
+
+  /* Typography */
+  --font:    'Inter', system-ui, -apple-system, sans-serif;
+  --font-d:  'Plus Jakarta Sans', 'Inter', sans-serif;
+
+  /* Radius */
+  --r1:4px; --r2:6px; --r3:10px; --r4:14px; --r5:20px; --r6:28px; --rf:9999px;
+
+  /* Shadows */
+  --s0: 0 1px 2px rgba(15,23,42,.05);
+  --s1: 0 1px 3px rgba(15,23,42,.08),0 1px 2px rgba(15,23,42,.04);
+  --s2: 0 4px 8px rgba(15,23,42,.07),0 2px 4px rgba(15,23,42,.04);
+  --s3: 0 12px 24px rgba(15,23,42,.09),0 4px 8px rgba(15,23,42,.04);
+  --s4: 0 24px 48px rgba(15,23,42,.11),0 8px 16px rgba(15,23,42,.05);
+  --sp: 0 8px 24px rgba(37,99,235,.28);
+  --sr: 0 0 0 3px rgba(37,99,235,.15);
+  --se: 0 0 0 3px rgba(220,38,38,.14);
+
+  /* Motion */
+  --ease: cubic-bezier(.16,1,.3,1);
+  --eio:  cubic-bezier(.4,0,.2,1);
+  --spr:  cubic-bezier(.34,1.56,.64,1);
+  --t1d: 120ms; --t2d: 200ms; --t3d: 300ms;
+}
+
+/* ── 2. RESET & BASE ────────────────────────────────────────────────── */
+html {
+  color-scheme: light only !important;
+  forced-color-adjust: none !important;
+  background: var(--bg) !important;
+}
+html, body, .stApp,
+[data-testid="stAppViewContainer"],
+[data-testid="stMain"] {
+  background: var(--bg) !important;
+  color: var(--t1) !important;
+  font-family: var(--font) !important;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── 3. LAYOUT ──────────────────────────────────────────────────────── */
 div.block-container,
 div[data-testid="stMainBlockContainer"] {
-    max-width: 860px !important;
-    padding-top: 1.5rem !important;
-    padding-left: 2rem !important;
-    padding-right: 2rem !important;
-    margin-left: auto !important;
-    margin-right: auto !important;
+  max-width: 1080px !important;
+  padding: 2rem 2.5rem 4rem !important;
+  margin: 0 auto !important;
 }
-section[data-testid="stSidebar"] { display: none; }
-button[data-testid="collapsedControl"] { display: none; }
+section[data-testid="stSidebar"],
+button[data-testid="collapsedControl"] { display: none !important; }
 
-/* ── Buttons — smooth lift & glow ────────────────────────────────── */
-button[data-testid^="baseButton"] {
-    border-radius: 8px !important;
-    font-weight: 500 !important;
-    transition: transform 0.15s ease, box-shadow 0.15s ease,
-                background 0.15s ease, border-color 0.15s ease !important;
-    will-change: transform !important;
+/* ── 4. TYPOGRAPHY ──────────────────────────────────────────────────── */
+h1,h2,h3,h4,h5,h6 {
+  font-family: var(--font-d) !important;
+  color: var(--t1) !important;
+  letter-spacing: -.025em;
+  line-height: 1.2;
 }
-button[data-testid="baseButton-primary"] {
-    background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%) !important;
-    border: none !important;
-    color: #ffffff !important;
-    box-shadow: 0 2px 8px rgba(79,70,229,0.28) !important;
+p,li,label,span { font-family: var(--font); }
+hr { border:none !important; border-top:1px solid var(--b1) !important; margin:.25rem 0 !important; }
+
+/* ── 5. BUTTONS ─────────────────────────────────────────────────────── */
+button[data-testid^="baseButton"],button[kind] {
+  border-radius: var(--r3) !important;
+  font-family: var(--font) !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  letter-spacing: -.01em;
+  transition:
+    transform var(--t1d) var(--ease),
+    box-shadow var(--t2d) var(--ease),
+    background-color var(--t1d) var(--eio),
+    border-color var(--t1d) var(--eio),
+    color var(--t1d) var(--eio) !important;
 }
-button[data-testid="baseButton-primary"]:hover {
-    transform: translateY(-1px) !important;
-    box-shadow: 0 6px 18px rgba(79,70,229,0.38) !important;
+button[data-testid="baseButton-primary"],button[kind="primary"] {
+  background: var(--p) !important;
+  color: var(--ti) !important;
+  border: 1px solid transparent !important;
+  box-shadow: var(--sp) !important;
+  padding: .6rem 1.25rem !important;
 }
-button[data-testid="baseButton-primary"]:active {
-    transform: translateY(0px) !important;
-    box-shadow: 0 2px 8px rgba(79,70,229,0.28) !important;
+button[data-testid="baseButton-primary"]:hover,button[kind="primary"]:hover {
+  background: var(--ph) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 12px 28px rgba(37,99,235,.34) !important;
 }
-button[data-testid="baseButton-secondary"] {
-    background: #ffffff !important;
-    border: 1.5px solid #d1d5db !important;
-    color: #374151 !important;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
+button[data-testid="baseButton-primary"]:active,button[kind="primary"]:active {
+  transform: translateY(0) !important;
+  box-shadow: var(--sp) !important;
 }
-button[data-testid="baseButton-secondary"]:hover {
-    transform: translateY(-1px) !important;
-    border-color: #6366f1 !important;
-    color: #4f46e5 !important;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.09) !important;
+button[data-testid="baseButton-secondary"],button[kind="secondary"] {
+  background: var(--surface) !important;
+  color: var(--t1) !important;
+  border: 1px solid var(--b1) !important;
+  box-shadow: var(--s0) !important;
+}
+button[data-testid="baseButton-secondary"]:hover,button[kind="secondary"]:hover {
+  background: var(--surface-2) !important;
+  border-color: var(--b2) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: var(--s1) !important;
+}
+button[data-testid^="baseButton"]:focus-visible,button[kind]:focus-visible {
+  outline: none !important;
+  box-shadow: var(--sr) !important;
+}
+a[data-testid="stLinkButton"] {
+  border-radius: var(--r3) !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  transition: all var(--t2d) var(--ease) !important;
 }
 
-/* ── Inputs & textareas ──────────────────────────────────────────── */
+/* ── 6. INPUTS ──────────────────────────────────────────────────────── */
 [data-testid="stTextInput"] input,
 [data-testid="stTextArea"] textarea {
-    border: 1.5px solid #d1d5db !important;
-    border-radius: 8px !important;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+  background: var(--surface) !important;
+  border: 1px solid var(--b1) !important;
+  border-radius: var(--r3) !important;
+  color: var(--t1) !important;
+  font-family: var(--font) !important;
+  font-size: 14px !important;
+  box-shadow: var(--s0) !important;
+  transition: border-color var(--t1d) var(--eio), box-shadow var(--t2d) var(--ease) !important;
 }
+[data-testid="stTextInput"] input:hover,
+[data-testid="stTextArea"] textarea:hover { border-color: var(--b2) !important; }
 [data-testid="stTextInput"] input:focus,
 [data-testid="stTextArea"] textarea:focus {
-    border-color: #4f46e5 !important;
-    box-shadow: 0 0 0 3px rgba(79,70,229,0.12) !important;
-    outline: none !important;
+  border-color: var(--p) !important;
+  box-shadow: var(--sr) !important;
+  outline: none !important;
 }
+[data-testid="stTextInput"] input::placeholder,
+[data-testid="stTextArea"] textarea::placeholder { color: var(--t3) !important; }
+[data-testid="stSelectbox"] [data-baseweb="select"] > div,
+[data-testid="stMultiSelect"] [data-baseweb="select"] > div {
+  background: var(--surface) !important;
+  border: 1px solid var(--b1) !important;
+  border-radius: var(--r3) !important;
+  box-shadow: var(--s0) !important;
+  min-height: 42px !important;
+  transition: border-color var(--t1d) var(--eio), box-shadow var(--t2d) var(--ease) !important;
+}
+[data-testid="stSelectbox"] [data-baseweb="select"] > div:focus-within,
+[data-testid="stMultiSelect"] [data-baseweb="select"] > div:focus-within {
+  border-color: var(--p) !important;
+  box-shadow: var(--sr) !important;
+}
+[data-baseweb="select"] * { color: var(--t1) !important; }
+[data-testid="stCheckbox"] input[type="checkbox"] { accent-color: var(--p) !important; }
+[data-testid="stCheckbox"] label { font-size: 14px !important; color: var(--t1) !important; }
 
-/* ── Selectbox / multiselect ─────────────────────────────────────── */
-[data-testid="stSelectbox"] > div > div,
-[data-testid="stMultiSelect"] > div > div:first-child {
-    border: 1.5px solid #d1d5db !important;
-    border-radius: 8px !important;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
-}
-[data-testid="stSelectbox"] > div > div:focus-within,
-[data-testid="stMultiSelect"] > div > div:first-child:focus-within {
-    border-color: #4f46e5 !important;
-    box-shadow: 0 0 0 3px rgba(79,70,229,0.12) !important;
-}
-
-/* ── Containers (border=True) ────────────────────────────────────── */
+/* ── 7. CONTAINERS ──────────────────────────────────────────────────── */
 [data-testid="stVerticalBlockBorderWrapper"] {
-    border-radius: 12px !important;
-    border: 1.5px solid #e5e7eb !important;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.05) !important;
-    transition: box-shadow 0.18s ease !important;
-    overflow: hidden !important;
+  border: 1px solid var(--b1) !important;
+  border-radius: var(--r5) !important;
+  background: var(--surface) !important;
+  box-shadow: var(--s1) !important;
+  overflow: hidden !important;
+  transition: box-shadow var(--t2d) var(--ease), border-color var(--t2d) var(--ease) !important;
 }
 [data-testid="stVerticalBlockBorderWrapper"]:hover {
-    box-shadow: 0 4px 14px rgba(0,0,0,0.08) !important;
+  box-shadow: var(--s2) !important;
+  border-color: var(--b2) !important;
 }
 
-/* ── Expanders ───────────────────────────────────────────────────── */
+/* ── 8. EXPANDERS ───────────────────────────────────────────────────── */
 div[data-testid="stExpander"] {
-    border: 1.5px solid #e5e7eb !important;
-    border-radius: 12px !important;
-    overflow: hidden !important;
-    transition: box-shadow 0.18s ease !important;
+  border: 1px solid var(--b1) !important;
+  border-radius: var(--r4) !important;
+  background: var(--surface) !important;
+  box-shadow: var(--s0) !important;
+  overflow: hidden !important;
+  transition: box-shadow var(--t2d) var(--ease) !important;
 }
-div[data-testid="stExpander"]:hover {
-    box-shadow: 0 4px 14px rgba(0,0,0,0.07) !important;
+div[data-testid="stExpander"]:hover { box-shadow: var(--s1) !important; }
+div[data-testid="stExpander"] summary {
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  color: var(--t1) !important;
 }
 
-/* ── File uploader ───────────────────────────────────────────────── */
+/* ── 9. TABS ────────────────────────────────────────────────────────── */
+div[data-testid="stTabs"] [role="tablist"] {
+  gap: 4px !important;
+  border-bottom: 1px solid var(--b1) !important;
+}
+div[data-testid="stTabs"] button[role="tab"] {
+  border-radius: var(--r3) var(--r3) 0 0 !important;
+  border: 1px solid transparent !important;
+  background: transparent !important;
+  color: var(--t2) !important;
+  font-weight: 500 !important;
+  font-size: 14px !important;
+  padding: .6rem 1rem !important;
+  transition: all var(--t1d) var(--eio) !important;
+  margin-bottom: -1px;
+}
+div[data-testid="stTabs"] button[role="tab"]:hover {
+  color: var(--t1) !important;
+  background: var(--surface-2) !important;
+}
+div[data-testid="stTabs"] button[role="tab"][aria-selected="true"] {
+  background: var(--surface) !important;
+  color: var(--p) !important;
+  border-color: var(--b1) !important;
+  border-bottom-color: var(--surface) !important;
+  font-weight: 700 !important;
+}
+
+/* ── 10. PROGRESS ───────────────────────────────────────────────────── */
+[data-testid="stProgress"] {
+  border-radius: var(--rf) !important;
+  background: var(--surface-2) !important;
+  height: 6px !important;
+  overflow: hidden !important;
+}
+[data-testid="stProgress"] > div {
+  background: linear-gradient(90deg, var(--p), var(--a)) !important;
+  border-radius: var(--rf) !important;
+  transition: width .4s var(--ease) !important;
+}
+
+/* ── 11. METRICS ────────────────────────────────────────────────────── */
+[data-testid="stMetric"] {
+  background: var(--surface) !important;
+  border: 1px solid var(--b1) !important;
+  border-radius: var(--r5) !important;
+  padding: 1.25rem !important;
+  box-shadow: var(--s1) !important;
+}
+[data-testid="stMetricValue"] {
+  font-family: var(--font-d) !important;
+  font-size: 2rem !important;
+  font-weight: 800 !important;
+  letter-spacing: -.04em !important;
+  color: var(--t1) !important;
+}
+[data-testid="stMetricLabel"] {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: .06em !important;
+  color: var(--t3) !important;
+}
+
+/* ── 12. MISC ───────────────────────────────────────────────────────── */
 [data-testid="stFileUploaderDropzone"] {
-    border: 2px dashed #c7d2fe !important;
-    border-radius: 12px !important;
-    background: linear-gradient(135deg, #fafafe 0%, #f0f4ff 100%) !important;
-    transition: border-color 0.15s ease, background 0.15s ease !important;
+  border: 2px dashed var(--b2) !important;
+  border-radius: var(--r5) !important;
+  background: var(--surface-2) !important;
+  transition: border-color var(--t1d) var(--eio), background var(--t1d) var(--eio) !important;
 }
 [data-testid="stFileUploaderDropzone"]:hover {
-    border-color: #6366f1 !important;
-    background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%) !important;
+  border-color: var(--p) !important;
+  background: var(--ps) !important;
+}
+div[data-testid="stForm"] { border:none !important; padding:0 !important; background:transparent !important; }
+[data-testid="stAlert"] { border-radius:var(--r4) !important; font-size:14px !important; }
+[data-testid="stCaptionContainer"] p { font-size:13px !important; color:var(--t3) !important; }
+
+/* ── Form submit buttons (kind differs from baseButton) ── */
+button[data-testid="stFormSubmitButton"] > button,
+[data-testid="stFormSubmitButton"] button,
+button[kind="secondaryFormSubmit"],
+button[kind="primaryFormSubmit"] {
+  border-radius: var(--r3) !important;
+  font-family: var(--font) !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  background: var(--surface) !important;
+  color: var(--t1) !important;
+  border: 1px solid var(--b1) !important;
+  box-shadow: var(--s0) !important;
+  transition: all var(--t1d) var(--eio) !important;
+}
+button[data-testid="stFormSubmitButton"] > button:hover,
+[data-testid="stFormSubmitButton"] button:hover {
+  background: var(--surface-2) !important;
+  border-color: var(--b2) !important;
+  transform: translateY(-1px) !important;
 }
 
-/* ── Tabs ────────────────────────────────────────────────────────── */
-[data-testid="stTabs"] button[role="tab"] {
-    border-radius: 8px 8px 0 0 !important;
-    font-weight: 500 !important;
-    transition: color 0.15s ease !important;
+/* ── Checkboxes — force light styling ── */
+[data-testid="stCheckbox"] { color: var(--t1) !important; }
+[data-testid="stCheckbox"] input[type="checkbox"] {
+  accent-color: #2563eb !important;
+  width: 16px !important;
+  height: 16px !important;
+  cursor: pointer !important;
+  background: #ffffff !important;
+  border: 1.5px solid #cbd5e1 !important;
+}
+[data-testid="stCheckbox"] label,
+[data-testid="stCheckbox"] p {
+  color: var(--t1) !important;
+  font-size: 14px !important;
 }
 
-/* ── Metric cards ────────────────────────────────────────────────── */
-[data-testid="stMetricValue"] {
-    font-size: 1.75rem !important;
-    font-weight: 700 !important;
+/* ── Slider — force primary color ── */
+[data-testid="stSlider"] [role="slider"] {
+  background: #2563eb !important;
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 3px rgba(37,99,235,.18) !important;
+}
+[data-testid="stSlider"] [data-baseweb="slider"] div[data-testid*="StyledThumb"] {
+  background: #2563eb !important;
 }
 
-/* ── Keywords form (no extra border) ────────────────────────────── */
-div[data-testid="stForm"] {
-    border: none !important;
-    padding: 0 !important;
-    background: transparent !important;
+/* ── Streamlit header — force light ── */
+header[data-testid="stHeader"] {
+  background: var(--surface) !important;
+  border-bottom: 1px solid var(--b1) !important;
+  box-shadow: none !important;
+}
+header[data-testid="stHeader"] * { color: var(--t2) !important; }
+
+/* ── Toolbar buttons ── */
+[data-testid="stToolbar"] button,
+[data-testid="stAppDeployButton"] button {
+  color: var(--t2) !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+[data-testid="stToolbar"] button:hover {
+  background: var(--surface-2) !important;
+  transform: none !important;
 }
 
-/* ── Score / source badges ───────────────────────────────────────── */
-.score-badge {
-    display: inline-block;
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-weight: 600;
-    font-size: 14px;
+/* ── 13. KEYFRAMES ──────────────────────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(10px); }
+  to   { opacity:1; transform:translateY(0); }
 }
-.score-high   { background: #dcfce7; color: #15803d; }
-.score-medium { background: #fef9c3; color: #a16207; }
-.score-low    { background: #f1f5f9; color: #64748b; }
-.source-badge {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 500;
-    color: white;
+@keyframes fadeIn {
+  from { opacity:0; }
+  to   { opacity:1; }
 }
-.src-remotive  { background: #6366f1; }
-.src-arbeitnow { background: #0ea5e9; }
-.src-wwr       { background: #10b981; }
-.src-himalayas { background: #f59e0b; }
-
-/* ── Cover letter ────────────────────────────────────────────────── */
-.cover-letter-box {
-    background: #f8fafc;
-    border: 1.5px solid #e5e7eb;
-    border-radius: 10px;
-    padding: 20px 24px;
-    font-family: Georgia, serif;
-    font-size: 14px;
-    line-height: 1.85;
-    white-space: pre-wrap;
+@keyframes slideRight {
+  from { opacity:0; transform:translateX(-8px); }
+  to   { opacity:1; transform:translateX(0); }
+}
+@keyframes shimmer {
+  0%   { background-position:-200% 0; }
+  100% { background-position:200% 0; }
 }
 
-/* ── Feature cards (empty state) ────────────────────────────────── */
-.feature-card {
-    background: #ffffff;
-    border: 1.5px solid #e5e7eb;
-    border-radius: 16px;
-    padding: 1.5rem 1rem 1.25rem 1rem;
-    text-align: center;
-    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-}
-.feature-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.09);
-    border-color: #c7d2fe;
-}
-.feature-icon { font-size: 2rem; display: block; margin-bottom: 0.65rem; }
-.feature-title { font-weight: 700; font-size: 1rem; color: #111827; margin-bottom: 0.3rem; }
-.feature-desc  { color: #6b7280; font-size: 0.82rem; line-height: 1.5; }
+/* ── 14. CUSTOM COMPONENTS ──────────────────────────────────────────── */
 
-/* ── Cancel button (rojo) ────────────────────────────────────────── */
+/* Hero */
+.jh-hero {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 1.75rem;
+  padding: 2.25rem 2.5rem;
+  border: 1px solid var(--b1);
+  border-radius: var(--r6);
+  background: linear-gradient(135deg,rgba(37,99,235,.05) 0%,rgba(124,58,237,.04) 100%), var(--surface);
+  box-shadow: var(--s2);
+  animation: fadeUp var(--t3d) var(--ease) both;
+  position: relative;
+  overflow: hidden;
+}
+.jh-hero::before {
+  content:'';
+  position:absolute;
+  width:400px; height:400px;
+  top:-150px; right:-100px;
+  background:radial-gradient(circle,rgba(37,99,235,.06),transparent 65%);
+  pointer-events:none;
+}
+.jh-hero-copy {
+  display:flex; flex-direction:column;
+  justify-content:center; gap:.9rem;
+  position:relative; z-index:1;
+}
+.jh-eyebrow {
+  display:inline-flex; align-items:center;
+  width:fit-content;
+  height:24px; padding:0 12px;
+  border-radius:var(--rf);
+  background:var(--ps); border:1px solid var(--pm);
+  color:var(--p); font-size:11px; font-weight:700;
+  letter-spacing:.1em; text-transform:uppercase;
+}
+.jh-hero-title {
+  font-family:var(--font-d);
+  font-size:clamp(1.9rem,3.8vw,3rem);
+  font-weight:800; line-height:1.05;
+  letter-spacing:-.04em; color:var(--t1);
+  background:linear-gradient(135deg,var(--slate-900) 0%,var(--blue-700) 55%,var(--violet-600) 100%);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+}
+.jh-hero-sub {
+  font-size:15px; line-height:1.7; color:var(--t2); max-width:500px;
+}
+.jh-tags { display:flex; flex-wrap:wrap; gap:7px; }
+.jh-tag {
+  display:inline-flex; align-items:center;
+  height:26px; padding:0 10px;
+  border-radius:var(--rf); border:1px solid;
+  font-size:12px; font-weight:600; white-space:nowrap;
+}
+.jh-tag-blue   { color:var(--p);  background:var(--ps);  border-color:var(--pm); }
+.jh-tag-violet { color:var(--a);  background:var(--as);  border-color:var(--violet-100); }
+.jh-tag-green  { color:var(--ok); background:var(--oks); border-color:var(--okm); }
+.jh-tag-gray   { color:var(--t2); background:var(--surface-2); border-color:var(--b1); }
+.jh-tag-amber  { color:var(--wn); background:var(--wns); border-color:var(--amber-100); }
+
+/* Hero panel */
+.jh-panel {
+  display:flex; flex-direction:column; gap:10px;
+  padding:1.25rem;
+  border:1px solid var(--b1); border-radius:var(--r5);
+  background:var(--surface); box-shadow:var(--s1);
+  position:relative; z-index:1;
+}
+.jh-stat-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.jh-stat {
+  padding:12px;
+  border-radius:var(--r4); border:1px solid var(--b1);
+  background:var(--surface-2);
+}
+.jh-stat strong {
+  display:block; font-family:var(--font-d);
+  font-size:1.1rem; font-weight:800;
+  color:var(--t1); letter-spacing:-.03em; margin-bottom:2px;
+}
+.jh-stat span { font-size:11px; color:var(--t3); line-height:1.4; }
+.jh-panel-note {
+  padding:10px 12px; border-radius:var(--r3);
+  background:var(--ps); border:1px solid var(--pm);
+  font-size:12px; color:var(--blue-700); line-height:1.55;
+}
+
+/* Section header */
+.jh-section { display:flex; flex-direction:column; gap:5px; animation:fadeIn var(--t3d) var(--ease) both; }
+.jh-label {
+  display:inline-flex; align-items:center;
+  width:fit-content; height:22px; padding:0 9px;
+  border-radius:var(--rf); background:var(--surface-2);
+  border:1px solid var(--b1);
+  font-size:10.5px; font-weight:700;
+  letter-spacing:.08em; text-transform:uppercase; color:var(--t3);
+}
+.jh-title {
+  font-family:var(--font-d);
+  font-size:clamp(1.2rem,2vw,1.65rem);
+  font-weight:800; letter-spacing:-.03em;
+  color:var(--t1); line-height:1.15;
+}
+.jh-copy { font-size:14px; color:var(--t2); line-height:1.65; max-width:580px; }
+
+/* Feature grid (empty state) */
+.jh-features {
+  display:grid; grid-template-columns:repeat(4,1fr);
+  gap:12px; margin-top:14px;
+}
+.jh-feature {
+  display:flex; flex-direction:column; gap:10px;
+  padding:18px 16px;
+  border:1px solid var(--b1); border-radius:var(--r5);
+  background:var(--surface); box-shadow:var(--s0);
+  transition:transform var(--t2d) var(--ease),
+             box-shadow var(--t2d) var(--ease),
+             border-color var(--t2d) var(--ease);
+  animation:fadeUp var(--t3d) var(--ease) both;
+}
+.jh-feature:nth-child(1){animation-delay:0ms}
+.jh-feature:nth-child(2){animation-delay:60ms}
+.jh-feature:nth-child(3){animation-delay:120ms}
+.jh-feature:nth-child(4){animation-delay:180ms}
+.jh-feature:hover {
+  transform:translateY(-2px);
+  box-shadow:var(--s2);
+  border-color:var(--b2);
+}
+.jh-f-icon {
+  display:flex; align-items:center; justify-content:center;
+  width:36px; height:36px; border-radius:var(--r4);
+  background:linear-gradient(135deg,var(--p),var(--a));
+  color:#fff; font-size:14px; font-weight:800;
+  font-family:var(--font-d); flex-shrink:0;
+  box-shadow:0 4px 10px rgba(37,99,235,.22);
+}
+.jh-f-title { font-weight:700; font-size:14px; color:var(--t1); letter-spacing:-.01em; }
+.jh-f-desc  { font-size:13px; color:var(--t2); line-height:1.55; }
+
+/* Wizard stepper */
+.jh-stepper {
+  display:grid; grid-template-columns:repeat(4,1fr);
+  gap:10px; margin:1.25rem 0;
+}
+.jh-step {
+  display:flex; flex-direction:column; gap:7px;
+  padding:13px 15px;
+  border:1px solid var(--b1); border-radius:var(--r4);
+  background:var(--surface);
+  transition:all var(--t2d) var(--ease);
+}
+.jh-step--active {
+  border-color:rgba(37,99,235,.35);
+  background:linear-gradient(135deg,rgba(37,99,235,.04),rgba(124,58,237,.03));
+  box-shadow:0 0 0 3px rgba(37,99,235,.08),var(--s1);
+}
+.jh-step--done {
+  border-color:rgba(5,150,105,.25);
+  background:linear-gradient(135deg,rgba(5,150,105,.04),rgba(5,150,105,.02));
+}
+.jh-step-num {
+  display:inline-flex; align-items:center; justify-content:center;
+  width:28px; height:28px; border-radius:var(--rf);
+  font-size:12px; font-weight:800; font-family:var(--font-d);
+  flex-shrink:0; transition:all var(--t2d) var(--ease);
+}
+.jh-step--pending .jh-step-num {
+  background:var(--surface-2); border:1px solid var(--b1); color:var(--t3);
+}
+.jh-step--active .jh-step-num {
+  background:linear-gradient(135deg,var(--p),var(--a));
+  color:#fff; box-shadow:0 4px 12px rgba(37,99,235,.3);
+}
+.jh-step--done .jh-step-num {
+  background:var(--oks); border:1px solid var(--okm); color:var(--ok);
+}
+.jh-step-lbl { font-size:13px; font-weight:700; color:var(--t1); line-height:1.2; }
+.jh-step-desc { font-size:11.5px; color:var(--t3); line-height:1.4; }
+
+/* Score & source badges */
+.jh-score {
+  display:inline-flex; align-items:center;
+  height:24px; padding:0 9px;
+  border-radius:var(--rf); border:1px solid;
+  font-size:11.5px; font-weight:700; letter-spacing:-.01em;
+}
+.jh-score-hi { color:var(--okt); background:var(--oks); border-color:var(--okm); }
+.jh-score-md { color:var(--wnt); background:var(--wns); border-color:var(--amber-100); }
+.jh-score-lo { color:var(--t2); background:var(--surface-2); border-color:var(--b1); }
+
+.jh-src {
+  display:inline-flex; align-items:center;
+  height:20px; padding:0 8px;
+  border-radius:var(--rf);
+  font-size:11px; font-weight:600; color:#fff;
+}
+.src-Remotive        {background:linear-gradient(135deg,#2563eb,#7c3aed)}
+.src-Arbeitnow       {background:linear-gradient(135deg,#0ea5e9,#0284c7)}
+.src-WeWorkRemotely  {background:linear-gradient(135deg,#059669,#047857)}
+.src-Himalayas       {background:linear-gradient(135deg,#f59e0b,#d97706)}
+.src-RemoteOK        {background:linear-gradient(135deg,#7c3aed,#6d28d9)}
+.src-Jobicy          {background:linear-gradient(135deg,#14b8a6,#0d9488)}
+.src-GetOnBoard      {background:linear-gradient(135deg,#10b981,#059669)}
+.src-LatoJobs        {background:linear-gradient(135deg,#3b82f6,#2563eb)}
+.src-PuenteTalent    {background:linear-gradient(135deg,#f59e0b,#d97706)}
+.src-WorkingNomads   {background:linear-gradient(135deg,#6366f1,#4f46e5)}
+.src-TheMuse         {background:linear-gradient(135deg,#ec4899,#db2777)}
+.src-Remote-co       {background:linear-gradient(135deg,#059669,#047857)}
+.src-Jobspresso      {background:linear-gradient(135deg,#ef4444,#dc2626)}
+.src-JustJoin-it     {background:linear-gradient(135deg,#f97316,#ea580c)}
+.src-AuthenticJobs   {background:linear-gradient(135deg,#8b5cf6,#7c3aed)}
+.src-LinkedInBrowser {background:linear-gradient(135deg,#0a66c2,#004182)}
+.src-BumeranBrowser  {background:linear-gradient(135deg,#f97316,#ea580c)}
+.src-ComputrabajoBrowser{background:linear-gradient(135deg,#ef4444,#dc2626)}
+.src-IndeedBrowser   {background:linear-gradient(135deg,#2557a7,#1d4ed8)}
+
+/* Job card */
+.jh-job {
+  padding:18px 20px;
+  border:1px solid var(--b1); border-radius:var(--r5);
+  background:var(--surface); box-shadow:var(--s0);
+  transition:box-shadow var(--t2d) var(--ease), border-color var(--t2d) var(--ease);
+  animation:fadeUp var(--t2d) var(--ease) both;
+}
+.jh-job:hover { box-shadow:var(--s2); border-color:var(--b2); }
+.jh-job-badges { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+.jh-job-title {
+  font-family:var(--font-d);
+  font-size:16px; font-weight:700;
+  color:var(--t1); letter-spacing:-.02em; line-height:1.3;
+  margin-bottom:3px;
+}
+.jh-job-co { font-size:13.5px; color:var(--t2); }
+.jh-job-summary {
+  font-size:13.5px; color:var(--t2); line-height:1.65;
+  margin-top:10px; padding-top:10px;
+  border-top:1px solid var(--b1);
+}
+.jh-col-lbl {
+  font-size:10.5px; font-weight:700; letter-spacing:.07em;
+  text-transform:uppercase; color:var(--t3); margin-bottom:8px;
+}
+.jh-reason {
+  display:flex; align-items:flex-start; gap:6px;
+  font-size:13px; color:var(--t2); line-height:1.5; margin-bottom:5px;
+}
+.jh-reason::before { content:'✓'; color:var(--ok); font-weight:800; font-size:11px; margin-top:1px; flex-shrink:0; }
+.jh-skill { color:var(--t2); }
+.jh-skill::before { content:'→'; color:var(--wn); font-weight:700; font-size:11px; margin-top:1px; flex-shrink:0; }
+
+/* Cover letter */
+.jh-letter {
+  background:var(--surface-2); border:1px solid var(--b1);
+  border-radius:var(--r4);
+  padding:18px 20px;
+  font-family:Georgia,'Times New Roman',serif;
+  font-size:14px; line-height:1.75;
+  color:var(--t1); white-space:pre-wrap;
+  max-height:360px; overflow-y:auto;
+}
+.jh-letter::-webkit-scrollbar{width:5px}
+.jh-letter::-webkit-scrollbar-track{background:transparent}
+.jh-letter::-webkit-scrollbar-thumb{background:var(--b2);border-radius:var(--rf)}
+
+/* Metrics row */
+.jh-metrics {
+  display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:1.5rem;
+}
+.jh-metric {
+  padding:18px 20px;
+  border:1px solid var(--b1); border-radius:var(--r5);
+  background:var(--surface); box-shadow:var(--s1);
+}
+.jh-metric-val {
+  font-family:var(--font-d); font-size:2.1rem; font-weight:800;
+  letter-spacing:-.04em; color:var(--t1); line-height:1;
+}
+.jh-metric-lbl {
+  font-size:11px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.07em; color:var(--t3); margin-top:6px;
+}
+
+/* Cancel button (wizard close) */
+div[data-testid="stMarkdownContainer"] .cancel-marker { display:none; }
 [data-testid="stMarkdownContainer"]:has(.cancel-marker) ~ [data-testid="stButton"] > button {
-    background-color: #fff5f5 !important;
-    color: #dc2626 !important;
-    border: 1.5px solid #fca5a5 !important;
-    box-shadow: none !important;
+  background:var(--ers) !important; color:var(--er) !important;
+  border:1px solid var(--red-100) !important; box-shadow:none !important;
 }
 [data-testid="stMarkdownContainer"]:has(.cancel-marker) ~ [data-testid="stButton"] > button:hover {
-    background-color: #fee2e2 !important;
-    border-color: #ef4444 !important;
-    transform: none !important;
-    box-shadow: 0 2px 8px rgba(220,38,38,0.18) !important;
+  background:var(--red-100) !important; border-color:var(--er) !important; transform:none !important;
+}
+
+/* Stop buttons durante búsqueda */
+div[data-testid="stMarkdownContainer"] .stop-marker { display:none; }
+[data-testid="stMarkdownContainer"]:has(.stop-marker) ~ [data-testid="stButton"] > button {
+  background: #dc2626 !important;
+  color: #ffffff !important;
+  border: 1px solid #dc2626 !important;
+  box-shadow: 0 4px 12px rgba(220,38,38,.28) !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  padding: .75rem 1.5rem !important;
+  border-radius: var(--r3) !important;
+}
+[data-testid="stMarkdownContainer"]:has(.stop-marker) ~ [data-testid="stButton"] > button:hover {
+  background: #b91c1c !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 8px 20px rgba(220,38,38,.36) !important;
+}
+
+div[data-testid="stMarkdownContainer"] .config-marker { display:none; }
+[data-testid="stMarkdownContainer"]:has(.config-marker) ~ [data-testid="stButton"] > button {
+  background: var(--p) !important;
+  color: #ffffff !important;
+  border: 1px solid transparent !important;
+  box-shadow: var(--sp) !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  padding: .75rem 1.5rem !important;
+  border-radius: var(--r3) !important;
+}
+[data-testid="stMarkdownContainer"]:has(.config-marker) ~ [data-testid="stButton"] > button:hover {
+  background: var(--ph) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 12px 28px rgba(37,99,235,.34) !important;
+}
+
+/* ── 15. RESPONSIVE ─────────────────────────────────────────────────── */
+@media(max-width:1024px) {
+  .jh-hero { grid-template-columns:1fr; }
+  .jh-features { grid-template-columns:repeat(2,1fr); }
+  .jh-metrics { grid-template-columns:repeat(2,1fr); }
+}
+@media(max-width:768px) {
+  div.block-container,div[data-testid="stMainBlockContainer"] {
+    padding:1rem 1rem 3rem !important;
+  }
+  .jh-hero { padding:1.5rem; }
+  .jh-stepper { grid-template-columns:repeat(2,1fr); }
+  .jh-hero-title { font-size:clamp(1.6rem,6vw,2.2rem); }
+}
+@media(max-width:640px) {
+  .jh-features,.jh-metrics,.jh-stepper { grid-template-columns:1fr; }
 }
 </style>
 """, unsafe_allow_html=True)
@@ -287,6 +830,16 @@ _defaults = {
     "scored_jobs":        [],   # persiste entre reruns de paginación
     "top_matches":        [],   # idem
     "min_score_last":     65,   # score usado en la última búsqueda (para métricas)
+    # ── Control de búsqueda en curso ──────────────────────────────────
+    "is_searching":       False,  # True mientras la búsqueda corre
+    "cancel_search":      False,  # señal para abortar entre plataformas
+    "cancel_and_config":  False,  # abortar Y abrir wizard
+    # Estado interno del scraping por pasos (permite cancelar entre plataformas)
+    "_scrape_phase":      "idle",   # idle | scraping | scoring | letters | done
+    "_scrape_idx":        0,        # índice de plataforma actual
+    "_scrape_jobs":       [],       # acumulador de trabajos scrapeados
+    "_scrape_seen":       set(),    # deduplicación entre plataformas
+    "_scrape_cfg":        {},       # config snapshot al iniciar búsqueda
 }
 for _k, _v in _defaults.items():
     if _k not in st.session_state:
@@ -332,37 +885,26 @@ def format_duration(seconds):
 
 
 def _render_stepper(step: int) -> None:
-    labels = ["Credenciales", "Tu CV", "Búsqueda", "Perfil"]
-    parts = []
-    for i, label in enumerate(labels, 1):
-        done = i < step
-        active = i == step
-        if done:
-            bg, fg, brd, lc, fw, content = "#4f46e5", "white", "#4f46e5", "#4f46e5", "500", "✓"
-        elif active:
-            bg, fg, brd, lc, fw, content = "#4f46e5", "white", "#4f46e5", "#1e293b", "700", str(i)
-        else:
-            bg, fg, brd, lc, fw, content = "#f1f5f9", "#94a3b8", "#e2e8f0", "#94a3b8", "400", str(i)
-
-        dot = (
-            f'<div style="width:36px;height:36px;border-radius:50%;background:{bg};color:{fg};'
-            f'border:2px solid {brd};display:flex;align-items:center;justify-content:center;'
-            f'font-size:15px;font-weight:700;flex-shrink:0;">{content}</div>'
+    steps = [
+        ("Credenciales", "API key y email"),
+        ("Tu CV",        "Importá tu perfil"),
+        ("Búsqueda",     "Fuentes y keywords"),
+        ("Perfil",       "Texto para la IA"),
+    ]
+    cards = []
+    for i, (label, desc) in enumerate(steps, 1):
+        if i < step:   cls = "jh-step jh-step--done";    num = "✓"
+        elif i == step: cls = "jh-step jh-step--active"; num = str(i)
+        else:           cls = "jh-step jh-step--pending"; num = str(i)
+        cards.append(
+            f'<div class="{cls}">'
+            f'<span class="jh-step-num">{num}</span>'
+            f'<div><div class="jh-step-lbl">{label}</div>'
+            f'<div class="jh-step-desc">{desc}</div></div>'
+            f'</div>'
         )
-        lbl = f'<div style="font-size:12px;color:{lc};font-weight:{fw};white-space:nowrap;margin-top:4px;">{label}</div>'
-        parts.append(
-            f'<div style="display:flex;flex-direction:column;align-items:center;">{dot}{lbl}</div>'
-        )
-        if i < len(labels):
-            line = "#4f46e5" if done else "#e2e8f0"
-            parts.append(
-                f'<div style="height:2px;width:80px;background:{line};'
-                f'margin-bottom:22px;flex-shrink:0;"></div>'
-            )
-
     st.markdown(
-        f'<div style="display:flex;align-items:center;justify-content:center;'
-        f'margin:0.5rem 0 0.75rem 0;">{"".join(parts)}</div>',
+        f'<div class="jh-stepper">{"".join(cards)}</div>',
         unsafe_allow_html=True,
     )
 
@@ -435,20 +977,26 @@ def _analyze_cv(uploaded_file, api_key: str, model: str) -> dict | None:
 
 # ─── Wizard inline (sin @st.dialog para garantizar cierre correcto) ───────────
 def show_config_wizard():
-    st.markdown('<div style="height:2.5rem;"></div>', unsafe_allow_html=True)
     step = st.session_state.config_step
 
-    # Encabezado con botón de cerrar arriba a la derecha
+    # Header
     h_col, cancel_col = st.columns([5, 1])
     with h_col:
-        st.markdown("### ⚙️ Configurar búsqueda")
+        st.markdown(
+            '<div class="jh-section" style="margin-top:.5rem;">'
+            '<span class="jh-label">Configuración</span>'
+            '<h2 class="jh-title">Preparar búsqueda</h2>'
+            '<p class="jh-copy">Completá los 4 pasos para lanzar tu búsqueda personalizada.</p>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
     with cancel_col:
-        st.markdown('<div class="cancel-marker" style="height:0.55rem;"></div>', unsafe_allow_html=True)
+        st.markdown('<div class="cancel-marker" style="height:4rem;"></div>', unsafe_allow_html=True)
         if st.button(
-            "✕ Cerrar",
+            "Cerrar",
             use_container_width=True,
             key="wizard_cancel",
-            help="Cierra el formulario y vuelve al inicio sin ejecutar ninguna búsqueda.",
+            help="Cierra el formulario sin ejecutar búsqueda.",
         ):
             st.session_state.show_dialog = False
             st.rerun()
@@ -490,9 +1038,12 @@ def show_config_wizard():
             st.session_state.selected_model = st.selectbox("Modelo de IA", _models, index=_idx)
 
         with st.container(border=True):
-            st.session_state.send_email = st.checkbox(
-                "📧 Recibir resumen por email al terminar",
-                value=st.session_state.send_email,
+            # Usar key= directamente evita el bug de doble-click:
+            # cuando el checkbox condiciona nuevo contenido, key= preserva
+            # el estado correctamente en el primer rerun.
+            st.checkbox(
+                "Recibir resumen por email al terminar",
+                key="send_email",
             )
             if st.session_state.send_email:
                 with st.expander("¿Cómo obtengo la contraseña de app de Gmail?", icon="❓"):
@@ -797,33 +1348,83 @@ def show_config_wizard():
                 if errors:
                     st.toast(" · ".join(errors), icon="⚠️")
                 else:
-                    st.session_state.show_dialog = False
-                    st.session_state.run_search  = True
+                    st.session_state.show_dialog   = False
+                    st.session_state.run_search    = True
+                    st.session_state.is_searching  = True   # ← debe estar True ANTES del rerun
+                    st.session_state.search_done   = False
+                    st.session_state.cancel_search = False
+                    st.session_state.scored_jobs   = []
+                    st.session_state.top_matches   = []
                     st.rerun()  # rerun desde contexto principal — siempre full-page
 
 
 # ─── Wizard (toma la pantalla completa cuando está activo) ────────────────────
+# Si el usuario vino de "Detener & Configurar", abrir en paso 3 (keywords/fuentes)
+# para que pueda ajustar rápidamente y relanzar.
+if st.session_state.cancel_and_config:
+    st.session_state.cancel_and_config = False
+    st.session_state.show_dialog       = True
+    st.session_state.config_step       = 3   # Abre en Keywords/Fuentes directamente
+
 if st.session_state.show_dialog:
     show_config_wizard()
     st.stop()
 
-# ─── Título ───────────────────────────────────────────────────────────────────
-st.markdown("""
-<div style="text-align:center; padding: 1.75rem 0 0.75rem 0;">
-    <div style="display:inline-flex; align-items:center; justify-content:center;
-                width:60px; height:60px; border-radius:14px;
-                background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);
-                box-shadow:0 8px 24px rgba(79,70,229,0.32);
-                font-size:28px; margin-bottom:0.9rem;">🎯</div>
-    <h1 style="font-size:2.1rem; font-weight:800; color:#0f172a;
-               margin:0 0 0.45rem 0; letter-spacing:-0.03em; line-height:1.15;">
-        Job Hunter <span style="color:#4f46e5;">AI</span>
-    </h1>
-    <p style="color:#64748b; font-size:1rem; margin:0 auto; max-width:480px; line-height:1.65;">
-        Buscá ofertas remotas, priorizalas con IA y generá cartas de presentación listas para usar.
-    </p>
+# ─── Hero ─────────────────────────────────────────────────────────────────────
+def _render_hero():
+    if st.session_state.search_done and st.session_state.scored_jobs:
+        _s = st.session_state.scored_jobs
+        _t = st.session_state.top_matches
+        best = _s[0].score if _s else 0
+        stat_html = (
+            f'<div class="jh-stat-grid">'
+            f'<div class="jh-stat"><strong>{len(_s)}</strong><span>analizadas</span></div>'
+            f'<div class="jh-stat"><strong>{len(_t)}</strong><span>recomendadas</span></div>'
+            f'<div class="jh-stat"><strong>{best}/100</strong><span>mejor score</span></div>'
+            f'<div class="jh-stat"><strong>{st.session_state.min_score_last}</strong><span>umbral</span></div>'
+            f'</div>'
+        )
+        note = "Resultados listos. Refiná las búsquedas o exportá las cartas."
+        eyebrow = "Panel de resultados"
+        title = "Tus oportunidades, priorizadas."
+        sub = "La IA evaluó cada oferta contra tu perfil. Las recomendadas están en la pestaña de abajo, ordenadas por score."
+        tags = '<span class="jh-tag jh-tag-blue">Búsqueda completada</span>'
+    else:
+        stat_html = (
+            '<div class="jh-stat-grid">'
+            '<div class="jh-stat"><strong>15+</strong><span>fuentes activas</span></div>'
+            '<div class="jh-stat"><strong>0–100</strong><span>score por oferta</span></div>'
+            '<div class="jh-stat"><strong>IA</strong><span>cover letters</span></div>'
+            '<div class="jh-stat"><strong>6–8 min</strong><span>por búsqueda</span></div>'
+            '</div>'
+        )
+        note = "Toda la lógica corre en tu máquina. Tus credenciales nunca salen del navegador."
+        eyebrow = "Búsqueda de empleo con IA"
+        title = "Encontrá el trabajo que realmente encaja."
+        sub = "Job Hunter reúne ofertas de 15+ portales, las puntúa según tu perfil y genera cartas de presentación listas para enviar."
+        tags = (
+            '<span class="jh-tag jh-tag-blue">Scoring con IA</span>'
+            '<span class="jh-tag jh-tag-violet">Multi-source</span>'
+            '<span class="jh-tag jh-tag-green">Cover letters</span>'
+            '<span class="jh-tag jh-tag-gray">Local-first</span>'
+        )
+
+    st.markdown(f"""
+<div class="jh-hero">
+  <div class="jh-hero-copy">
+    <span class="jh-eyebrow">{eyebrow}</span>
+    <h1 class="jh-hero-title">{title}</h1>
+    <p class="jh-hero-sub">{sub}</p>
+    <div class="jh-tags">{tags}</div>
+  </div>
+  <aside class="jh-panel">
+    {stat_html}
+    <p class="jh-panel-note">{note}</p>
+  </aside>
 </div>
 """, unsafe_allow_html=True)
+
+_render_hero()
 
 # ─── Placeholders ─────────────────────────────────────────────────────────────
 st.divider()
@@ -836,49 +1437,86 @@ empty_state_placeholder = st.empty()
 def render_empty_state():
     with empty_state_placeholder.container():
         st.markdown("""
-<div style="display:grid; grid-template-columns:repeat(4,1fr); gap:1rem; margin:1.5rem 0 0.5rem 0;">
-    <div class="feature-card">
-        <span class="feature-icon">🔍</span>
-        <div class="feature-title">Busca</div>
-        <div class="feature-desc">Remotive, Get on Board, LatoJobs, Puente, Jobicy y más</div>
-    </div>
-    <div class="feature-card">
-        <span class="feature-icon">🤖</span>
-        <div class="feature-title">Analiza</div>
-        <div class="feature-desc">La IA puntúa cada oferta del 0 al 100 según tu perfil</div>
-    </div>
-    <div class="feature-card">
-        <span class="feature-icon">📝</span>
-        <div class="feature-title">Redacta</div>
-        <div class="feature-desc">Genera cartas de presentación personalizadas</div>
-    </div>
-    <div class="feature-card">
-        <span class="feature-icon">📧</span>
-        <div class="feature-title">Envía</div>
-        <div class="feature-desc">Resumen por email al terminar (opcional)</div>
-    </div>
+<div class="jh-section" style="margin-top:1.5rem;">
+  <span class="jh-label">Cómo funciona</span>
+  <h2 class="jh-title">Un flujo de 4 pasos, sin ruido visual.</h2>
+  <p class="jh-copy">Configurás una vez, lanzás la búsqueda y recibís resultados ordenados por relevancia con cartas listas para enviar.</p>
+</div>
+<div class="jh-features">
+  <div class="jh-feature">
+    <span class="jh-f-icon">01</span>
+    <div class="jh-f-title">Descubrí</div>
+    <p class="jh-f-desc">Remotive, Get on Board, Himalayas, LatoJobs, WeWorkRemotely y 10+ fuentes más en una sola búsqueda.</p>
+  </div>
+  <div class="jh-feature">
+    <span class="jh-f-icon">02</span>
+    <div class="jh-f-title">Priorizá</div>
+    <p class="jh-f-desc">La IA puntúa cada oferta del 0 al 100 comparando el job description con tu perfil real. Sin inflado de seniority.</p>
+  </div>
+  <div class="jh-feature">
+    <span class="jh-f-icon">03</span>
+    <div class="jh-f-title">Redactá</div>
+    <p class="jh-f-desc">Genera una cover letter única por oferta, en el idioma del aviso, con referencias específicas al puesto.</p>
+  </div>
+  <div class="jh-feature">
+    <span class="jh-f-icon">04</span>
+    <div class="jh-f-title">Actuá</div>
+    <p class="jh-f-desc">Descargá las cartas individualmente, exportá todo como JSON o recibí un digest por email.</p>
+  </div>
 </div>
 """, unsafe_allow_html=True)
 
 
 # ─── Botón de acción ──────────────────────────────────────────────────────────
 with action_placeholder.container():
-    _, btn_col, _ = st.columns([1, 1, 1])
-    with btn_col:
-        _label = "🔄 Nueva búsqueda" if st.session_state.search_done else "⚙️ Configurar y buscar"
-        if st.button(_label, type="primary", use_container_width=True):
-            st.session_state.show_dialog = True
-            st.session_state.config_step = 1
-            st.rerun()
-        if not st.session_state.search_done and not st.session_state.run_search:
-            st.info("⏱️ Una búsqueda completa suele tardar entre 6 y 8 minutos.")
+    st.markdown('<div style="height:.75rem;"></div>', unsafe_allow_html=True)
+
+    if st.session_state.is_searching:
+        # ── Botones de control durante búsqueda ──────────────────────────────
+        st.markdown(
+            '<p style="text-align:center;font-size:13px;font-weight:600;'
+            'color:var(--t2);margin-bottom:.75rem;letter-spacing:-.01em;">'
+            'La búsqueda está en curso — podés detenerla en cualquier momento.</p>',
+            unsafe_allow_html=True,
+        )
+        c1, c_gap, c2 = st.columns([1, 0.12, 1.4])
+        with c1:
+            st.markdown('<div class="stop-marker"></div>', unsafe_allow_html=True)
+            if st.button("Detener", use_container_width=True, key="btn_stop"):
+                st.session_state.cancel_search = True
+                st.session_state.is_searching  = False
+                st.rerun()
+        with c2:
+            st.markdown('<div class="config-marker"></div>', unsafe_allow_html=True)
+            if st.button("Detener & Configurar", use_container_width=True, key="btn_stop_config"):
+                st.session_state.cancel_search     = True
+                st.session_state.cancel_and_config = True
+                st.session_state.is_searching      = False
+                st.rerun()
+    else:
+        # ── Botón normal ──────────────────────────────────────────────────────
+        c_l, c_btn, c_r = st.columns([2, 1.2, 2])
+        with c_btn:
+            _label = "Nueva búsqueda" if st.session_state.search_done else "Configurar búsqueda"
+            if st.button(_label, type="primary", use_container_width=True):
+                st.session_state.show_dialog = True
+                st.session_state.config_step = 1
+                st.rerun()
+        if not st.session_state.search_done:
+            st.markdown(
+                '<p style="text-align:center;font-size:13px;color:var(--t3);margin-top:.5rem;">'
+                'Una búsqueda completa suele tardar entre 6 y 8 minutos.</p>',
+                unsafe_allow_html=True,
+            )
 
 if not st.session_state.run_search and not st.session_state.search_done:
     render_empty_state()
 
 # ─── Ejecución de la búsqueda ─────────────────────────────────────────────────
 if st.session_state.run_search:
-    st.session_state.run_search = False
+    st.session_state.run_search    = False
+    st.session_state.cancel_search = False
+    # is_searching ya fue seteado a True en el wizard antes del rerun
     empty_state_placeholder.empty()
     results_placeholder.empty()
 
@@ -1023,9 +1661,18 @@ if st.session_state.run_search:
         eta       = f"  ·  ~{format_duration((elapsed / completed) * rem_plat)} restantes" if rem_plat > 0 else ""
         progress_scrape.progress(completed / total_platforms, text=f"{completed}/{total_platforms} fuentes{eta}")
 
-    platform_status.success(
-        f"✅ **{len(all_jobs)} ofertas únicas** encontradas — {format_duration(time.monotonic() - scrape_started)}"
-    )
+        # ── Check cancelación entre plataformas ───────────────────────────────
+        if st.session_state.cancel_search:
+            platform_status.warning(
+                f"⏹️ Búsqueda detenida por el usuario tras {completed} fuente(s) "
+                f"— {len(all_jobs)} ofertas encontradas hasta ahora."
+            )
+            break
+
+    if not st.session_state.cancel_search:
+        platform_status.success(
+            f"✅ **{len(all_jobs)} ofertas únicas** encontradas — {format_duration(time.monotonic() - scrape_started)}"
+        )
     progress_scrape.progress(1.0)
 
     # ── STEP 2: AI Scoring ────────────────────────────────────────────────────
@@ -1066,12 +1713,16 @@ if st.session_state.run_search:
 
             top5 = sorted(scored_jobs, key=lambda x: x.score, reverse=True)[:5]
             with live_results.container():
-                st.caption("Mejores resultados hasta ahora:")
+                st.markdown('<div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--t3);margin-bottom:6px;">Mejores hasta ahora</div>', unsafe_allow_html=True)
                 for t in top5:
-                    color = "score-high" if t.score >= 80 else "score-medium" if t.score >= 60 else "score-low"
+                    sc = "jh-score-hi" if t.score >= 80 else "jh-score-md" if t.score >= 60 else "jh-score-lo"
+                    import html as _h
                     st.markdown(
-                        f'<span class="score-badge {color}">{t.score}/100</span> '
-                        f'**{t.job.title}** @ {t.job.company}',
+                        f'<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--b1);">'
+                        f'<span class="jh-score {sc}">{t.score}/100</span>'
+                        f'<span style="font-size:13px;color:var(--t1);font-weight:500;">{_h.escape(t.job.title[:45])}</span>'
+                        f'<span style="font-size:12px;color:var(--t3);">@ {_h.escape(t.job.company[:25])}</span>'
+                        f'</div>',
                         unsafe_allow_html=True,
                     )
 
@@ -1153,7 +1804,9 @@ if st.session_state.run_search:
     with open(result_file, "w", encoding="utf-8") as f:
         json.dump(data_out, f, ensure_ascii=False, indent=2)
 
-    st.session_state.search_done = True
+    st.session_state.search_done  = True
+    st.session_state.is_searching = False
+    st.session_state.cancel_search = False
 
 # ── Renderizado de resultados (fuera del bloque run_search, lee de session_state) ──
 if st.session_state.search_done and st.session_state.scored_jobs:
@@ -1162,69 +1815,115 @@ if st.session_state.search_done and st.session_state.scored_jobs:
     _minscore = st.session_state.min_score_last
 
     with results_placeholder.container():
-        st.header("📊 Resultados")
+        # ── Metrics ──────────────────────────────────────────────────────────
+        exc = sum(1 for j in _scored if j.score >= 80)
+        st.markdown(f"""
+<div class="jh-metrics">
+  <div class="jh-metric">
+    <div class="jh-metric-val">{len(_scored)}</div>
+    <div class="jh-metric-lbl">Analizadas</div>
+  </div>
+  <div class="jh-metric">
+    <div class="jh-metric-val">{len(_top)}</div>
+    <div class="jh-metric-lbl">Recomendadas</div>
+  </div>
+  <div class="jh-metric">
+    <div class="jh-metric-val">{_scored[0].score if _scored else "—"}<span style="font-size:1rem;font-weight:500;color:var(--t3)">/100</span></div>
+    <div class="jh-metric-lbl">Mejor score</div>
+  </div>
+  <div class="jh-metric">
+    <div class="jh-metric-val">{exc}</div>
+    <div class="jh-metric-lbl">Excelentes 80+</div>
+  </div>
+</div>
+""", unsafe_allow_html=True)
 
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Analizadas",       len(_scored))
-        c2.metric("Recomendadas",     len(_top))
-        c3.metric("Mejor puntaje",    f"{_scored[0].score}/100" if _scored else "—")
-        c4.metric("Excelentes (80+)", sum(1 for j in _scored if j.score >= 80))
+        # ── Job card ──────────────────────────────────────────────────────────
+        def _score_cls(s):
+            return "jh-score-hi" if s >= 80 else "jh-score-md" if s >= 60 else "jh-score-lo"
+
+        def _src_cls(source):
+            return "src-" + source.replace(" ", "-").replace(".", "-")
 
         def render_job_card(sj, idx, section):
-            score     = sj.score
-            color     = "score-high" if score >= 80 else "score-medium" if score >= 60 else "score-low"
-            src_class = {
-                "Remotive":       "src-remotive",
-                "Arbeitnow":      "src-arbeitnow",
-                "WeWorkRemotely": "src-wwr",
-                "Himalayas":      "src-himalayas",
-                "GetOnBoard":     "src-wwr",
-                "LatoJobs":       "src-arbeitnow",
-                "PuenteTalent":   "src-himalayas",
-                "Jobicy":         "src-remotive",
-                "LinkedInBrowser": "src-himalayas",
-                "BumeranBrowser":  "src-arbeitnow",
-                "ComputrabajoBrowser": "src-remotive",
-                "IndeedBrowser":   "src-wwr",
-            }.get(sj.job.source, "src-remotive")
+            score = sj.score
+            sc    = _score_cls(score)
+            src   = _src_cls(sj.job.source)
+            import html as _html
 
-            with st.expander(f"{score}/100 — {sj.job.title}  @  {sj.job.company}", expanded=(idx == 0)):
-                header_col, link_col = st.columns([3, 1])
-                with header_col:
+            # Card header HTML
+            badges = (
+                f'<span class="jh-score {sc}">{score}/100</span> '
+                f'<span class="jh-src {src}">{sj.job.source}</span>'
+            )
+            if getattr(sj.job, "remote", False):
+                badges += ' <span class="jh-tag jh-tag-green" style="height:20px;font-size:11px;">Remota</span>'
+            if getattr(sj.job, "location", "") and not getattr(sj.job, "remote", False):
+                loc = _html.escape(sj.job.location[:30])
+                badges += f' <span class="jh-tag jh-tag-gray" style="height:20px;font-size:11px;">{loc}</span>'
+
+            label = f"{score}/100 — {sj.job.title} @ {sj.job.company}"
+            with st.expander(label, expanded=(idx == 0)):
+                # Row: badges + link button
+                hcol, lcol = st.columns([4, 1])
+                with hcol:
                     st.markdown(
-                        f'<span class="score-badge {color}">{score}/100</span> '
-                        f'<span class="source-badge {src_class}">{sj.job.source}</span>',
+                        f'<div class="jh-job-badges">{badges}</div>'
+                        f'<div class="jh-job-title">{_html.escape(sj.job.title)}</div>'
+                        f'<div class="jh-job-co">{_html.escape(sj.job.company)}</div>',
                         unsafe_allow_html=True,
                     )
-                    if sj.summary:
-                        st.caption(sj.summary)
-                with link_col:
+                with lcol:
                     if sj.job.url:
-                        st.link_button("Abrir oferta", sj.job.url, use_container_width=True)
+                        st.link_button("Ver oferta →", sj.job.url, use_container_width=True)
 
+                # Summary
+                if sj.summary:
+                    st.markdown(
+                        f'<div class="jh-job-summary">{_html.escape(sj.summary)}</div>',
+                        unsafe_allow_html=True,
+                    )
+
+                st.markdown('<div style="height:.6rem;"></div>', unsafe_allow_html=True)
+
+                # Match reasons / missing skills
                 r1, r2 = st.columns(2)
                 with r1:
-                    st.markdown("**✅ Por qué encaja con tu perfil**")
-                    for reason in sj.match_reasons:
-                        st.markdown(f"- {reason}")
+                    st.markdown('<div class="jh-col-lbl">Por qué encaja</div>', unsafe_allow_html=True)
+                    if sj.match_reasons:
+                        for reason in sj.match_reasons:
+                            st.markdown(
+                                f'<div class="jh-reason">{_html.escape(reason)}</div>',
+                                unsafe_allow_html=True,
+                            )
+                    else:
+                        st.markdown('<span style="font-size:13px;color:var(--t3)">Sin razones calculadas.</span>', unsafe_allow_html=True)
                 with r2:
-                    st.markdown("**⚠️ Lo que podría faltar**")
+                    st.markdown('<div class="jh-col-lbl">Lo que podría faltar</div>', unsafe_allow_html=True)
                     if sj.missing_skills:
                         for skill in sj.missing_skills:
-                            st.markdown(f"- {skill}")
+                            st.markdown(
+                                f'<div class="jh-reason jh-skill">{_html.escape(skill)}</div>',
+                                unsafe_allow_html=True,
+                            )
                     else:
-                        st.markdown("- Sin faltantes críticos")
+                        st.markdown('<span style="font-size:13px;color:var(--t3)">Sin faltantes críticos.</span>', unsafe_allow_html=True)
 
+                # Cover letter
                 if sj.cover_letter:
-                    st.markdown("**📝 Carta generada**")
-                    st.markdown(f'<div class="cover-letter-box">{sj.cover_letter}</div>', unsafe_allow_html=True)
-                    st.download_button(
-                        "⬇ Descargar carta",
-                        data=sj.cover_letter,
-                        file_name=f"cover_{sj.job.company.replace(' ', '_')}_{sj.job.title[:20].replace(' ', '_')}.txt",
-                        mime="text/plain",
-                        key=f"dl_{section}_{sj.job.id}_{idx}",
-                    )
+                    st.markdown('<div style="height:.5rem;"></div>', unsafe_allow_html=True)
+                    with st.expander("Carta de presentación generada"):
+                        st.markdown(
+                            f'<div class="jh-letter">{_html.escape(sj.cover_letter)}</div>',
+                            unsafe_allow_html=True,
+                        )
+                        st.download_button(
+                            "Descargar carta (.txt)",
+                            data=sj.cover_letter,
+                            file_name=f"cover_{sj.job.company.replace(' ','_')}_{sj.job.title[:20].replace(' ','_')}.txt",
+                            mime="text/plain",
+                            key=f"dl_{section}_{sj.job.id}_{idx}",
+                        )
 
         PAGE_SIZE = 15
 
@@ -1263,8 +1962,8 @@ if st.session_state.search_done and st.session_state.scored_jobs:
                         st.rerun()
 
         top_tab, all_tab = st.tabs([
-            f"🔥 Recomendadas ({len(_top)})",
-            f"📋 Todas ({len(_scored)})",
+            f"Recomendadas  {len(_top)}",
+            f"Todas  {len(_scored)}",
         ])
         with top_tab:
             if _top:
