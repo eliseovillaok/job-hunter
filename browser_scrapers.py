@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Callable
 from urllib.parse import quote_plus
 
+import scrapers
 from scrapers import JobPosting
 
 log = logging.getLogger(__name__)
@@ -61,10 +62,7 @@ def _normalize_text(value: str) -> str:
 
 
 def _matches_keywords(keywords: list[str], *parts: str) -> bool:
-    if not keywords:
-        return True
-    haystack = " ".join(_normalize_text(p) for p in parts if p).lower()
-    return any(kw.lower() in haystack for kw in keywords)
+    return scrapers.matches_keywords(keywords, *(_normalize_text(p) for p in parts if p))
 
 
 def _is_location_like(text: str) -> bool:

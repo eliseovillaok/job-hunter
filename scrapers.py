@@ -14,6 +14,7 @@ scrapers.py — Fuentes de trabajo con APIs públicas (sin auth requerida)
 - Authentic Jobs: RSS feed, EEUU + global
 """
 
+import functools
 import requests
 import feedparser
 import time
@@ -24,7 +25,6 @@ import re
 from dataclasses import dataclass, field
 from typing import Optional
 import config
-from config import SEARCH_KEYWORDS
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger(__name__)
@@ -41,12 +41,28 @@ def _strip_html(raw_html: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
-def _matches_keywords(keywords: list[str], *parts: str) -> bool:
-    """Client-side keyword filter for sources without server-side search."""
+DESCRIPTION_LIMIT = 3000
+
+
+def _clean_desc(raw: str) -> str:
+    """Limpia HTML ANTES de truncar: si no, el límite se gasta en tags y se pierden requisitos."""
+    return _strip_html(raw or "")[:DESCRIPTION_LIMIT]
+
+
+@functools.lru_cache(maxsize=512)
+def _keyword_pattern(keyword: str) -> re.Pattern:
+    # Palabra completa: "java" no matchea "javascript", "go" no matchea "google".
+    # Lookarounds en vez de \b para soportar keywords como "c++", "c#" o "node.js".
+    return re.compile(r"(?<!\w)" + re.escape(keyword.strip().lower()) + r"(?!\w)")
+
+
+def matches_keywords(keywords: list[str], *parts: str) -> bool:
+    """Filtro client-side para fuentes sin búsqueda del lado del servidor."""
+    keywords = [k for k in keywords if k and k.strip()]
     if not keywords:
         return True
     haystack = " ".join(p for p in parts if p).lower()
-    return any(kw.lower() in haystack for kw in keywords)
+    return any(_keyword_pattern(kw).search(haystack) for kw in keywords)
 
 
 def _extract_json_ld_objects(page_html: str) -> list[dict]:
@@ -134,7 +150,7 @@ def scrape_remotive(keywords: list[str], max_results: int = 0) -> list[JobPostin
                     id=jid,
                     title=item.get("title", ""),
                     company=item.get("company_name", ""),
-                    description=item.get("description", "")[:3000],
+                    description=_clean_desc(item.get("description", "")),
                     location=item.get("candidate_required_location", "Worldwide"),
                     remote=True,
                     url=item.get("url", ""),
@@ -200,7 +216,7 @@ def scrape_arbeitnow(keywords: list[str], max_results: int = 0) -> list[JobPosti
                         id=jid,
                         title=item.get("title", ""),
                         company=item.get("company_name", ""),
-                        description=item.get("description", "")[:3000],
+                        description=_clean_desc(item.get("description", "")),
                         location=item.get("location", "Remote"),
                         remote=is_remote,
                         url=item.get("url", ""),
@@ -223,7 +239,6 @@ def scrape_arbeitnow(keywords: list[str], max_results: int = 0) -> list[JobPosti
 def scrape_weworkremotely(keywords: list[str], max_results: int = 0) -> list[JobPosting]:
     jobs = []
     seen = set()
-    kw_lower = [k.lower() for k in keywords]
 
     try:
         feed = _parse_feed("https://weworkremotely.com/remote-jobs.rss")
@@ -236,7 +251,7 @@ def scrape_weworkremotely(keywords: list[str], max_results: int = 0) -> list[Job
             title_raw = entry.get("title", "")
             summary   = entry.get("summary", "")
             text      = f"{title_raw} {summary}".lower()
-            if keywords and not any(kw in text for kw in kw_lower):
+            if not matches_keywords(keywords, text):
                 continue
 
             jid = f"wwr-{entry.get('id', entry.get('link',''))[:50]}"
@@ -253,7 +268,7 @@ def scrape_weworkremotely(keywords: list[str], max_results: int = 0) -> list[Job
                 id=jid,
                 title=title,
                 company=company,
-                description=summary[:3000],
+                description=_clean_desc(summary),
                 location="Remote",
                 remote=True,
                 url=entry.get("link", ""),
@@ -300,7 +315,7 @@ def scrape_himalayas(keywords: list[str], max_results: int = 0) -> list[JobPosti
                     id=jid,
                     title=item.get("title", ""),
                     company=item.get("companyName", ""),
-                    description=(item.get("description", "") or "")[:3000],
+                    description=_clean_desc((item.get("description", "") or "")),
                     location="Remote",
                     remote=True,
                     url=f"https://himalayas.app/jobs/{item.get('slug', '')}",
@@ -323,7 +338,6 @@ def scrape_himalayas(keywords: list[str], max_results: int = 0) -> list[JobPosti
 def scrape_remoteok(keywords: list[str], max_results: int = 0) -> list[JobPosting]:
     jobs = []
     seen = set()
-    kw_lower = [k.lower() for k in keywords]
 
     try:
         resp = requests.get(
@@ -346,7 +360,7 @@ def scrape_remoteok(keywords: list[str], max_results: int = 0) -> list[JobPostin
                 " ".join(item.get("tags", [])),
                 item.get("description", ""),
             ]).lower()
-            if not any(kw in text for kw in kw_lower):
+            if not matches_keywords(keywords, text):
                 continue
 
             jid = f"rok-{item.get('id', item.get('slug', ''))}"
@@ -358,7 +372,7 @@ def scrape_remoteok(keywords: list[str], max_results: int = 0) -> list[JobPostin
                 id=jid,
                 title=item.get("position", ""),
                 company=item.get("company", ""),
-                description=(item.get("description", "") or "")[:3000],
+                description=_clean_desc((item.get("description", "") or "")),
                 location=item.get("location", "Remote"),
                 remote=True,
                 url=item.get("url", f"https://remoteok.com/remote-jobs/{item.get('slug', '')}"),
@@ -412,7 +426,7 @@ def scrape_jobicy(keywords: list[str], max_results: int = 0) -> list[JobPosting]
                     id=jid,
                     title=item.get("jobTitle", ""),
                     company=item.get("companyName", ""),
-                    description=(item.get("jobDescription", "") or "")[:3000],
+                    description=_clean_desc((item.get("jobDescription", "") or "")),
                     location=item.get("jobGeo", "Remote"),
                     remote=True,
                     url=item.get("url", ""),
@@ -485,7 +499,7 @@ def scrape_getonboard(keywords: list[str], max_results: int = 0) -> list[JobPost
                 location = _strip_html(location_match.group(1)) if location_match else "Not specified"
                 description = html.unescape(desc_match.group(1)) if desc_match else ""
 
-                if not _matches_keywords(keywords, title, company, location, description, category):
+                if not matches_keywords(keywords, title, company, location, description, category):
                     continue
 
                 remote = "remote" in location.lower() or "work from home" in page_html.lower()
@@ -497,7 +511,7 @@ def scrape_getonboard(keywords: list[str], max_results: int = 0) -> list[JobPost
                     id=jid,
                     title=title,
                     company=company,
-                    description=description[:3000],
+                    description=_clean_desc(description),
                     location=location,
                     remote=remote,
                     url=url,
@@ -561,7 +575,7 @@ def scrape_puente(keywords: list[str], max_results: int = 0) -> list[JobPosting]
             url = job.get("url", entry.get("url", ""))
             jid = f"pnt-{job.get('identifier', {}).get('value', title)[:40]}"
 
-            if jid in seen or not _matches_keywords(keywords, title, description, location):
+            if jid in seen or not matches_keywords(keywords, title, description, location):
                 continue
 
             remote = job.get("jobLocationType") == "TELECOMMUTE" or "remote" in description.lower()
@@ -573,7 +587,7 @@ def scrape_puente(keywords: list[str], max_results: int = 0) -> list[JobPosting]
                 id=jid,
                 title=title,
                 company=company,
-                description=description[:3000],
+                description=_clean_desc(description),
                 location=location,
                 remote=remote,
                 url=url,
@@ -645,7 +659,7 @@ def scrape_latojobs(keywords: list[str], max_results: int = 0) -> list[JobPostin
                 if not location:
                     location = "Remote" if job.get("jobLocationType") == "TELECOMMUTE" else "Not specified"
 
-                if not _matches_keywords(keywords, title, company, description, location):
+                if not matches_keywords(keywords, title, company, description, location):
                     continue
 
                 remote = (
@@ -661,7 +675,7 @@ def scrape_latojobs(keywords: list[str], max_results: int = 0) -> list[JobPostin
                     id=jid,
                     title=title,
                     company=company,
-                    description=description[:3000],
+                    description=_clean_desc(description),
                     location=location,
                     remote=remote,
                     url=url,
@@ -686,7 +700,6 @@ def scrape_latojobs(keywords: list[str], max_results: int = 0) -> list[JobPostin
 def scrape_workingnomads(keywords: list[str], max_results: int = 0) -> list[JobPosting]:
     jobs = []
     seen = set()
-    kw_lower = [k.lower() for k in keywords]
 
     try:
         resp = requests.get(
@@ -701,7 +714,7 @@ def scrape_workingnomads(keywords: list[str], max_results: int = 0) -> list[JobP
             if max_results > 0 and len(jobs) >= max_results:
                 break
             text = f"{item.get('title', '')} {item.get('description', '')} {item.get('tags', '')}".lower()
-            if keywords and not any(kw in text for kw in kw_lower):
+            if not matches_keywords(keywords, text):
                 continue
 
             jid = f"wn-{item.get('id', item.get('slug', ''))}"
@@ -713,7 +726,7 @@ def scrape_workingnomads(keywords: list[str], max_results: int = 0) -> list[JobP
                 id=jid,
                 title=item.get("title", ""),
                 company=item.get("company_name", ""),
-                description=(item.get("description", "") or "")[:3000],
+                description=_clean_desc((item.get("description", "") or "")),
                 location=item.get("location", "Remote"),
                 remote=True,
                 url=item.get("url", ""),
@@ -736,7 +749,6 @@ def scrape_workingnomads(keywords: list[str], max_results: int = 0) -> list[JobP
 def scrape_themuse(keywords: list[str], max_results: int = 0) -> list[JobPosting]:
     jobs = []
     seen = set()
-    kw_lower = [k.lower() for k in keywords]
     pages_to_fetch = 5
 
     for page in range(1, pages_to_fetch + 1):
@@ -761,7 +773,7 @@ def scrape_themuse(keywords: list[str], max_results: int = 0) -> list[JobPosting
                 contents = item.get("contents", "")
                 company = item.get("company", {}).get("name", "")
                 text = f"{name} {contents} {company}".lower()
-                if keywords and not any(kw in text for kw in kw_lower):
+                if not matches_keywords(keywords, text):
                     continue
 
                 jid = f"muse-{item.get('id', '')}"
@@ -777,7 +789,7 @@ def scrape_themuse(keywords: list[str], max_results: int = 0) -> list[JobPosting
                     id=jid,
                     title=name,
                     company=company,
-                    description=contents[:3000],
+                    description=_clean_desc(contents),
                     location=location,
                     remote=is_remote,
                     url=item.get("refs", {}).get("landing_page", ""),
@@ -799,7 +811,6 @@ def scrape_themuse(keywords: list[str], max_results: int = 0) -> list[JobPosting
 def scrape_remoteco(keywords: list[str], max_results: int = 0) -> list[JobPosting]:
     jobs = []
     seen = set()
-    kw_lower = [k.lower() for k in keywords]
 
     try:
         feed = _parse_feed("https://remote.co/feed/")
@@ -812,7 +823,7 @@ def scrape_remoteco(keywords: list[str], max_results: int = 0) -> list[JobPostin
             title_raw = entry.get("title", "")
             summary   = entry.get("summary", "")
             text      = f"{title_raw} {summary}".lower()
-            if keywords and not any(kw in text for kw in kw_lower):
+            if not matches_keywords(keywords, text):
                 continue
 
             jid = f"rco-{entry.get('id', entry.get('link', ''))[:60]}"
@@ -829,7 +840,7 @@ def scrape_remoteco(keywords: list[str], max_results: int = 0) -> list[JobPostin
                 id=jid,
                 title=title,
                 company=company,
-                description=summary[:3000],
+                description=_clean_desc(summary),
                 location="Remote",
                 remote=True,
                 url=entry.get("link", ""),
@@ -867,7 +878,7 @@ def scrape_jobspresso(max_results: int = 0) -> list[JobPosting]:
                 id=jid,
                 title=entry.get("title", ""),
                 company=entry.get("author", ""),
-                description=entry.get("summary", "")[:3000],
+                description=_clean_desc(entry.get("summary", "")),
                 location="Remote",
                 remote=True,
                 url=entry.get("link", ""),
@@ -887,7 +898,6 @@ def scrape_jobspresso(max_results: int = 0) -> list[JobPosting]:
 def scrape_justjoinit(keywords: list[str], max_results: int = 0) -> list[JobPosting]:
     jobs = []
     seen = set()
-    kw_lower = [k.lower() for k in keywords]
 
     try:
         resp = requests.get(
@@ -903,7 +913,7 @@ def scrape_justjoinit(keywords: list[str], max_results: int = 0) -> list[JobPost
                 break
             skills = " ".join(s.get("name", "") for s in item.get("skills", []))
             text = f"{item.get('title', '')} {item.get('marker_icon', '')} {skills}".lower()
-            if keywords and not any(kw in text for kw in kw_lower):
+            if not matches_keywords(keywords, text):
                 continue
 
             jid = f"jji-{item.get('id', '')}"
@@ -916,7 +926,7 @@ def scrape_justjoinit(keywords: list[str], max_results: int = 0) -> list[JobPost
                 id=jid,
                 title=item.get("title", ""),
                 company=item.get("company_name", ""),
-                description=f"{item.get('body', '') or ''}".strip()[:3000],
+                description=_clean_desc(f"{item.get('body', '') or ''}".strip()),
                 location=item.get("city", "Remote") or "Remote",
                 remote=is_remote,
                 url=f"https://justjoin.it/offers/{item.get('id', '')}",
@@ -959,7 +969,7 @@ def scrape_authenticjobs(max_results: int = 0) -> list[JobPosting]:
                 id=jid,
                 title=entry.get("title", ""),
                 company=entry.get("author", ""),
-                description=entry.get("summary", "")[:3000],
+                description=_clean_desc(entry.get("summary", "")),
                 location="Remote",
                 remote=True,
                 url=entry.get("link", ""),
@@ -994,7 +1004,7 @@ def get_all_jobs() -> list[JobPosting]:
     for name, fn in keyword_sources:
         log.info(f"--- {name} ---")
         try:
-            jobs = fn(SEARCH_KEYWORDS)
+            jobs = fn(config.SEARCH_KEYWORDS)
             for job in jobs:
                 key = f"{job.title.lower()[:40]}|{job.company.lower()[:30]}"
                 if key not in seen_global:
@@ -1006,7 +1016,7 @@ def get_all_jobs() -> list[JobPosting]:
     # WeWorkRemotely (sin keywords, categorías fijas)
     log.info("--- WeWorkRemotely ---")
     try:
-        jobs = scrape_weworkremotely(SEARCH_KEYWORDS)
+        jobs = scrape_weworkremotely(config.SEARCH_KEYWORDS)
         for job in jobs:
             key = f"{job.title.lower()[:40]}|{job.company.lower()[:30]}"
             if key not in seen_global:
