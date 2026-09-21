@@ -54,7 +54,7 @@ Los portales son dependencias poco confiables: HTML y APIs cambian, hay rate lim
 - Un portal que falla **nunca** rompe la corrida (try/except por portal, log y seguir). Timeouts explícitos, respetar `max_results`, deduplicar por `title|company`.
 
 ## Reglas duras de seguridad
-1. **Nunca commitear secretos ni datos de usuarios**: API keys, app passwords, tokens, `.browser_profiles/`, `results/`, CVs, `*.log`. Revisar `git status` antes de cada commit.
+1. **Nunca commitear secretos ni datos de usuarios**: API keys, app passwords, tokens, perfiles de navegador, `results/`, CVs, `*.log`. Revisar `git status` antes de cada commit. Los perfiles de Playwright viven fuera del repo (`~/.job-hunter/browser_profiles`), nunca dentro. Nunca embeber tokens en la URL del remote.
 2. **Sin estado global por usuario.** En Streamlit Cloud el proceso es compartido: no escribir API keys ni perfiles en `os.environ`, `config.*` ni variables de módulo. Pasar la configuración por sesión (parámetros u objeto `RunConfig`).
 3. **XSS**: todo contenido externo (ofertas, salida del LLM, CV) que se renderice con `unsafe_allow_html=True` pasa por `html.escape`.
 4. **Prompt injection**: las descripciones de ofertas y los CVs son datos no confiables. Nunca deben poder alterar instrucciones ni disparar acciones.
@@ -75,14 +75,19 @@ Los portales son dependencias poco confiables: HTML y APIs cambian, hay rate lim
 
 No hay base de datos ni API propia todavía. Cuando existan: migraciones sin cambios destructivos y contratos estables (cualquier cambio de contrato se explica y se confirma).
 
-## Comandos
-```bash
-python -m venv venv && venv\Scripts\activate      # Windows
-pip install -r requirements.txt
-python -m playwright install chromium               # solo local, para portales con login
-streamlit run app.py                                # app principal
-python main.py --dry-run                            # CLI
+## Entorno y comandos
+Desarrollo **solo en Windows + PowerShell** (no WSL: mezclar ambos genera ruido de CRLF y hooks rotos). `.gitattributes` fuerza LF.
+```powershell
+py -3.12 -m venv venv; .\venv\Scripts\Activate.ps1
+pip install -r requirements.txt -r requirements-dev.txt
+python -m playwright install chromium      # portales con login (solo local)
+pre-commit install                         # gitleaks en cada commit
+streamlit run app.py                       # app principal
+python main.py --dry-run                   # CLI
+python browser_login.py linkedin           # guarda sesión en ~/.job-hunter/browser_profiles
 ```
+`requirements.txt` = runtime (lo instala Streamlit Cloud); `requirements-dev.txt` = tooling local.
+Si gitleaks frena un commit: sacar el secreto, nunca saltear el hook con `--no-verify`.
 Tests: todavía no hay. Usar `pytest` en `tests/`, con fixtures de HTML/JSON grabados (nunca red real) y deterministas. Priorizar: parsing de scrapers, normalización, parseo de la respuesta del LLM (`_parse_json`) y lógica de scoring y filtrado. Nada de tests solo para subir la cobertura.
 
 ## Convenciones

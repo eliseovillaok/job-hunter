@@ -1,0 +1,6 @@
+# LF en el repo y en la copia de trabajo, en cualquier OS (Streamlit Cloud corre en Linux)
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.pdf binary
+*.docx binary

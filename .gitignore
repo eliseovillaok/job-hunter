@@ -1,5 +1,5 @@
 # Entornos y caches
-venv/
+venv*/
 .venv/
 __pycache__/
 *.pyc

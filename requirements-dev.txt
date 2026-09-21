@@ -1,0 +1,2 @@
+# Herramientas de desarrollo — no se instalan en Streamlit Cloud
+pre-commit>=4.0
