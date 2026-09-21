@@ -246,7 +246,7 @@ python browser_login.py computrabajo
 python browser_login.py indeed
 ```
 
-Esto abre una ventana real de Chromium. Iniciá sesión manualmente en esa ventana (usuario + contraseña, verificación de dos pasos si aplica). Cuando termines, volvé a la terminal y presioná `Enter`. La sesión queda guardada en `.browser_profiles/`.
+Esto abre una ventana real de Chromium. Iniciá sesión manualmente en esa ventana (usuario + contraseña, verificación de dos pasos si aplica). Cuando termines, volvé a la terminal y presioná `Enter`. La sesión queda guardada en `~/.job-hunter/browser_profiles/`, fuera del repo, para que las cookies nunca se commiteen.
 
 #### Paso 3 — Activar en la app
 

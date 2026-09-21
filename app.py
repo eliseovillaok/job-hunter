@@ -10,6 +10,8 @@ import os
 from datetime import datetime
 from pathlib import Path
 
+from browser_scrapers import default_profile_dir
+
 # ─── Detección de entorno ─────────────────────────────────────────────────────
 # Streamlit Cloud setea la variable STREAMLIT_SHARING_MODE o bien corre dentro
 # de un contenedor sin Playwright instalado. Detectamos ambas condiciones.
@@ -1087,7 +1089,7 @@ _defaults = {
     "use_bumeran_browser":       False,
     "use_computrabajo_browser":  False,
     "use_indeed_browser":        False,
-    "browser_profile_dir":       str(Path(".browser_profiles").resolve()),
+    "browser_profile_dir":       default_profile_dir(),
     "use_workingnomads":  True,
     "use_themuse":        True,
     "use_remoteco":       True,

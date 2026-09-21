@@ -52,7 +52,8 @@ def playwright_ready() -> tuple[bool, str]:
 
 
 def default_profile_dir() -> str:
-    return str(Path(".browser_profiles").resolve())
+    # Fuera del repo: el perfil contiene cookies de sesión y no debe poder commitearse.
+    return str(Path.home() / ".job-hunter" / "browser_profiles")
 
 
 def _normalize_text(value: str) -> str:

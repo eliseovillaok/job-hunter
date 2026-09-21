@@ -3,7 +3,9 @@ browser_login.py — Abre una sesión persistente para portales con login.
 
 Uso:
     python browser_login.py linkedin
-    python browser_login.py bumeran --profile-dir .browser_profiles
+    python browser_login.py bumeran --profile-dir C:/otra/carpeta
+
+Por defecto la sesión se guarda en ~/.job-hunter/browser_profiles (fuera del repo).
 """
 
 from __future__ import annotations
