@@ -1764,6 +1764,11 @@ def _parse_lang_label(label: str) -> cand.Language:
     return cand.Language(language=m.group(1).strip(), level=m.group(2).strip()) if m else cand.Language(label.strip())
 
 
+def _uniq(items) -> list[str]:
+    """Sin duplicados (multiselect falla con opciones repetidas), respetando el orden."""
+    return list(dict.fromkeys(i for i in items if i))
+
+
 def _render_profile_editor(p: CandidateProfile) -> CandidateProfile:
     """Perfil extraído del CV, editable. Lo que la IA no encontró queda como 'no especificado'."""
     st.markdown(_t("prof_title"))
@@ -1771,7 +1776,7 @@ def _render_profile_editor(p: CandidateProfile) -> CandidateProfile:
     p.summary = st.text_area(_t("prof_summary"), value=p.summary, height=90)
     c1, c2 = st.columns(2)
     with c1:
-        p.target_roles = st.multiselect(_t("prof_roles"), options=p.target_roles, default=p.target_roles,
+        p.target_roles = st.multiselect(_t("prof_roles"), options=_uniq(p.target_roles), default=_uniq(p.target_roles),
                                         accept_new_options=True, help=_t("prof_roles_help"))
         p.seniority = st.selectbox(_t("prof_seniority"), SENIORITY_LEVELS,
                                    index=SENIORITY_LEVELS.index(p.seniority),
@@ -1782,11 +1787,11 @@ def _render_profile_editor(p: CandidateProfile) -> CandidateProfile:
         loc = st.text_input(_t("prof_location"), value="" if p.location == cand.UNKNOWN else p.location,
                             placeholder=_t("prof_unknown"))
         p.location = loc.strip() or cand.UNKNOWN
-        lang_labels = [_lang_label(l) for l in p.languages]
+        lang_labels = _uniq(_lang_label(l) for l in p.languages)
         chosen = st.multiselect(_t("prof_languages"), options=lang_labels, default=lang_labels,
                                 accept_new_options=True, help=_t("prof_languages_help"))
         p.languages = [_parse_lang_label(x) for x in chosen]
-    skill_names = [s.name for s in p.skills]
+    skill_names = _uniq(s.name for s in p.skills)
     kept = st.multiselect(_t("prof_skills"), options=skill_names, default=skill_names, accept_new_options=True)
     by_name = {s.name: s for s in p.skills}
     p.skills = [by_name.get(n) or cand.Skill(name=n, evidence=_t("prof_added_by_user")) for n in kept]
