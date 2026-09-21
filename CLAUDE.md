@@ -45,8 +45,8 @@ Si una ambigüedad afecta el comportamiento del producto: presentar las alternat
 ## IA, CV y matching
 - **Lo que genera la IA es potencialmente incorrecto.** Nunca presentar una inferencia como un hecho. En datos y UI, separar la **fuente original** (texto del CV o de la oferta) de la **interpretación de la IA**, y conservar el original.
 - **El CV es la fuente de verdad.** No inventar ni "mejorar" experiencia, tecnologías, cargos, estudios, certificaciones, idiomas, años o seniority. Si el CV dice "experiencia con servicios de AWS", no se deduce "EC2, S3, Lambda". Si algo es ambiguo, se deja ambiguo o se pregunta al usuario. Si falta un dato, va "desconocido".
-- Los prompts de `ai_engine.py` y `_analyze_cv` en `app.py` ya aplican estas reglas (anti-inflado de seniority, verbos del CV tal cual). **No relajarlas**; mantener la salida JSON y el manejo de `quota_exceeded`.
-- **El matching debe poder explicarse**: cada score viene con `match_reasons` y `missing_skills`. Las bandas vigentes (80–100 fuerte, 60–79 sólido, 40–59 parcial, 0–39 débil) están definidas en el prompt de `score_job`. Cambiar factores o bandas requiere documentarlo y mi OK. Evitar que el número transmita una precisión falsa.
+- Los prompts de `candidate.py` (extracción del CV) y `matching.py` (evaluación) ya aplican estas reglas (anti-inflado de seniority, verbos del CV tal cual). **No relajarlas**; mantener la salida JSON con esquema, temperatura 0 y el manejo de `QuotaExceeded` / `AuthError`.
+- **El matching debe poder explicarse**: cada score viene con `match_reasons` y `missing_skills`. El LLM puntúa 5 factores con evidencia y **el código** calcula el total con pesos fijos (`matching.WEIGHTS`). Factores, pesos, bandas y reglas están en [docs/scoring.md](docs/scoring.md): cambiarlos requiere actualizar ese doc y mi OK, y correr el eval antes y después. Evitar que el número transmita una precisión falsa.
 
 ## Fuentes externas
 Los portales son dependencias poco confiables: HTML y APIs cambian, hay rate limits, caídas, duplicados y datos incompletos.
@@ -65,13 +65,18 @@ Los portales son dependencias poco confiables: HTML y APIs cambian, hay rate lim
 ## Mapa del código
 | Archivo | Rol |
 |---|---|
-| `app.py` (~2.8k líneas) | UI Streamlit: CSS design system, i18n ES/EN (`TRANSLATIONS` + `_t()`), wizard, análisis de CV, pipeline de búsqueda, resultados paginados |
+| `app.py` (~2.9k líneas) | UI Streamlit: CSS design system, i18n ES/EN (`TRANSLATIONS` + `_t()`), wizard (CV → perfil editable → filtros), orquestación de la búsqueda, resultados con desglose |
 | `scrapers.py` | Scrapers HTTP/RSS sin auth. Firma: `scrape_x(keywords, max_results=0) -> list[JobPosting]` |
 | `browser_scrapers.py` | Portales con login vía Playwright (LinkedIn, Bumeran, Computrabajo, Indeed), registrados en `PORTALS` |
 | `browser_login.py` | Guarda una sesión persistente: `python browser_login.py linkedin` |
-| `ai_engine.py` | `score_job`, `generate_cover_letter`, `process_jobs`, `ScoredJob` |
+| `ai_engine.py` | Acceso a Gemini: `generate_json` (JSON con esquema, temperatura 0), `embed`, `generate_cover_letter`, `ScoredJob`, errores `QuotaExceeded`/`AuthError` |
+| `candidate.py` | `CandidateProfile` estructurado con evidencia, `extract_profile` (CV → perfil + términos de búsqueda ES/EN), `cv_contents` |
+| `normalize.py` | Sin IA: idioma, seniority y modalidad de cada oferta, y deduplicación entre portales |
+| `matching.py` | Filtros duros (`SearchPreferences`), pre-ranking con embeddings, evaluación por lotes y `compute_score`. `match_jobs` es el pipeline único (app, CLI y eval) |
+| `eval/` | Perfiles y ofertas ficticios + `python -m eval.run`: métricas por profesión para detectar sesgos |
+| `tests/` | pytest sin red ni IA (corre en GitHub Actions) |
 | `notifier.py` | Digest HTML por SMTP (Gmail) |
-| `main.py` | CLI headless (`--dry-run`, `--no-email`) |
+| `main.py` | CLI headless (`--cv`, `--top-n`, `--dry-run`, `--no-email`) |
 | `config.py` | Globals de configuración (el wizard los sobreescribe; ver deuda) |
 
 No hay base de datos ni API propia todavía. Cuando existan: migraciones sin cambios destructivos y contratos estables (cualquier cambio de contrato se explica y se confirma).
@@ -89,7 +94,8 @@ python browser_login.py linkedin           # guarda sesión en ~/.job-hunter/bro
 ```
 `requirements.txt` = runtime (lo instala Streamlit Cloud); `requirements-dev.txt` = tooling local.
 Si gitleaks frena un commit: sacar el secreto, nunca saltear el hook con `--no-verify`.
-Tests: todavía no hay. Usar `pytest` en `tests/`, con fixtures de HTML/JSON grabados (nunca red real) y deterministas. Priorizar: parsing de scrapers, normalización, parseo de la respuesta del LLM (`_parse_json`) y lógica de scoring y filtrado. Nada de tests solo para subir la cobertura.
+Tests: `pytest -q` (sin red ni IA; el LLM se reemplaza con un `generate` falso). Priorizar normalización, filtros, parseo de respuestas del LLM y scoring. Nada de tests solo para subir la cobertura.
+Eval con Gemini real (a mano, consume cuota): `python -m eval.run` — lee `GEMINI_API_KEY` de `.env`. Correrlo antes y después de tocar prompts, pesos o normalización.
 
 ## Convenciones
 - Todo texto visible va por `_t()`, con clave en ES **y** EN.
@@ -99,9 +105,7 @@ Tests: todavía no hay. Usar `pytest` en `tests/`, con fixtures de HTML/JSON gra
 
 ## Deuda conocida (no empeorarla; atacarla solo con OK)
 - `app.py` monolítico (CSS + i18n + wizard + pipeline).
-- Pipeline duplicado entre `app.py` y `scrapers.get_all_jobs()`/`main.py`, con una cadena de `elif` por portal.
-- CLI sin perfil: `main.py` usa `config.CANDIDATE_PROFILE`, que está vacío (el perfil sale del wizard).
-- Scoring secuencial: una request al LLM por oferta, sin caché.
-- `config.ONLY_REMOTE` sigue siendo global compartido entre sesiones (no sensible, pero hay que pasarlo por parámetro).
+- Scraping duplicado entre `app.py` (cadena de `elif` por portal) y `scrapers.get_all_jobs()`. El matching ya es único (`matching.match_jobs`).
+- Sin caché de evaluaciones: repetir una búsqueda vuelve a evaluar las mismas ofertas.
 - Scraper de GetOnBoard: una request por oferta, secuencial (~90 s para 8 ofertas). Migrar a su API pública.
 - `.devcontainer` corre `main.py` con XSRF/CORS deshabilitados.

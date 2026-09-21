@@ -19,3 +19,6 @@ user_prefs.json
 *.sqlite
 *.pdf
 *.docx
+
+# Reportes locales del eval
+eval/reports/
