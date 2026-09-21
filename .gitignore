@@ -1,6 +1,21 @@
+# Entornos y caches
 venv/
-.codex
-.codex/
-results/
+.venv/
 __pycache__/
+*.pyc
+.codex/
+
+# Secretos
+.env
+.env.*
+.streamlit/secrets.toml
+
+# Datos del usuario — nunca versionar
+.browser_profiles/
+results/
 user_prefs.json
+*.log
+*.db
+*.sqlite
+*.pdf
+*.docx
