@@ -116,6 +116,10 @@ class JobPosting:
     published_at: Optional[str] = None
     salary: Optional[str] = None
     tags: list = field(default_factory=list)
+    # Completados por normalize.enrich() — "unknown" cuando no se puede determinar.
+    language: str = "unknown"    # código ISO: es, en, pt, de, fr
+    seniority: str = "unknown"   # intern | junior | mid | senior | lead
+    modality: str = "unknown"    # remote | hybrid | onsite
 
 
 # =============================================================================
@@ -143,6 +147,10 @@ def scrape_remotive(keywords: list[str], max_results: int = 0) -> list[JobPostin
                     break
                 jid = f"rem-{item.get('id', '')}"
                 if jid in seen:
+                    continue
+                # La búsqueda de Remotive es difusa (devuelve ofertas que no mencionan el término).
+                if not matches_keywords([keyword], item.get("title", ""), _strip_html(item.get("description", "")),
+                                        " ".join(item.get("tags", []))):
                     continue
                 seen.add(jid)
 
@@ -186,7 +194,6 @@ def scrape_arbeitnow(keywords: list[str], max_results: int = 0) -> list[JobPosti
                     "https://www.arbeitnow.com/api/job-board-api",
                     params={
                         "search": keyword,
-                        "remote": "true" if config.ONLY_REMOTE else "",
                         "page": page,
                     },
                     headers=HEADERS, timeout=15
@@ -204,8 +211,6 @@ def scrape_arbeitnow(keywords: list[str], max_results: int = 0) -> list[JobPosti
                     if max_results > 0 and len(jobs) >= max_results:
                         break
                     is_remote = item.get("remote", False)
-                    if config.ONLY_REMOTE and not is_remote:
-                        continue
 
                     jid = f"arb-{item.get('slug', item.get('title', ''))[:40]}"
                     if jid in seen:
@@ -503,8 +508,6 @@ def scrape_getonboard(keywords: list[str], max_results: int = 0) -> list[JobPost
                     continue
 
                 remote = "remote" in location.lower() or "work from home" in page_html.lower()
-                if config.ONLY_REMOTE and not remote:
-                    continue
 
                 seen.add(jid)
                 jobs.append(JobPosting(
@@ -579,8 +582,6 @@ def scrape_puente(keywords: list[str], max_results: int = 0) -> list[JobPosting]
                 continue
 
             remote = job.get("jobLocationType") == "TELECOMMUTE" or "remote" in description.lower()
-            if config.ONLY_REMOTE and not remote:
-                continue
 
             seen.add(jid)
             jobs.append(JobPosting(
@@ -667,8 +668,6 @@ def scrape_latojobs(keywords: list[str], max_results: int = 0) -> list[JobPostin
                     or "remote" in location.lower()
                     or "remote" in description.lower()
                 )
-                if config.ONLY_REMOTE and not remote:
-                    continue
 
                 seen.add(jid)
                 jobs.append(JobPosting(
