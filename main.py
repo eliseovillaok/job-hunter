@@ -1,6 +1,6 @@
 """
 main.py — Orquestador principal del Job Hunter
-Uso: python main.py [--dry-run] [--no-email]
+Uso: python main.py --cv mi_cv.pdf [--dry-run] [--no-email]
 """
 
 import argparse
@@ -11,9 +11,15 @@ from datetime import datetime
 from pathlib import Path
 
 import config
+import candidate
+import matching
+from ai_engine import DEFAULT_MODEL, recommended
+from candidate import CandidateProfile
 from scrapers import get_all_jobs
-from ai_engine import process_jobs, recommended
 from notifier import send_digest
+
+_MIME = {".pdf": "application/pdf", ".txt": "text/plain",
+         ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"}
 
 logging.basicConfig(
     level=logging.INFO,
@@ -45,6 +51,7 @@ def save_results(scored_jobs, output_dir: Path):
             "missing_skills": sj.missing_skills,
             "summary": sj.summary,
             "evaluated": sj.evaluated,
+            "factors": {k: vars(v) for k, v in sj.factors.items()} if sj.factors else None,
             "has_cover_letter": sj.cover_letter is not None,
         })
 
@@ -80,11 +87,26 @@ def main():
     parser.add_argument("--dry-run",  action="store_true", help="No enviar email, solo mostrar resultados")
     parser.add_argument("--no-email", action="store_true", help="Saltar envío de email")
     parser.add_argument("--output",   default="results",   help="Directorio de output (default: ./results)")
+    parser.add_argument("--cv",       help="CV (PDF, DOCX o TXT). Sin CV se usa config.CANDIDATE_PROFILE")
+    parser.add_argument("--top-n",    type=int, default=matching.DEFAULT_TOP_N, help="Ofertas a evaluar con IA")
     args = parser.parse_args()
 
     log.info("🚀 Iniciando Job Hunter")
     log.info(f"Modo: {'DRY RUN' if args.dry_run else 'PRODUCCIÓN'}")
     start = datetime.now()
+
+    if args.cv:
+        path = Path(args.cv)
+        log.info(f"Analizando CV: {path.name}")
+        contents = candidate.cv_contents(path.read_bytes(), _MIME.get(path.suffix.lower(), ""))
+        profile = candidate.extract_profile(contents, api_key=config.GEMINI_API_KEY, model=DEFAULT_MODEL)
+        if not config.SEARCH_KEYWORDS:
+            config.SEARCH_KEYWORDS = profile.all_search_terms()
+    else:
+        profile = CandidateProfile.from_free_text(config.CANDIDATE_PROFILE)
+    if profile.is_empty():
+        log.error("Perfil vacío: pasá --cv o completá config.CANDIDATE_PROFILE.")
+        sys.exit(1)
 
     # STEP 1: Scraping
     log.info("STEP 1/3 — Scraping de plataformas")
@@ -95,11 +117,14 @@ def main():
         sys.exit(0)
 
     # STEP 2: AI Processing
-    log.info("STEP 2/3 — Evaluación con IA y generación de cover letters")
-    scored_jobs = process_jobs(
-        jobs, config.CANDIDATE_PROFILE,
-        api_key=config.GEMINI_API_KEY, min_score=config.MIN_MATCH_SCORE, with_letters=True,
+    log.info("STEP 2/3 — Filtros, pre-ranking y evaluación con IA")
+    result = matching.match_jobs(
+        jobs, profile, matching.SearchPreferences(),
+        api_key=config.GEMINI_API_KEY, model=DEFAULT_MODEL, top_n=args.top_n,
     )
+    scored_jobs = result.scored
+    if result.stop_reason:
+        log.error(f"Evaluación interrumpida: {result.stop_reason}")
 
     # STEP 3: Output
     log.info("STEP 3/3 — Enviando resultados")

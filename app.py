@@ -11,6 +11,11 @@ from datetime import datetime
 from pathlib import Path
 
 from browser_scrapers import default_profile_dir
+import ai_engine
+import candidate as cand
+import matching
+import normalize
+from candidate import SENIORITY_LEVELS, CandidateProfile
 
 # ─── Detección de entorno ─────────────────────────────────────────────────────
 # Streamlit Cloud setea la variable STREAMLIT_SHARING_MODE o bien corre dentro
@@ -1072,9 +1077,11 @@ _defaults = {
     "keywords_list":      [],
     "kw_options":         [],
     "min_score":          65,
-    "only_remote":        False,
-    "use_max_results":    False,
-    "max_results_limit":  100,
+    # Preferencias (filtros duros). Vacío = cualquiera.
+    "pref_modalities":    [],
+    "pref_locations":     "",
+    "pref_languages":     [],
+    "eval_limit":         matching.DEFAULT_TOP_N,   # ofertas que evalúa el LLM
     "use_remotive":       True,
     "use_arbeitnow":      True,
     "use_wwr":            True,
@@ -1098,7 +1105,8 @@ _defaults = {
     "use_authenticjobs":  True,
     "result_page":        0,
     "result_page_all":    0,
-    "candidate_profile":  "",
+    "profile":            None,   # CandidateProfile.to_dict()
+    "funnel":             None,   # resumen de la última búsqueda (transparencia)
     "scored_jobs":        [],   # persiste entre reruns de paginación
     "top_matches":        [],   # idem
     "min_score_last":     65,   # score usado en la última búsqueda (para métricas)
@@ -1136,6 +1144,67 @@ if "_prefs_loaded" not in st.session_state:
 # ─── Traducciones / Translations ─────────────────────────────────────────────
 TRANSLATIONS: dict[str, dict[str, str]] = {
     "es": {
+        # Fase 1 — perfil, preferencias, matching
+        "val_no_profile":      "Completá tu perfil (analizá tu CV o escribilo en el paso 4).",
+        "prof_title":          "**👤 Tu perfil, según tu CV**",
+        "prof_caption":        "Revisalo y corregí lo que haga falta: la IA evalúa las ofertas contra esto. Lo que tu CV no dice queda como no especificado.",
+        "prof_summary":        "Resumen",
+        "prof_roles":          "Roles",
+        "prof_roles_help":     "Roles que aparecen en tu CV. Podés agregar o quitar.",
+        "prof_seniority":      "Seniority",
+        "prof_years":          "Años de experiencia",
+        "prof_years_help":     "Vacío = tu CV no lo especifica.",
+        "prof_location":       "Ubicación",
+        "prof_languages":      "Idiomas",
+        "prof_languages_help": "Formato: Idioma (nivel). Ej: Inglés (intermedio)",
+        "prof_skills":         "Habilidades y conocimientos",
+        "prof_unknown":        "No especificado en el CV",
+        "prof_added_by_user":  "Agregado por vos",
+        "prof_evidence":       "Ver en qué parte del CV se basa cada dato",
+        "prof_preview":        "Ver el perfil tal como lo lee la IA",
+        "prof_notes":          "¿Algo más que la IA deba tener en cuenta? (opcional)",
+        "step4_caption_structured": "Tu perfil viene del CV (lo podés editar en el paso 2). Acá podés sumar aclaraciones.",
+        "sen_intern":          "Pasante / Trainee",
+        "sen_junior":          "Junior",
+        "sen_mid":             "Semi senior",
+        "sen_senior":          "Senior",
+        "sen_lead":            "Lead / Jefatura",
+        "sen_unknown":         "No especificado",
+        "pref_caption":        "Filtros: las ofertas que no cumplan no se evalúan. Si un dato no se puede detectar en la oferta, la oferta no se descarta.",
+        "pref_any":            "Cualquiera",
+        "pref_modality":       "Modalidad",
+        "pref_modality_help":  "Vacío = cualquiera.",
+        "pref_locations":      "Ubicaciones aceptadas (presencial o híbrido)",
+        "pref_locations_ph":   "Ej: Buenos Aires, Córdoba",
+        "pref_locations_help": "Separadas por coma. No afecta a las ofertas remotas. Vacío = cualquiera.",
+        "pref_languages":      "Idioma de las ofertas",
+        "pref_languages_help": "Vacío = cualquiera. Se sugiere según los idiomas de tu CV.",
+        "mod_remote":          "Remoto",
+        "mod_hybrid":          "Híbrido",
+        "mod_onsite":          "Presencial",
+        "lang_es":             "Español",
+        "lang_en":             "Inglés",
+        "lang_pt":             "Portugués",
+        "lang_de":             "Alemán",
+        "lang_fr":             "Francés",
+        "eval_limit_label":    "Ofertas a evaluar con IA",
+        "eval_limit_help":     "Se evalúan las más parecidas a tu perfil. Más ofertas = más tiempo y más cuota de Gemini.",
+        "wf_preparing":        "Quitando duplicados, aplicando tus filtros y eligiendo las {n} ofertas más parecidas a tu perfil…",
+        "wf_evaluating":       "Evaluando con IA: {done}/{total}",
+        "wf_quota_stop":       "Se agotó la cuota de Gemini: algunas ofertas quedaron sin evaluar.",
+        "wf_all_filtered":     "Ninguna oferta pasó tus filtros. Probá ampliar modalidad, idioma o ubicación.",
+        "wf_emb_failed":       "No se pudo usar el pre-ranking semántico: se evaluaron las primeras {n} ofertas.",
+        "funnel":              "Encontradas {found} · duplicadas {dups} · descartadas por tus filtros {filtered} (modalidad {mod}, idioma {lang}, ubicación {loc}) · fuera del top {n}: {out} · evaluadas {evaluated}",
+        "factors_title":       "Desglose del puntaje",
+        "factors_note":        "El puntaje final lo calcula el sistema con pesos fijos a partir de estos factores. Es una estimación de la IA, no una medición.",
+        "f_skills":            "Habilidades",
+        "f_seniority":         "Seniority",
+        "f_role":              "Rol",
+        "f_language":          "Idioma",
+        "f_location":          "Ubicación",
+        "f_weight":            "peso {w}%",
+        "f_job":               "Oferta:",
+        "f_cv":                "Tu CV:",
         # Fase 0
         "showing_range":       "Mostrando {start}–{end} de {total}",
         "cv_error":            "No se pudo analizar el CV: {error}",
@@ -1145,7 +1214,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "letter_generating":   "Generando carta…",
         "letter_error":        "No se pudo generar la carta: {error}",
         "wf_email_title":      "Enviar resumen por email",
-        "wf_email_empty":      "No hay ofertas recomendadas para enviar.",
         "lang_label":          "Idioma",
         "theme_label":         "Tema",
         "wf_auth_error":       "La API key de Gemini no es válida o no tiene permisos. Revisala en la configuración.",
@@ -1204,9 +1272,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "metric_recommended":    "Recomendadas",
         "metric_best":           "Mejor score",
         "metric_excellent":      "Excelentes 80+",
-        "showing":               "Mostrando",
-        "of":                    "de",
-        "offers":                "ofertas",
         "no_recommended":        "Ninguna oferta superó el puntaje mínimo de {score}. Probá bajar el valor en la configuración.",
         "all_tab_caption":       "Ordenadas de mayor a menor puntaje.",
         "btn_prev":              "← Anterior",
@@ -1220,8 +1285,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "cover_letter_expander": "Carta de presentación generada",
         "btn_download_letter":   "Descargar carta (.txt)",
         "offer_link":            "Ver oferta →",
-        "remote_tag":            "Remota",
-        "best_so_far":           "Mejores hasta ahora",
         # Wizard
         "wiz_label":   "Configuración",
         "wiz_title":   "Preparar búsqueda",
@@ -1252,8 +1315,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "step2_file":      "CV (PDF, DOCX o TXT)",
         "step2_analyze":   "🤖 Analizar CV con IA",
         "step2_spinning":  "Analizando tu CV…",
-        "step2_extracted": "**📋 Extraído de tu CV — revisá antes de continuar:**",
-        "step2_profile_prefix": "Perfil: ",
         "btn_back":        "← Atrás",
         "toast_cv_ok":     "✅ {n} keywords extraídas. Revisalas en el paso siguiente.",
         "toast_cv_err":    "No se pudo analizar el CV. Continuá y completá los datos a mano.",
@@ -1263,8 +1324,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "step3_add_ph":        "Agregar keyword...",
         "step3_add_btn":       "+ Agregar",
         "step3_params":        "**⚙️ Parámetros**",
-        "step3_remote_chk":    "Solo ofertas remotas",
-        "step3_remote_help":   "Activa esta opción solo si tu CV especifica preferencia remota. Desactivado por defecto para no perder ofertas híbridas o presenciales.",
         "step3_score_label":   "Puntaje mínimo para 'Recomendadas'",
         "step3_score_help":    "Umbral para la pestaña 'Recomendadas' y generación de cartas. Las ofertas por debajo del umbral siguen visibles en 'Todas'.",
         "step3_sources":       "**Fuentes de búsqueda**",
@@ -1277,15 +1336,12 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "step3_us":            "🇺🇸 EEUU / Anglófono",
         "step3_eu":            "🇪🇺 Europa",
         "step3_other":         "📌 Otros",
-        "step3_limit_chk":     "Limitar cantidad de ofertas a analizar",
-        "step3_limit_help":    "Útil para pruebas rápidas o para ahorrar cuota de IA.",
-        "step3_limit_label":   "Máximo de ofertas",
         "toast_no_kw":         "Agregá al menos una keyword.",
         "toast_no_src":        "Seleccioná al menos una fuente.",
         # Paso 4
         "step4_header":    "**👤 Tu perfil profesional**",
         "step4_caption":   "La IA usa este texto para evaluar qué tan bien encaja cada oferta con vos.",
-        "step4_ph":        "Rol buscado, stack técnico, experiencia, idiomas...",
+        "step4_ph":        "Rol buscado, experiencia, formación, habilidades, idiomas...",
         "step4_warning":   "El perfil está vacío. Sin un perfil el scoring de IA no tiene base para evaluar las ofertas — todos los puntajes serán bajos o arbitrarios. Completá el texto o volvé al paso anterior para analizar tu CV.",
         "btn_start":       "🚀 Iniciar búsqueda",
         # Validate config
@@ -1304,8 +1360,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "wf_stopped":      "⏹️ Búsqueda detenida por el usuario tras {n} fuente(s) — {jobs} ofertas encontradas hasta ahora.",
         "wf_found":        "✅ **{jobs} ofertas únicas** encontradas — {time}",
         "wf_no_jobs":      "No se encontraron ofertas para analizar.",
-        "wf_scoring":      "Analizando **{i}/{n}**: {title} @ {company}",
-        "wf_quota":        "Se agotó la cuota diaria de Gemini. Se analizaron {i} de {n} ofertas.",
         "wf_scored":       "✅ **{top} recomendadas** de {total} analizadas — {time}",
         "wf_email_send":   "Enviando resumen a {recipient}...",
         "wf_email_ok":     "✅ Resumen enviado a **{recipient}**.",
@@ -1314,9 +1368,69 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "wf_ai_prog":      "{done}/{total} analizadas{eta}",
         "wf_eta":          "  ·  ~{time} restantes",
         "wf_err_platform": "⚠️ Error en {platform}: {error}",
-        "wf_best_label":   "Mejores hasta ahora",
     },
     "en": {
+        # Phase 1 — profile, preferences, matching
+        "val_no_profile":      "Complete your profile (analyze your CV or write it in step 4).",
+        "prof_title":          "**👤 Your profile, according to your CV**",
+        "prof_caption":        "Review it and fix anything that's off: the AI evaluates listings against this. Anything your CV doesn't state stays as not specified.",
+        "prof_summary":        "Summary",
+        "prof_roles":          "Roles",
+        "prof_roles_help":     "Roles found in your CV. You can add or remove them.",
+        "prof_seniority":      "Seniority",
+        "prof_years":          "Years of experience",
+        "prof_years_help":     "Empty = your CV doesn't state it.",
+        "prof_location":       "Location",
+        "prof_languages":      "Languages",
+        "prof_languages_help": "Format: Language (level). E.g. English (intermediate)",
+        "prof_skills":         "Skills and knowledge",
+        "prof_unknown":        "Not specified in the CV",
+        "prof_added_by_user":  "Added by you",
+        "prof_evidence":       "See which part of your CV supports each item",
+        "prof_preview":        "See the profile as the AI reads it",
+        "prof_notes":          "Anything else the AI should consider? (optional)",
+        "step4_caption_structured": "Your profile comes from your CV (you can edit it in step 2). Add any clarifications here.",
+        "sen_intern":          "Intern / Trainee",
+        "sen_junior":          "Junior",
+        "sen_mid":             "Mid-level",
+        "sen_senior":          "Senior",
+        "sen_lead":            "Lead / Management",
+        "sen_unknown":         "Not specified",
+        "pref_caption":        "Filters: listings that don't match are not evaluated. If a listing's data can't be detected, it is not discarded.",
+        "pref_any":            "Any",
+        "pref_modality":       "Work mode",
+        "pref_modality_help":  "Empty = any.",
+        "pref_locations":      "Accepted locations (on-site or hybrid)",
+        "pref_locations_ph":   "E.g. Buenos Aires, Córdoba",
+        "pref_locations_help": "Comma-separated. Doesn't affect remote listings. Empty = any.",
+        "pref_languages":      "Listing language",
+        "pref_languages_help": "Empty = any. Suggested from the languages in your CV.",
+        "mod_remote":          "Remote",
+        "mod_hybrid":          "Hybrid",
+        "mod_onsite":          "On-site",
+        "lang_es":             "Spanish",
+        "lang_en":             "English",
+        "lang_pt":             "Portuguese",
+        "lang_de":             "German",
+        "lang_fr":             "French",
+        "eval_limit_label":    "Listings to evaluate with AI",
+        "eval_limit_help":     "The ones most similar to your profile are evaluated. More listings = more time and more Gemini quota.",
+        "wf_preparing":        "Removing duplicates, applying your filters and picking the {n} listings most similar to your profile…",
+        "wf_evaluating":       "Evaluating with AI: {done}/{total}",
+        "wf_quota_stop":       "Gemini quota exhausted: some listings were not evaluated.",
+        "wf_all_filtered":     "No listing passed your filters. Try widening work mode, language or location.",
+        "wf_emb_failed":       "Semantic pre-ranking was unavailable: the first {n} listings were evaluated.",
+        "funnel":              "Found {found} · duplicates {dups} · excluded by your filters {filtered} (work mode {mod}, language {lang}, location {loc}) · outside the top {n}: {out} · evaluated {evaluated}",
+        "factors_title":       "Score breakdown",
+        "factors_note":        "The final score is computed by the system with fixed weights from these factors. It is an AI estimate, not a measurement.",
+        "f_skills":            "Skills",
+        "f_seniority":         "Seniority",
+        "f_role":              "Role",
+        "f_language":          "Language",
+        "f_location":          "Location",
+        "f_weight":            "weight {w}%",
+        "f_job":               "Listing:",
+        "f_cv":                "Your CV:",
         # Phase 0
         "showing_range":       "Showing {start}–{end} of {total}",
         "cv_error":            "Could not analyze the CV: {error}",
@@ -1326,7 +1440,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "letter_generating":   "Generating letter…",
         "letter_error":        "Could not generate the letter: {error}",
         "wf_email_title":      "Send summary by email",
-        "wf_email_empty":      "There are no recommended listings to send.",
         "lang_label":          "Language",
         "theme_label":         "Theme",
         "wf_auth_error":       "The Gemini API key is invalid or lacks permissions. Check it in the settings.",
@@ -1385,9 +1498,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "metric_recommended":    "Recommended",
         "metric_best":           "Best score",
         "metric_excellent":      "Excellent 80+",
-        "showing":               "Showing",
-        "of":                    "of",
-        "offers":                "listings",
         "no_recommended":        "No listing exceeded the minimum score of {score}. Try lowering the value in settings.",
         "all_tab_caption":       "Sorted from highest to lowest score.",
         "btn_prev":              "← Previous",
@@ -1401,8 +1511,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "cover_letter_expander": "Generated cover letter",
         "btn_download_letter":   "Download letter (.txt)",
         "offer_link":            "View listing →",
-        "remote_tag":            "Remote",
-        "best_so_far":           "Best so far",
         # Wizard
         "wiz_label":   "Setup",
         "wiz_title":   "Prepare search",
@@ -1433,8 +1541,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "step2_file":      "CV (PDF, DOCX or TXT)",
         "step2_analyze":   "🤖 Analyze CV with AI",
         "step2_spinning":  "Analyzing your CV…",
-        "step2_extracted": "**📋 Extracted from your CV — review before continuing:**",
-        "step2_profile_prefix": "Profile: ",
         "btn_back":        "← Back",
         "toast_cv_ok":     "✅ {n} keywords extracted. Review them in the next step.",
         "toast_cv_err":    "Could not analyze the CV. Continue and fill in data manually.",
@@ -1444,8 +1550,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "step3_add_ph":        "Add keyword...",
         "step3_add_btn":       "+ Add",
         "step3_params":        "**⚙️ Parameters**",
-        "step3_remote_chk":    "Remote listings only",
-        "step3_remote_help":   "Enable only if your CV specifies remote preference. Disabled by default to avoid missing hybrid or on-site listings.",
         "step3_score_label":   "Minimum score for 'Recommended'",
         "step3_score_help":    "Threshold for the 'Recommended' tab and letter generation. Listings below the threshold remain visible in 'All'.",
         "step3_sources":       "**Search sources**",
@@ -1458,15 +1562,12 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "step3_us":            "🇺🇸 US / English-speaking",
         "step3_eu":            "🇪🇺 Europe",
         "step3_other":         "📌 Other",
-        "step3_limit_chk":     "Limit number of listings to analyze",
-        "step3_limit_help":    "Useful for quick tests or to save AI quota.",
-        "step3_limit_label":   "Maximum listings",
         "toast_no_kw":         "Add at least one keyword.",
         "toast_no_src":        "Select at least one source.",
         # Step 4
         "step4_header":    "**👤 Your professional profile**",
         "step4_caption":   "The AI uses this text to evaluate how well each listing fits you.",
-        "step4_ph":        "Target role, tech stack, experience, languages...",
+        "step4_ph":        "Target role, experience, education, skills, languages...",
         "step4_warning":   "Profile is empty. Without a profile the AI scoring has no basis to evaluate listings — all scores will be low or arbitrary. Fill in the text or go back to analyze your CV.",
         "btn_start":       "🚀 Start search",
         # Validate config
@@ -1485,8 +1586,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "wf_stopped":      "⏹️ Search stopped after {n} source(s) — {jobs} listings found so far.",
         "wf_found":        "✅ **{jobs} unique listings** found — {time}",
         "wf_no_jobs":      "No listings found to analyze.",
-        "wf_scoring":      "Analyzing **{i}/{n}**: {title} @ {company}",
-        "wf_quota":        "Daily Gemini quota exceeded. Analyzed {i} of {n} listings.",
         "wf_scored":       "✅ **{top} recommended** of {total} analyzed — {time}",
         "wf_email_send":   "Sending summary to {recipient}...",
         "wf_email_ok":     "✅ Summary sent to **{recipient}**.",
@@ -1495,7 +1594,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "wf_ai_prog":      "{done}/{total} analyzed{eta}",
         "wf_eta":          "  ·  ~{time} remaining",
         "wf_err_platform": "⚠️ Error on {platform}: {error}",
-        "wf_best_label":   "Best so far",
     },
 }
 
@@ -1568,6 +1666,8 @@ def validate_config():
             errors.append(_t("val_recip"))
     if not st.session_state.keywords_list:
         errors.append(_t("val_no_kw"))
+    if (_get_profile() or CandidateProfile()).is_empty():
+        errors.append(_t("val_no_profile"))
     browser_sources = [] if IS_CLOUD else [
         st.session_state.use_linkedin_browser,
         st.session_state.use_bumeran_browser,
@@ -1617,70 +1717,87 @@ def _render_stepper(step: int) -> None:
     )
 
 
-def _analyze_cv(uploaded_file, api_key: str, model: str) -> dict | None:
-    """Envía el CV a Gemini y devuelve {keywords, profile}."""
-    import json, re
-    from google import genai
-    from google.genai import types
+# ─── Perfil del candidato (estructurado) ──────────────────────────────────────
+JOB_LANG_CODES = ["es", "en", "pt", "de", "fr"]
+_LANG_NAME_HINTS = {
+    "es": ("espa", "castellano", "spanish"),
+    "en": ("ingl", "english"),
+    "pt": ("portug",),
+    "de": ("alem", "german", "deutsch"),
+    "fr": ("franc", "french"),
+}
 
-    _PROMPT = (
-        "Analyze this CV/resume carefully and extract ALL information as faithfully and completely as possible. "
-        "Your goal is maximum detail — do not summarize, abbreviate, or omit any section. "
-        "Return ONLY a raw JSON object — no markdown, no explanation.\n\n"
-        "Strict rules:\n"
-        "- Use only information explicitly present in the CV.\n"
-        "- Do NOT infer seniority, expertise, achievements, impact, leadership, ownership, or implementation work unless the CV states it clearly.\n"
-        "- Do NOT upgrade the candidate's level with words such as senior, semi senior, expert, lead, principal, staff, architect, etc. unless those exact levels appear in the CV.\n"
-        "- If the CV says the person analyzed, supported, collaborated, documented, tested, or learned something, describe it exactly that way. Do not rewrite it as implemented, built, led, owned, or delivered.\n"
-        "- If years of experience are not explicit or cannot be calculated reliably from dates in the CV, do not invent them.\n"
-        "- If remote preference, location, languages, or target role are not explicit, say that they are not specified in the CV.\n"
-        "- CRITICAL: Extract EVERY job position, project, technology, tool, certification, education entry, and skill explicitly listed. Do NOT skip items due to length.\n"
-        "- List ALL technologies/tools mentioned anywhere in the CV (in skills sections, job descriptions, projects, certifications, etc.).\n"
-        "- For each work experience, include: company name, role/title, dates (start–end or duration if stated), and ALL responsibilities/tasks described for that role.\n"
-        "- For each project, include: project name, technologies used, and what the candidate did (using the CV's exact verbs).\n"
-        "- For education: include institution, degree, field, and dates if present.\n"
-        "- For certifications/courses: list each one with provider and year if stated.\n"
-        "- Do NOT truncate lists of technologies, responsibilities, or projects — include everything.\n\n"
-        "Output schema:\n"
-        '{'
-        '"keywords": ["8 to 15 job-board search terms derived directly from explicit roles, technologies, and domains in the CV. Include ALL main technologies, frameworks, and roles found."], '
-        '"profile": "Write in the same language as the CV. Write as many paragraphs or sections as needed to cover ALL the following — do NOT limit length: (1) Personal info: name, location, contact if present. (2) Professional summary if the CV has one. (3) ALL work experiences in chronological order: company, role, dates, and every responsibility/task listed. (4) ALL projects with technologies and contributions. (5) Education: all entries with institution, degree, field, dates. (6) ALL technical skills and tools explicitly listed. (7) ALL certifications and courses with provider and year. (8) Languages. (9) Any other section present in the CV (e.g. awards, publications, volunteering). When something is not specified in the CV, say so explicitly."'
-        '}'
-    )
 
+def _get_profile() -> CandidateProfile | None:
+    d = st.session_state.get("profile")
+    return CandidateProfile.from_dict(d) if d else None
+
+
+def _set_profile(p: CandidateProfile) -> None:
+    st.session_state.profile = p.to_dict()
+
+
+def _job_lang_codes(p: CandidateProfile) -> list[str]:
+    """Idiomas de oferta aceptables según el CV (sugerencia que el usuario puede cambiar)."""
+    names = [normalize.strip_accents(l.language.lower()) for l in p.languages]
+    return [code for code, hints in _LANG_NAME_HINTS.items()
+            if p.cv_language == code or any(h in n for n in names for h in hints)]
+
+
+def _analyze_cv(uploaded_file) -> CandidateProfile | None:
     try:
-        _client = genai.Client(api_key=api_key)
-        file_bytes = uploaded_file.getvalue()
-        mime = uploaded_file.type  # "application/pdf" or "text/plain"
-
-        if mime == "text/plain":
-            cv_text = file_bytes.decode("utf-8", errors="replace")[:30000]
-            contents = f"{_PROMPT}\n\nCV:\n{cv_text}"
-        elif mime == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-            import io
-            from docx import Document as DocxDocument
-            doc = DocxDocument(io.BytesIO(file_bytes))
-            cv_text = "\n".join(p.text for p in doc.paragraphs if p.text.strip())[:30000]
-            contents = f"{_PROMPT}\n\nCV:\n{cv_text}"
-        else:
-            contents = [
-                types.Part.from_bytes(data=file_bytes, mime_type="application/pdf"),
-                types.Part.from_text(text=_PROMPT),
-            ]
-
-        resp = _client.models.generate_content(model=model, contents=contents)
-        raw = resp.text.strip().replace("```json", "").replace("```", "").strip()
-
-        try:
-            return json.loads(raw)
-        except json.JSONDecodeError:
-            m = re.search(r"\{[\s\S]*\}", raw)
-            if m:
-                return json.loads(m.group())
-        return None
+        contents = cand.cv_contents(uploaded_file.getvalue(), uploaded_file.type)
+        return cand.extract_profile(contents, api_key=st.session_state.gemini_key,
+                                    model=st.session_state.selected_model)
     except Exception as e:
         st.error(_t("cv_error", error=e))
         return None
+
+
+def _lang_label(l) -> str:
+    return f"{l.language} ({l.level})" if l.level and l.level != cand.UNKNOWN else l.language
+
+
+def _parse_lang_label(label: str) -> cand.Language:
+    import re as _re
+    m = _re.match(r"^(.*?)\s*\((.*)\)\s*$", label)
+    return cand.Language(language=m.group(1).strip(), level=m.group(2).strip()) if m else cand.Language(label.strip())
+
+
+def _render_profile_editor(p: CandidateProfile) -> CandidateProfile:
+    """Perfil extraído del CV, editable. Lo que la IA no encontró queda como 'no especificado'."""
+    st.markdown(_t("prof_title"))
+    st.caption(_t("prof_caption"))
+    p.summary = st.text_area(_t("prof_summary"), value=p.summary, height=90)
+    c1, c2 = st.columns(2)
+    with c1:
+        p.target_roles = st.multiselect(_t("prof_roles"), options=p.target_roles, default=p.target_roles,
+                                        accept_new_options=True, help=_t("prof_roles_help"))
+        p.seniority = st.selectbox(_t("prof_seniority"), SENIORITY_LEVELS,
+                                   index=SENIORITY_LEVELS.index(p.seniority),
+                                   format_func=lambda s: _t(f"sen_{s}"))
+        p.years_experience = st.number_input(_t("prof_years"), value=p.years_experience, min_value=0.0,
+                                             max_value=60.0, step=0.5, help=_t("prof_years_help"))
+    with c2:
+        loc = st.text_input(_t("prof_location"), value="" if p.location == cand.UNKNOWN else p.location,
+                            placeholder=_t("prof_unknown"))
+        p.location = loc.strip() or cand.UNKNOWN
+        lang_labels = [_lang_label(l) for l in p.languages]
+        chosen = st.multiselect(_t("prof_languages"), options=lang_labels, default=lang_labels,
+                                accept_new_options=True, help=_t("prof_languages_help"))
+        p.languages = [_parse_lang_label(x) for x in chosen]
+    skill_names = [s.name for s in p.skills]
+    kept = st.multiselect(_t("prof_skills"), options=skill_names, default=skill_names, accept_new_options=True)
+    by_name = {s.name: s for s in p.skills}
+    p.skills = [by_name.get(n) or cand.Skill(name=n, evidence=_t("prof_added_by_user")) for n in kept]
+
+    with st.expander(_t("prof_evidence")):
+        none = _t("prof_unknown")
+        st.caption(f"{_t('prof_seniority')}: {p.seniority_evidence or none}")
+        st.caption(f"{_t('prof_years')}: {p.years_evidence or none}")
+        for s in p.skills:
+            st.caption(f"{s.name}: {s.evidence or none}")
+    return p
 
 
 # ─── Wizard inline (sin @st.dialog para garantizar cierre correcto) ───────────
@@ -1794,39 +1911,24 @@ def show_config_wizard():
             if uploaded_file:
                 if st.button(_t("step2_analyze"), type="primary", use_container_width=True):
                     with st.spinner(_t("step2_spinning")):
-                        result = _analyze_cv(
-                            uploaded_file,
-                            st.session_state.gemini_key,
-                            st.session_state.selected_model,
-                        )
-                    if result:
-                        kws  = [k for k in result.get("keywords", []) if k.strip()]
-                        prof = result.get("profile", "").strip()
+                        extracted = _analyze_cv(uploaded_file)
+                    if extracted:
+                        _set_profile(extracted)
+                        kws = extracted.all_search_terms()
                         if kws:
                             st.session_state.keywords_list = kws
                             st.session_state["kw_options"] = list(kws)
                             st.session_state["kw_tags"] = list(kws)
-                        if prof:
-                            st.session_state.candidate_profile = prof
+                        st.session_state.pref_languages = _job_lang_codes(extracted)
                         st.session_state.cv_analyzed = True
                         st.toast(_t("toast_cv_ok", n=len(kws)), icon="✅")
                     else:
                         st.toast(_t("toast_cv_err"), icon="⚠️")
 
-        if st.session_state.cv_analyzed:
+        _p = _get_profile()
+        if st.session_state.cv_analyzed and _p:
             with st.container(border=True):
-                st.markdown(_t("step2_extracted"))
-                kw_html = "".join(
-                    f'<span style="display:inline-block;padding:3px 11px;margin:2px 3px;'
-                    f'background:#ede9fe;color:#4f46e5;border-radius:20px;'
-                    f'font-size:13px;font-weight:500;">{k}</span>'
-                    for k in st.session_state.keywords_list
-                )
-                st.markdown(
-                    f'<div style="margin:0.35rem 0 0.5rem 0;">{kw_html}</div>',
-                    unsafe_allow_html=True,
-                )
-                st.caption(_t("step2_profile_prefix") + st.session_state.candidate_profile[:220].replace("\n", " ") + "…")
+                _set_profile(_render_profile_editor(_p))
 
         col_back, col_next = st.columns(2)
         with col_back:
@@ -1880,10 +1982,22 @@ def show_config_wizard():
 
         with st.container(border=True):
             st.markdown(_t("step3_params"))
-            st.session_state.only_remote = st.checkbox(
-                _t("step3_remote_chk"),
-                value=st.session_state.only_remote,
-                help=_t("step3_remote_help"),
+            st.caption(_t("pref_caption"))
+            st.session_state.pref_modalities = st.multiselect(
+                _t("pref_modality"), list(matching.MODALITIES),
+                default=st.session_state.pref_modalities,
+                format_func=lambda m: _t(f"mod_{m}"),
+                placeholder=_t("pref_any"), help=_t("pref_modality_help"),
+            )
+            st.session_state.pref_locations = st.text_input(
+                _t("pref_locations"), value=st.session_state.pref_locations,
+                placeholder=_t("pref_locations_ph"), help=_t("pref_locations_help"),
+            )
+            st.session_state.pref_languages = st.multiselect(
+                _t("pref_languages"), JOB_LANG_CODES,
+                default=[c for c in st.session_state.pref_languages if c in JOB_LANG_CODES],
+                format_func=lambda c: _t(f"lang_{c}"),
+                placeholder=_t("pref_any"), help=_t("pref_languages_help"),
             )
             st.session_state.min_score = st.slider(
                 _t("step3_score_label"),
@@ -1966,16 +2080,10 @@ def show_config_wizard():
             with o1:
                 st.session_state.use_authenticjobs = st.checkbox("AuthenticJobs", value=st.session_state.use_authenticjobs)
 
-            st.session_state.use_max_results = st.checkbox(
-                _t("step3_limit_chk"),
-                value=st.session_state.use_max_results,
-                help=_t("step3_limit_help"),
+            st.session_state.eval_limit = st.slider(
+                _t("eval_limit_label"), min_value=10, max_value=200, step=10,
+                value=st.session_state.eval_limit, help=_t("eval_limit_help"),
             )
-            if st.session_state.use_max_results:
-                st.session_state.max_results_limit = st.slider(
-                    _t("step3_limit_label"), min_value=10, max_value=500, step=10,
-                    value=st.session_state.max_results_limit,
-                )
 
         col_back, col_next = st.columns(2)
         with col_back:
@@ -2009,16 +2117,22 @@ def show_config_wizard():
     elif step == 4:
         with st.container(border=True):
             st.markdown(_t("step4_header"))
-            st.caption(_t("step4_caption"))
-            st.session_state.candidate_profile = st.text_area(
-                "perfil",
-                value=st.session_state.candidate_profile,
-                height=195,
-                label_visibility="collapsed",
-                placeholder=_t("step4_ph"),
-            )
+            _p = _get_profile() or CandidateProfile()
+            _structured = bool(_p.summary or _p.target_roles or _p.skills or _p.experiences)
+            if _structured:
+                st.caption(_t("step4_caption_structured"))
+                with st.expander(_t("prof_preview")):
+                    st.text(_p.to_prompt())
+                _p.notes = st.text_area(_t("prof_notes"), value=_p.notes, height=110)
+            else:
+                st.caption(_t("step4_caption"))
+                _p.notes = st.text_area(
+                    "perfil", value=_p.notes, height=195,
+                    label_visibility="collapsed", placeholder=_t("step4_ph"),
+                )
+            _set_profile(_p)
 
-        if not st.session_state.candidate_profile.strip():
+        if _p.is_empty():
             st.warning(_t("step4_warning"), icon="⚠️")
 
         col_back, col_start = st.columns(2)
@@ -2058,7 +2172,7 @@ if st.session_state.show_dialog:
 # Portales realmente disponibles en este entorno (sin Playwright no hay portales con login).
 N_PORTALS = sum(
     1 for k in _defaults
-    if k.startswith("use_") and k != "use_max_results" and (not IS_CLOUD or not k.endswith("_browser"))
+    if k.startswith("use_") and (not IS_CLOUD or not k.endswith("_browser"))
 )
 
 def _render_hero():
@@ -2209,6 +2323,7 @@ if not st.session_state.run_search and not st.session_state.search_done:
     render_empty_state()
 
 # ─── Ejecución de la búsqueda ─────────────────────────────────────────────────
+SCRAPE_PER_PORTAL = 40
 if st.session_state.run_search:
     st.session_state.run_search    = False
     st.session_state.cancel_search = False
@@ -2224,22 +2339,20 @@ if st.session_state.run_search:
     email_recipient   = st.session_state.email_recipient
     keywords          = list(st.session_state.keywords_list)
     min_score         = st.session_state.min_score
-    max_results_limit = st.session_state.max_results_limit if st.session_state.use_max_results else 0
-    candidate_profile = st.session_state.candidate_profile
+    eval_limit        = st.session_state.eval_limit
+    profile           = _get_profile() or CandidateProfile()
+    prefs = matching.SearchPreferences(
+        modalities=set(st.session_state.pref_modalities),
+        locations=[l.strip() for l in st.session_state.pref_locations.split(",") if l.strip()],
+        job_languages=list(st.session_state.pref_languages),
+    )
     browser_profile_dir = st.session_state.browser_profile_dir
 
     st.session_state.result_page     = 0
     st.session_state.result_page_all = 0
 
-    # API key, perfil y credenciales viajan por parámetro: el proceso es compartido
-    # entre usuarios y nada de esto puede quedar en variables de módulo.
-    # TODO(fase 1): ONLY_REMOTE también debería pasar por parámetro a los scrapers.
-    import config as cfg
-    cfg.ONLY_REMOTE = st.session_state.only_remote
-
-    import ai_engine
-    from ai_engine import ScoredJob
-
+    # API key, perfil, preferencias y credenciales viajan por parámetro: el proceso es
+    # compartido entre usuarios y nada de esto puede quedar en variables de módulo.
     import scrapers as sc
 
     def render_workflow_step(step_number, step_title):
@@ -2283,14 +2396,13 @@ if st.session_state.run_search:
     enabled_list    = [p for p, v in platforms_enabled.items() if v]
     total_platforms = len(enabled_list)
     scrape_started  = time.monotonic()
-    per_portal      = -(-max_results_limit // total_platforms) if max_results_limit > 0 and total_platforms else 0
+    # Tope por portal: acota la duración del scraping. El filtrado fino lo hace matching.py.
+    per_portal      = SCRAPE_PER_PORTAL
 
     for idx, platform_name in enumerate(enabled_list):
         platform_status.info(_t("wf_searching", platform=platform_name))
-        if max_results_limit > 0 and len(all_jobs) >= max_results_limit:
-            break
         try:
-            remaining = min(per_portal, max_results_limit - len(all_jobs)) if max_results_limit > 0 else 0
+            remaining = per_portal
             if platform_name == "Remotive":
                 jobs = sc.scrape_remotive(keywords, max_results=remaining)
             elif platform_name == "Arbeitnow":
@@ -2336,8 +2448,6 @@ if st.session_state.run_search:
                 if key not in seen_global:
                     seen_global.add(key)
                     all_jobs.append(job)
-                if max_results_limit > 0 and len(all_jobs) >= max_results_limit:
-                    break
         except Exception as e:
             platform_notice.warning(_t("wf_err_platform", platform=platform_name, error=e))
 
@@ -2356,85 +2466,63 @@ if st.session_state.run_search:
         platform_status.success(_t("wf_found", jobs=len(all_jobs), time=format_duration(time.monotonic() - scrape_started)))
     progress_scrape.progress(1.0)
 
-    # ── STEP 2: AI Scoring ────────────────────────────────────────────────────
-    ai_status, ai_notice, progress_ai, live_results = render_workflow_step(2, _t("wf_step2_title"))
+    # ── STEP 2: Matching (filtros → pre-ranking → evaluación por factores) ────
+    ai_status, ai_notice, progress_ai, _ = render_workflow_step(2, _t("wf_step2_title"))
 
     scored_jobs    = []
     top_matches    = []
-    quota_exceeded = False
-    st.session_state.run_notice = None
+    st.session_state.run_notice  = None
     st.session_state.scored_jobs = []
     st.session_state.top_matches = []
-    total_jobs     = len(all_jobs)
+    st.session_state.funnel      = None
 
-    if total_jobs == 0:
+    if not all_jobs:
         st.session_state.run_notice = ("wf_no_jobs", {})
         ai_status.warning(_t("wf_no_jobs"))
         progress_ai.progress(1.0)
     else:
-        progress_ai.progress(0, text=_t("wf_starting"))
         scoring_started = time.monotonic()
+        ai_status.info(_t("wf_preparing", n=eval_limit))
+        progress_ai.progress(0, text=_t("wf_starting"))
 
-        for i, job in enumerate(all_jobs):
-            ai_status.info(_t("wf_scoring", i=i+1, n=total_jobs, title=job.title[:50], company=job.company))
-            data  = ai_engine.score_job(
-                job, candidate_profile,
-                api_key=gemini_key, model=selected_model, lang=st.session_state.lang,
-            )
-            score = data.get("score", 0)
-            if data.get("quota_exceeded", False) or data.get("auth_error", False):
-                # Cuota agotada o key inválida: fallarían todas, no tiene sentido seguir llamando.
-                quota_exceeded = True
-                st.session_state.run_notice = (
-                    ("wf_auth_error", {}) if data.get("auth_error") else ("wf_quota", {"i": i, "n": total_jobs})
-                )
-                ai_notice.error(_t(st.session_state.run_notice[0], **st.session_state.run_notice[1]))
-                scored_jobs.extend(
-                    ScoredJob(job=j, score=0, match_reasons=[], missing_skills=[],
-                              cover_letter=None, summary="", evaluated=False)
-                    for j in all_jobs[i:]
-                )
-                break
+        def _on_progress(stage, done, total):
+            elapsed = time.monotonic() - scoring_started
+            remaining = (elapsed / done) * (total - done) if done else 0
+            eta = _t("wf_eta", time=format_duration(remaining)) if done < total else ""
+            ai_status.info(_t("wf_evaluating", done=done, total=total))
+            progress_ai.progress(done / total, text=_t("wf_ai_prog", done=done, total=total, eta=eta))
 
-            sj = ScoredJob(
-                job=job, score=score,
-                match_reasons=data.get("match_reasons", []),
-                missing_skills=data.get("missing_skills", []),
-                cover_letter=None,
-                summary=data.get("summary", ""),
-                evaluated=not data.get("error", False),
-            )
-            scored_jobs.append(sj)
-
-            top5 = sorted((j for j in scored_jobs if j.evaluated), key=lambda x: x.score, reverse=True)[:5]
-            with live_results.container():
-                st.markdown(f'<div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--t3);margin-bottom:6px;">{_t("wf_best_label")}</div>', unsafe_allow_html=True)
-                for t in top5:
-                    sc = "jh-score-hi" if t.score >= 80 else "jh-score-md" if t.score >= 60 else "jh-score-lo"
-                    import html as _h
-                    st.markdown(
-                        f'<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--b1);">'
-                        f'<span class="jh-score {sc}">{t.score}/100</span>'
-                        f'<span style="font-size:13px;color:var(--t1);font-weight:500;">{_h.escape(t.job.title[:45])}</span>'
-                        f'<span style="font-size:12px;color:var(--t3);">@ {_h.escape(t.job.company[:25])}</span>'
-                        f'</div>',
-                        unsafe_allow_html=True,
-                    )
-
-            completed = i + 1
-            elapsed   = time.monotonic() - scoring_started
-            rem_jobs  = total_jobs - completed
-            eta       = _t("wf_eta", time=format_duration((elapsed / completed) * rem_jobs)) if rem_jobs > 0 else ""
-            progress_ai.progress(completed / total_jobs, text=_t("wf_ai_prog", done=completed, total=total_jobs, eta=eta))
-            time.sleep(0.1)
-
-        scored_jobs.sort(key=ai_engine.rank_key)
+        result = matching.match_jobs(
+            all_jobs, profile, prefs,
+            api_key=gemini_key, model=selected_model, lang=st.session_state.lang,
+            top_n=eval_limit, on_progress=_on_progress,
+        )
+        scored_jobs = result.scored
         top_matches = ai_engine.recommended(scored_jobs, min_score)
-        st.session_state.scored_jobs = scored_jobs
-        st.session_state.top_matches = top_matches
+        st.session_state.scored_jobs    = scored_jobs
+        st.session_state.top_matches    = top_matches
         st.session_state.min_score_last = min_score
-        if not quota_exceeded:
-            ai_status.success(_t("wf_scored", top=len(top_matches), total=len(scored_jobs), time=format_duration(time.monotonic() - scoring_started)))
+        st.session_state.funnel = {
+            "found": result.total_found,
+            "dups": result.duplicates_removed,
+            "excluded": result.excluded,
+            "out": result.pre_ranked_out,
+            "evaluated": sum(1 for j in scored_jobs if j.evaluated),
+            "top_n": eval_limit,
+            "emb_failed": result.embeddings_failed,
+        }
+        if result.stop_reason == "auth":
+            st.session_state.run_notice = ("wf_auth_error", {})
+        elif result.stop_reason == "quota":
+            st.session_state.run_notice = ("wf_quota_stop", {})
+        elif not scored_jobs:
+            st.session_state.run_notice = ("wf_all_filtered", {})
+
+        if st.session_state.run_notice:
+            ai_notice.error(_t(st.session_state.run_notice[0], **st.session_state.run_notice[1]))
+        else:
+            ai_status.success(_t("wf_scored", top=len(top_matches), total=len(scored_jobs),
+                                 time=format_duration(time.monotonic() - scoring_started)))
         progress_ai.progress(1.0)
 
     # ── STEP 3: Email ─────────────────────────────────────────────────────────
@@ -2499,6 +2587,15 @@ if st.session_state.search_done and st.session_state.scored_jobs:
 </div>
 """, unsafe_allow_html=True)
 
+        _f = st.session_state.get("funnel")
+        if _f:
+            _ex = _f["excluded"]
+            st.caption(_t("funnel", found=_f["found"], dups=_f["dups"], filtered=sum(_ex.values()),
+                          mod=_ex.get("modality", 0), lang=_ex.get("language", 0), loc=_ex.get("location", 0),
+                          out=_f["out"], n=_f["top_n"], evaluated=_f["evaluated"]))
+            if _f.get("emb_failed"):
+                st.caption(_t("wf_emb_failed", n=_f["top_n"]))
+
         def _score_cls(s):
             return "jh-score-hi" if s >= 80 else "jh-score-md" if s >= 60 else "jh-score-lo"
 
@@ -2509,7 +2606,7 @@ if st.session_state.search_done and st.session_state.scored_jobs:
             with st.spinner(_t("letter_generating")):
                 try:
                     sj.cover_letter = ai_engine.generate_cover_letter(
-                        sj.job, sj.match_reasons, st.session_state.candidate_profile,
+                        sj.job, sj.match_reasons, (_get_profile() or CandidateProfile()).to_prompt(),
                         api_key=st.session_state.gemini_key, model=st.session_state.selected_model,
                     )
                 except Exception as e:
@@ -2529,11 +2626,13 @@ if st.session_state.search_done and st.session_state.scored_jobs:
                 f'{score_badge} '
                 f'<span class="jh-src {src}">{_html.escape(sj.job.source)}</span>'
             )
-            if getattr(sj.job, "remote", False):
-                badges += f' <span class="jh-tag jh-tag-green" style="height:20px;font-size:11px;">{_t("remote_tag")}</span>'
-            if getattr(sj.job, "location", "") and not getattr(sj.job, "remote", False):
-                loc = _html.escape(sj.job.location[:30])
-                badges += f' <span class="jh-tag jh-tag-gray" style="height:20px;font-size:11px;">{loc}</span>'
+            _tag = '<span class="jh-tag {cls}" style="height:20px;font-size:11px;">{txt}</span>'
+            if sj.job.modality in matching.MODALITIES:
+                badges += " " + _tag.format(cls="jh-tag-green", txt=_t(f"mod_{sj.job.modality}"))
+            if sj.job.location and sj.job.modality != "remote":
+                badges += " " + _tag.format(cls="jh-tag-gray", txt=_html.escape(sj.job.location[:30]))
+            if sj.job.seniority in SENIORITY_LEVELS and sj.job.seniority != cand.UNKNOWN:
+                badges += " " + _tag.format(cls="jh-tag-gray", txt=_t(f"sen_{sj.job.seniority}"))
 
             with st.expander(label, expanded=(idx == 0)):
                 hcol, lcol = st.columns([4, 1])
@@ -2574,6 +2673,19 @@ if st.session_state.search_done and st.session_state.scored_jobs:
                             st.markdown(f'<div class="jh-reason jh-skill">{_html.escape(skill)}</div>', unsafe_allow_html=True)
                     else:
                         st.markdown(f'<span style="font-size:13px;color:var(--t3)">{_t("no_missing")}</span>', unsafe_allow_html=True)
+
+                if sj.factors:
+                    with st.expander(_t("factors_title")):
+                        for fname in matching.FACTORS:
+                            fs = sj.factors[fname]
+                            weight = int(matching.WEIGHTS[fname] * 100)
+                            st.markdown(f"**{_t('f_' + fname)}** · {fs.score}/100 · {_t('f_weight', w=weight)}")
+                            st.progress(fs.score / 100)
+                            if fs.evidence_job:
+                                st.caption(f"{_t('f_job')} {fs.evidence_job}")
+                            if fs.evidence_cv:
+                                st.caption(f"{_t('f_cv')} {fs.evidence_cv}")
+                        st.caption(_t("factors_note"))
 
                 if sj.evaluated and not sj.cover_letter:
                     if st.button(_t("btn_gen_letter"), key=f"gen_{section}_{sj.job.id}_{idx}"):
@@ -2657,6 +2769,9 @@ if st.session_state.search_done and st.session_state.scored_jobs:
                 "match_reasons":  sj.match_reasons,
                 "missing_skills": sj.missing_skills,
                 "summary":        sj.summary,
+                "factors":        {k: vars(v) for k, v in sj.factors.items()} if sj.factors else None,
+                "detected":       {"language": sj.job.language, "seniority": sj.job.seniority,
+                                   "modality": sj.job.modality},
                 "cover_letter":   sj.cover_letter,
             }
             for sj in _scored
