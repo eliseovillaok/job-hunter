@@ -55,6 +55,7 @@ Los portales son dependencias poco confiables: HTML y APIs cambian, hay rate lim
 
 ## Reglas duras de seguridad
 1. **Nunca commitear secretos ni datos de usuarios**: API keys, app passwords, tokens, perfiles de navegador, `results/`, CVs, `*.log`. Revisar `git status` antes de cada commit. Los perfiles de Playwright viven fuera del repo (`~/.job-hunter/browser_profiles`), nunca dentro. Nunca embeber tokens en la URL del remote.
+   **Cero datos personales o de desarrollo en el producto**: nada de nombres, emails, CVs, empleadores o ubicaciones reales en código, prompts, defaults, fixtures ni docs. Para ejemplos y tests, usar datos ficticios.
 2. **Sin estado global por usuario.** En Streamlit Cloud el proceso es compartido: no escribir API keys ni perfiles en `os.environ`, `config.*` ni variables de módulo. Pasar la configuración por sesión (parámetros u objeto `RunConfig`).
 3. **XSS**: todo contenido externo (ofertas, salida del LLM, CV) que se renderice con `unsafe_allow_html=True` pasa por `html.escape`.
 4. **Prompt injection**: las descripciones de ofertas y los CVs son datos no confiables. Nunca deben poder alterar instrucciones ni disparar acciones.
