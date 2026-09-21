@@ -94,13 +94,14 @@ Tests: todavía no hay. Usar `pytest` en `tests/`, con fixtures de HTML/JSON gra
 ## Convenciones
 - Todo texto visible va por `_t()`, con clave en ES **y** EN.
 - **Nuevo portal** = función en `scrapers.py` (o entrada en `PORTALS`) + `use_<portal>` en `_defaults` + rama en el pipeline + checkbox en el wizard + claves i18n + README.
-- Modelo Gemini por defecto: `_defaults["selected_model"]` en `app.py`. Mantener `ai_engine.MODEL` alineado y no usar modelos deprecados.
+- Modelo Gemini por defecto: `_defaults["selected_model"]` en `app.py`. Mantener `ai_engine.DEFAULT_MODEL` alineado y no usar modelos deprecados.
 - Los comentarios explican el *por qué*, no el *qué*. Commits enfocados, sin tocar archivos ajenos a la tarea.
 
 ## Deuda conocida (no empeorarla; atacarla solo con OK)
 - `app.py` monolítico (CSS + i18n + wizard + pipeline).
 - Pipeline duplicado entre `app.py` y `scrapers.get_all_jobs()`/`main.py`, con una cadena de `elif` por portal.
-- CLI roto: `from config import SEARCH_KEYWORDS` se congela al importar, y `ai_engine.MODEL` por defecto usa `gemini-1.5-flash` (deprecado).
+- CLI sin perfil: `main.py` usa `config.CANDIDATE_PROFILE`, que está vacío (el perfil sale del wizard).
 - Scoring secuencial: una request al LLM por oferta, sin caché.
-- `results/` se escribe en el disco del servidor aun en Cloud.
+- `config.ONLY_REMOTE` sigue siendo global compartido entre sesiones (no sensible, pero hay que pasarlo por parámetro).
+- Scraper de GetOnBoard: una request por oferta, secuencial (~90 s para 8 ofertas). Migrar a su API pública.
 - `.devcontainer` corre `main.py` con XSRF/CORS deshabilitados.

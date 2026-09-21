@@ -1,6 +1,6 @@
 # 🎯 Job Hunter — Tu asistente de búsqueda laboral con IA
 
-**Job Hunter** es una aplicación que te ayuda a encontrar ofertas de trabajo remotas que realmente matcheen con tu perfil. Usa inteligencia artificial para evaluar automáticamente cada oferta y generar cartas de presentación personalizadas.
+**Job Hunter** es una aplicación que te ayuda a encontrar ofertas de trabajo que realmente matcheen con tu perfil. Subís tu CV, la IA evalúa cada oferta contra lo que dice tu CV y, si querés, te genera una carta de presentación para la oferta que elijas.
 
 ---
 
@@ -13,9 +13,9 @@ Buscar trabajo es tedioso:
 - 📧 Organizás ofertas en un Excel desordenado
 
 **Job Hunter** lo automatiza todo:
-- 🔍 **Busca automáticamente** en 4 plataformas principales
+- 🔍 **Busca automáticamente** en hasta 19 portales
 - 🤖 **Evalúa con IA** cada oferta según tu perfil (score 0-100)
-- ✍️ **Genera cover letters únicos** listos para enviar
+- ✍️ **Genera cartas de presentación a pedido**, solo para las ofertas que elijas
 - 📧 **Te manda un digest** con los mejores matches al email
 - ⏰ **Configúralo una vez** y usalo cuando quieras
 
@@ -37,9 +37,9 @@ Buscar trabajo es tedioso:
 - Filtrá por score mínimo (ej: solo ver ofertas de 65+ puntos)
 
 ### ✍️ Cover letters personalizadas
-- La IA genera una carta **única para cada oferta**
-- Menciona habilidades específicas del job description
-- Listos para copiar y pegar — solo falta tu firma
+- Pedís la carta desde la oferta que te interesa (no se generan automáticamente)
+- Se escribe en el idioma del aviso y usa solo lo que dice tu CV
+- Lista para copiar y pegar — solo falta tu firma
 
 ### 📧 Digest por email (opcional)
 - Recibís un email HTML con los mejores matches
@@ -82,7 +82,7 @@ Buscar trabajo es tedioso:
 ✅ No necesitás instalar nada
 ✅ Funciona en celular y desktop
 ✅ Gratis completamente
-✅ 100% seguro (datos locales en el navegador)
+✅ Tu CV, tu API key y tus resultados no se guardan: viven solo mientras dure tu sesión
 
 **Solo necesitás:**
 1. API Key de Gemini (gratis en [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey))
@@ -266,7 +266,7 @@ En el paso de configuración "Fuentes de búsqueda", activá el checkbox del por
   - 65 = recomendado (buen balance)
   - 80+ = solo excelentes matches
   - 50+ = más permisivo
-- **Plataformas:** tildá las que querés buscar (recomendado: todas 4)
+- **Plataformas:** tildá las que querés buscar
 
 #### 👤 Tu perfil
 - Describí en español lo que buscás y tu experiencia
@@ -276,10 +276,9 @@ En el paso de configuración "Fuentes de búsqueda", activá el checkbox del por
 ### 2. **Buscar ofertas**
 - Click en el botón azul "🚀 Buscar ofertas ahora"
 - Verás progreso en tiempo real:
-  - Primero: scraping de las 4 plataformas
+  - Primero: búsqueda en los portales elegidos
   - Luego: evaluación de cada oferta con IA
-  - Finalmente: generación de cover letters
-- **Duración aproximada:** 6-8 minutos
+- **Duración:** depende de cuántos portales y ofertas incluyas; podés detenerla en cualquier momento
 
 ### 3. **Ver resultados**
 - Se cargan en dos tabs:
@@ -291,7 +290,7 @@ En el paso de configuración "Fuentes de búsqueda", activá el checkbox del por
   - **Plataforma:** dónde se encontró (Remotive, Arbeitnow, etc.)
   - **Razones del match:** qué habilidades tuyas matchean
   - **Skills faltantes:** qué te falta (para que lo sepas)
-  - **Cover letter:** carta generada por IA (expandible)
+  - **Carta de presentación:** botón para generarla, solo si la querés
   - **Ver oferta:** link directo al job description
 
 ### 4. **Descargar resultados**
@@ -319,9 +318,11 @@ Si querés runs ilimitados, podés activar billing en Google Cloud (< $0.01 USD 
 La app te lo va a decir. Volvé a [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey), generá una nueva clave y pegala de nuevo.
 
 ### **¿Mis credenciales se guardan?**
-No. La app funciona en tu computadora. Todo ocurre localmente — tus credenciales nunca se envían a servidores nuestros. Solo se usan para:
+No. En la versión web, la app corre en un servidor: tu API key, tu CV y tus credenciales de email se usan solo durante tu sesión y no se guardan en disco. Se usan para:
 - Conectar a la API de Gemini (Google)
 - Enviar email (Gmail)
+
+Si corrés la app localmente (Opción B), todo pasa por tu computadora.
 
 ### **¿Qué pasa si me olvido el App Password de Gmail?**
 Generá uno nuevo en [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords). El anterior se invalida automáticamente.
@@ -330,10 +331,7 @@ Generá uno nuevo en [myaccount.google.com/apppasswords](https://myaccount.googl
 Sí. Cambialas en la barra izquierda y click en "Buscar ofertas ahora" de nuevo.
 
 ### **¿Cuánto tiempo tarda?**
-Aproximadamente **6-8 minutos** por corrida:
-- 1-2 min: scraping en las 4 plataformas (~90 ofertas)
-- 4-6 min: evaluación con IA (1 por oferta)
-- Envío de email: ~1 min (si está activado)
+Depende de cuántos portales y ofertas incluyas. La evaluación con IA hace una consulta por oferta, así que con la opción "Limitar cantidad de ofertas" controlás la duración. Podés detener la búsqueda en cualquier momento.
 
 ### **¿Qué pasa si no tengo Gmail?**
 Podés usar cualquier email. Cuando te pida "Gmail App Password", generá un "App Password" desde las configuraciones de seguridad de tu cuenta de email.
@@ -400,8 +398,6 @@ Cuando corres la app, se crean automáticamente:
 ```
 job_hunter/
 ├── venv/                 # Tu entorno virtual (no toques)
-├── results/              # Carpeta con resultados JSON de cada corrida
-│   └── results_20260514_0845.json
 ├── app.py                # La aplicación web
 ├── config.py             # Archivo de configuración (opcional editar)
 ├── scrapers.py           # Código para scrapear plataformas
@@ -412,20 +408,20 @@ job_hunter/
 ```
 
 Los archivos que aparecen como **resultado**:
-- `results/` — guarda un JSON después de cada corrida para que no pierdas datos
+- `results/` — JSON de cada corrida, **solo si usás `main.py`** (la app web no guarda nada: descargá el JSON desde la página)
 - `job_hunter.log` — log de ejecuciones (solo si usás `main.py`)
 
 ---
 
 ## 🔐 Privacidad y Seguridad
 
-### Tus datos están seguros porque:
-- **No se envían a nuestros servidores.** La app corre completamente en tu máquina
-- **Tus credenciales solo se usan localmente** para conectar a Google y Gmail
-- **Los resultados se guardan solo en tu computadora** (carpeta `results/`)
+### Qué pasa con tus datos:
+- **Versión web:** la app corre en un servidor. Tu CV, API key, credenciales y resultados se usan solo durante tu sesión y no se guardan en disco
+- **Versión local:** todo corre en tu computadora
+- **Resultados:** los descargás vos como JSON; la app web no los guarda
 
 ### Qué información procesa:
-- Job descriptions de las 4 plataformas (públicos)
+- Descripciones de ofertas de los portales (públicas)
 - Tu perfil (lo guardás vos)
 - API Key de Gemini (nunca se expone)
 - App Password de Gmail (nunca se expone)
@@ -434,7 +430,7 @@ Los archivos que aparecen como **resultado**:
 - Descripción de la oferta + tu perfil → Google Gemini (para evaluar)
 - Email → servidores de Gmail (si envías digest)
 
-**Ambas conexiones son privadas y encriptadas (HTTPS).**
+**Ambas conexiones van encriptadas (HTTPS).** Ojo: en el plan gratuito de la API de Gemini, Google puede usar el contenido enviado para mejorar sus productos. Si no querés que tu CV se use así, usá una API key con facturación activada.
 
 ---
 
