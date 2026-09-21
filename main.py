@@ -10,8 +10,9 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+import config
 from scrapers import get_all_jobs
-from ai_engine import process_jobs
+from ai_engine import process_jobs, recommended
 from notifier import send_digest
 
 logging.basicConfig(
@@ -43,6 +44,7 @@ def save_results(scored_jobs, output_dir: Path):
             "match_reasons": sj.match_reasons,
             "missing_skills": sj.missing_skills,
             "summary": sj.summary,
+            "evaluated": sj.evaluated,
             "has_cover_letter": sj.cover_letter is not None,
         })
 
@@ -55,7 +57,7 @@ def save_results(scored_jobs, output_dir: Path):
 
 def print_summary(scored_jobs):
     """Imprime resumen en consola."""
-    top = [j for j in scored_jobs if j.cover_letter]
+    top = recommended(scored_jobs, config.MIN_MATCH_SCORE)
 
     print("\n" + "="*60)
     print("📊 RESUMEN DEL RUN")
@@ -94,7 +96,10 @@ def main():
 
     # STEP 2: AI Processing
     log.info("STEP 2/3 — Evaluación con IA y generación de cover letters")
-    scored_jobs = process_jobs(jobs)
+    scored_jobs = process_jobs(
+        jobs, config.CANDIDATE_PROFILE,
+        api_key=config.GEMINI_API_KEY, min_score=config.MIN_MATCH_SCORE, with_letters=True,
+    )
 
     # STEP 3: Output
     log.info("STEP 3/3 — Enviando resultados")
@@ -102,7 +107,11 @@ def main():
     save_results(scored_jobs, Path(args.output))
 
     if not args.dry_run and not args.no_email:
-        send_digest(scored_jobs)
+        send_digest(
+            scored_jobs,
+            sender=config.EMAIL_SENDER, password=config.EMAIL_PASSWORD,
+            recipient=config.EMAIL_RECIPIENT, min_score=config.MIN_MATCH_SCORE,
+        )
     else:
         log.info("Email omitido (--dry-run o --no-email activo)")
 

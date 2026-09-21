@@ -2,13 +2,14 @@
 notifier.py — Envía el digest de oportunidades por email en formato HTML
 """
 
+import html
 import smtplib
 import logging
 from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from config import EMAIL_SENDER, EMAIL_PASSWORD, EMAIL_RECIPIENT, SMTP_HOST, SMTP_PORT
-from ai_engine import ScoredJob
+from config import SMTP_HOST, SMTP_PORT
+from ai_engine import ScoredJob, recommended
 
 log = logging.getLogger(__name__)
 
@@ -31,17 +32,33 @@ def _score_label(score: int) -> str:
         return "🔍 Match parcial"
 
 
-def _build_html(jobs: list[ScoredJob], run_date: str) -> str:
-    top_jobs = [j for j in jobs if j.cover_letter]  # Solo los que tienen cover letter
+def _build_html(jobs: list[ScoredJob], top_jobs: list[ScoredJob], run_date: str) -> str:
+    esc = html.escape  # todo el contenido viene de ofertas externas o del LLM
 
     job_cards = ""
     for sj in top_jobs:
-        reasons_html = "".join(f"<li>{r}</li>" for r in sj.match_reasons)
+        reasons_html = "".join(f"<li>{esc(r)}</li>" for r in sj.match_reasons)
         missing_html = (
-            "".join(f"<li>{m}</li>" for m in sj.missing_skills)
+            "".join(f"<li>{esc(m)}</li>" for m in sj.missing_skills)
             if sj.missing_skills else "<li>Ninguno crítico</li>"
         )
-        cover_html = sj.cover_letter.replace("\n", "<br>") if sj.cover_letter else ""
+        cover_section = ""
+        if sj.cover_letter:
+            cover_section = f"""
+          <div style="padding:0 24px 24px;">
+            <details style="cursor:pointer;">
+              <summary style="font-weight:600;color:#6366f1;font-size:14px;padding:10px 0;
+                              border-top:1px solid #f1f5f9;list-style:none;">
+                📝 Cover Letter generada — click para ver
+              </summary>
+              <div style="background:#fafafa;border:1px solid #e2e8f0;border-radius:8px;
+                          padding:18px;margin-top:12px;font-size:13px;color:#334155;
+                          line-height:1.8;white-space:pre-wrap;font-family:Georgia,serif;">
+                {esc(sj.cover_letter)}
+              </div>
+            </details>
+          </div>"""
+        modality = "🌐 Remoto" if sj.job.remote else f"📍 {esc(sj.job.location or 'Ubicación no especificada')}"
 
         source_badge = {
             "GetOnBoard": "#6366f1",
@@ -57,23 +74,23 @@ def _build_html(jobs: list[ScoredJob], run_date: str) -> str:
           <div style="padding:20px 24px;border-bottom:1px solid #f1f5f9;">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
               <span style="background:{source_badge};color:#fff;font-size:11px;font-weight:600;
-                           padding:3px 9px;border-radius:20px;">{sj.job.source}</span>
+                           padding:3px 9px;border-radius:20px;">{esc(sj.job.source)}</span>
               <span style="background:{_score_color(sj.score)};color:#fff;font-size:11px;font-weight:700;
                            padding:3px 9px;border-radius:20px;">{sj.score}/100</span>
               <span style="color:{_score_color(sj.score)};font-size:13px;font-weight:600;">
                 {_score_label(sj.score)}</span>
             </div>
-            <h2 style="margin:0 0 4px;font-size:18px;color:#1e293b;">{sj.job.title}</h2>
+            <h2 style="margin:0 0 4px;font-size:18px;color:#1e293b;">{esc(sj.job.title)}</h2>
             <p style="margin:0;color:#64748b;font-size:14px;">
-              🏢 <strong>{sj.job.company}</strong> &nbsp;|&nbsp; 
-              🌐 Remoto &nbsp;|&nbsp;
-              <a href="{sj.job.url}" style="color:#6366f1;text-decoration:none;">Ver oferta →</a>
+              🏢 <strong>{esc(sj.job.company)}</strong> &nbsp;|&nbsp; 
+              {modality} &nbsp;|&nbsp;
+              <a href="{esc(sj.job.url, quote=True)}" style="color:#6366f1;text-decoration:none;">Ver oferta →</a>
             </p>
           </div>
 
           <!-- Summary -->
           <div style="padding:16px 24px;background:#f8fafc;border-bottom:1px solid #f1f5f9;">
-            <p style="margin:0;color:#475569;font-style:italic;font-size:14px;">{sj.summary}</p>
+            <p style="margin:0;color:#475569;font-style:italic;font-size:14px;">{esc(sj.summary)}</p>
           </div>
 
           <!-- Match Details -->
@@ -94,20 +111,7 @@ def _build_html(jobs: list[ScoredJob], run_date: str) -> str:
             </div>
           </div>
 
-          <!-- Cover Letter -->
-          <div style="padding:0 24px 24px;">
-            <details style="cursor:pointer;">
-              <summary style="font-weight:600;color:#6366f1;font-size:14px;padding:10px 0;
-                              border-top:1px solid #f1f5f9;list-style:none;">
-                📝 Cover Letter generada — click para ver
-              </summary>
-              <div style="background:#fafafa;border:1px solid #e2e8f0;border-radius:8px;
-                          padding:18px;margin-top:12px;font-size:13px;color:#334155;
-                          line-height:1.8;white-space:pre-wrap;font-family:Georgia,serif;">
-                {cover_html}
-              </div>
-            </details>
-          </div>
+          {cover_section}
         </div>
         """
 
@@ -161,31 +165,29 @@ def _build_html(jobs: list[ScoredJob], run_date: str) -> str:
 """
 
 
-def send_digest(jobs: list[ScoredJob]):
-    top_jobs = [j for j in jobs if j.cover_letter]
+def send_digest(jobs: list[ScoredJob], *, sender: str, password: str, recipient: str, min_score: int) -> bool:
+    """Envía el digest con las ofertas recomendadas. Devuelve False si no había nada para enviar."""
+    top_jobs = recommended(jobs, min_score)
     run_date = datetime.now().strftime("%d/%m/%Y %H:%M")
 
     if not top_jobs:
         log.info("Sin matches para notificar hoy.")
-        return
+        return False
 
-    log.info(f"Enviando digest con {len(top_jobs)} ofertas a {EMAIL_RECIPIENT}...")
+    log.info(f"Enviando digest con {len(top_jobs)} ofertas...")
 
-    html_body = _build_html(jobs, run_date)
+    html_body = _build_html(jobs, top_jobs, run_date)
 
     msg = MIMEMultipart("alternative")
     msg["Subject"] = f"🎯 Job Hunt Digest — {len(top_jobs)} matches — {datetime.now().strftime('%d/%m/%Y')}"
-    msg["From"] = EMAIL_SENDER
-    msg["To"] = EMAIL_RECIPIENT
+    msg["From"] = sender
+    msg["To"] = recipient
 
     msg.attach(MIMEText(html_body, "html"))
 
-    try:
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
-            server.starttls()
-            server.login(EMAIL_SENDER, EMAIL_PASSWORD)
-            server.sendmail(EMAIL_SENDER, EMAIL_RECIPIENT, msg.as_string())
-        log.info(f"✅ Digest enviado exitosamente a {EMAIL_RECIPIENT}")
-    except Exception as e:
-        log.error(f"❌ Error enviando email: {e}")
-        raise
+    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+        server.starttls()
+        server.login(sender, password)
+        server.sendmail(sender, recipient, msg.as_string())
+    log.info("✅ Digest enviado")
+    return True

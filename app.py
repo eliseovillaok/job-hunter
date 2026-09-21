@@ -1120,36 +1120,59 @@ for _k, _v in _defaults.items():
     if _k not in st.session_state:
         st.session_state[_k] = _v
 
-# ─── Sincronizar query params → preferencias visuales ────────────────────────
-_qp = st.query_params
-if "dark" in _qp:
-    st.session_state.dark_mode = (_qp.get("dark", "0") == "1")
-if "lang" in _qp:
-    _lv = _qp.get("lang", "es")
-    if _lv in ("es", "en"):
-        st.session_state.lang = _lv
+# ─── Preferencias visuales: query params → session_state (solo al iniciar) ───
+# La URL (?lang=en&theme=dark) conserva las preferencias al recargar o compartir.
+if "_prefs_loaded" not in st.session_state:
+    st.session_state._prefs_loaded = True
+    _qp = st.query_params
+    _lv = _qp.get("lang")
+    if _lv not in ("es", "en"):
+        # Sin preferencia explícita: idioma del navegador (inglés o español).
+        _locale = (getattr(st.context, "locale", None) or "es").lower()
+        _lv = "en" if _locale.startswith("en") else "es"
+    st.session_state.lang = _lv
+    st.session_state.dark_mode = (_qp.get("theme") == "dark")
 
 # ─── Traducciones / Translations ─────────────────────────────────────────────
 TRANSLATIONS: dict[str, dict[str, str]] = {
     "es": {
+        # Fase 0
+        "showing_range":       "Mostrando {start}–{end} de {total}",
+        "cv_error":            "No se pudo analizar el CV: {error}",
+        "not_evaluated":       "No evaluada",
+        "uneval_note":         "{n} ofertas no pudieron evaluarse (error de la IA o cuota agotada). Aparecen al final, sin puntaje.",
+        "btn_gen_letter":      "✍️ Generar carta de presentación",
+        "letter_generating":   "Generando carta…",
+        "letter_error":        "No se pudo generar la carta: {error}",
+        "wf_email_title":      "Enviar resumen por email",
+        "wf_email_empty":      "No hay ofertas recomendadas para enviar.",
+        "lang_label":          "Idioma",
+        "theme_label":         "Tema",
+        "wf_auth_error":       "La API key de Gemini no es válida o no tiene permisos. Revisala en la configuración.",
+        "none_evaluated":      "No se pudo evaluar ninguna oferta. Revisá tu API key y tu cuota de Gemini.",
+        "wiz_close_help":      "Cierra el formulario sin ejecutar la búsqueda.",
+        "help_gemini_steps":   "1. Ir a [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)\n2. Iniciar sesión con Google → **Create API Key**\n3. Copiar la clave — es gratis, no requiere tarjeta.",
+        "help_gmail_steps":    "1. Ir a [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords)\n2. Tener la verificación en 2 pasos **activada**\n3. Crear la app `Job Hunter` → copiar los 16 caracteres",
+        "ph_email_sender":     "tu@gmail.com",
+        "ph_email_recip":      "destino@gmail.com",
         # Hero — estado inicial
         "hero_eyebrow_search":  "Búsqueda de empleo con IA",
         "hero_title_search":    "Encontrá el trabajo que realmente encaja.",
-        "hero_sub_search":      "Job Hunter reúne ofertas de 15+ portales, las puntúa según tu perfil y genera cartas de presentación listas para enviar.",
-        "hero_note_search":     "Toda la lógica corre en tu máquina. Tus credenciales nunca salen del navegador.",
+        "hero_sub_search":      "Subí tu CV: Job Hunter busca ofertas en {n} portales, las puntúa contra tu perfil real y te explica por qué encaja cada una.",
+        "hero_note_search":     "Tu CV y tu API key se usan solo durante esta sesión, para buscar y evaluar ofertas con Google Gemini. No se guardan.",
         "hero_tag_scoring":     "Scoring con IA",
-        "hero_tag_multi":       "Multi-source",
-        "hero_tag_letters":     "Cover letters",
-        "hero_tag_local":       "Local-first",
-        "hero_stat_sources":    "fuentes activas",
+        "hero_tag_multi":       "Múltiples portales",
+        "hero_tag_letters":     "Cartas a pedido",
+        "hero_tag_local":       "Sin inflar tu perfil",
+        "hero_stat_sources":    "portales disponibles",
         "hero_stat_score":      "score por oferta",
-        "hero_stat_ai":         "cover letters",
-        "hero_stat_time":       "por búsqueda",
+        "hero_stat_ai":         "lo único que necesitás",
+        "hero_stat_time":       "idiomas",
         # Hero — resultados
         "hero_eyebrow_results": "Panel de resultados",
         "hero_title_results":   "Tus oportunidades, priorizadas.",
         "hero_sub_results":     "La IA evaluó cada oferta contra tu perfil. Las recomendadas están en la pestaña de abajo, ordenadas por score.",
-        "hero_note_results":    "Resultados listos. Refiná las búsquedas o exportá las cartas.",
+        "hero_note_results":    "Resultados listos. Generá cartas solo para las ofertas que te interesen.",
         "hero_tag_done":        "Búsqueda completada",
         "hero_stat_analyzed":   "analizadas",
         "hero_stat_rec":        "recomendadas",
@@ -1158,22 +1181,22 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         # Empty state
         "empty_label":  "Cómo funciona",
         "empty_title":  "Un flujo de 4 pasos, sin ruido visual.",
-        "empty_copy":   "Configurás una vez, lanzás la búsqueda y recibís resultados ordenados por relevancia con cartas listas para enviar.",
+        "empty_copy":   "Subís tu CV, lanzás la búsqueda y recibís ofertas ordenadas por relevancia, con el porqué de cada puntaje.",
         "feat1_title":  "Descubrí",
         "feat1_desc":   "Remotive, Get on Board, Himalayas, LatoJobs, WeWorkRemotely y 10+ fuentes más en una sola búsqueda.",
         "feat2_title":  "Priorizá",
         "feat2_desc":   "La IA puntúa cada oferta del 0 al 100 comparando el job description con tu perfil real. Sin inflado de seniority.",
         "feat3_title":  "Redactá",
-        "feat3_desc":   "Genera una cover letter única por oferta, en el idioma del aviso, con referencias específicas al puesto.",
+        "feat3_desc":   "Pedí una carta de presentación para la oferta que elijas, en el idioma del aviso y basada solo en tu CV.",
         "feat4_title":  "Actuá",
-        "feat4_desc":   "Descargá las cartas individualmente, exportá todo como JSON o recibí un digest por email.",
+        "feat4_desc":   "Descargá las cartas, exportá los resultados como JSON o recibí un resumen por email.",
         # Botones de acción
         "searching_notice": "La búsqueda está en curso — podés detenerla en cualquier momento.",
         "btn_stop":          "Detener",
         "btn_stop_config":   "Detener & Configurar",
         "btn_new_search":    "Nueva búsqueda",
         "btn_config_search": "Configurar búsqueda",
-        "search_time_hint":  "Una búsqueda completa suele tardar entre 6 y 8 minutos.",
+        "search_time_hint":  "La duración depende de cuántos portales y ofertas incluyas. Podés detener la búsqueda en cualquier momento.",
         # Resultados
         "tab_recommended":       "Recomendadas",
         "tab_all":               "Todas",
@@ -1242,7 +1265,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "step3_params":        "**⚙️ Parámetros**",
         "step3_remote_chk":    "Solo ofertas remotas",
         "step3_remote_help":   "Activa esta opción solo si tu CV especifica preferencia remota. Desactivado por defecto para no perder ofertas híbridas o presenciales.",
-        "step3_score_label":   "Puntaje mínimo para 'Recomendadas' y cartas",
+        "step3_score_label":   "Puntaje mínimo para 'Recomendadas'",
         "step3_score_help":    "Umbral para la pestaña 'Recomendadas' y generación de cartas. Las ofertas por debajo del umbral siguen visibles en 'Todas'.",
         "step3_sources":       "**Fuentes de búsqueda**",
         "step3_global":        "🌍 Remoto global",
@@ -1276,8 +1299,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "wf_step_label":   "Paso {n}  ·  {title}",
         "wf_step1_title":  "Buscar ofertas",
         "wf_step2_title":  "Analizar con IA",
-        "wf_step3_title":  "Generar cartas",
-        "wf_step4_title":  "Enviar resumen por email",
         "wf_starting":     "Iniciando...",
         "wf_searching":    "Buscando en **{platform}**...",
         "wf_stopped":      "⏹️ Búsqueda detenida por el usuario tras {n} fuente(s) — {jobs} ofertas encontradas hasta ahora.",
@@ -1286,38 +1307,53 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "wf_scoring":      "Analizando **{i}/{n}**: {title} @ {company}",
         "wf_quota":        "Se agotó la cuota diaria de Gemini. Se analizaron {i} de {n} ofertas.",
         "wf_scored":       "✅ **{top} recomendadas** de {total} analizadas — {time}",
-        "wf_letter":       "Generando carta **{i}/{n}** — {title}",
-        "wf_letter_1":     "carta generada",
-        "wf_letter_n":     "cartas generadas",
         "wf_email_send":   "Enviando resumen a {recipient}...",
         "wf_email_ok":     "✅ Resumen enviado a **{recipient}**.",
         "wf_email_err":    "No se pudo enviar el email: {error}",
         "wf_src_prog":     "{done}/{total} fuentes{eta}",
         "wf_ai_prog":      "{done}/{total} analizadas{eta}",
-        "wf_let_prog":     "{done}/{total} cartas{eta}",
         "wf_eta":          "  ·  ~{time} restantes",
         "wf_err_platform": "⚠️ Error en {platform}: {error}",
         "wf_best_label":   "Mejores hasta ahora",
     },
     "en": {
+        # Phase 0
+        "showing_range":       "Showing {start}–{end} of {total}",
+        "cv_error":            "Could not analyze the CV: {error}",
+        "not_evaluated":       "Not evaluated",
+        "uneval_note":         "{n} listings could not be evaluated (AI error or quota exhausted). They are listed last, without a score.",
+        "btn_gen_letter":      "✍️ Generate cover letter",
+        "letter_generating":   "Generating letter…",
+        "letter_error":        "Could not generate the letter: {error}",
+        "wf_email_title":      "Send summary by email",
+        "wf_email_empty":      "There are no recommended listings to send.",
+        "lang_label":          "Language",
+        "theme_label":         "Theme",
+        "wf_auth_error":       "The Gemini API key is invalid or lacks permissions. Check it in the settings.",
+        "none_evaluated":      "No listing could be evaluated. Check your Gemini API key and quota.",
+        "wiz_close_help":      "Closes the form without running the search.",
+        "help_gemini_steps":   "1. Go to [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)\n2. Sign in with Google → **Create API Key**\n3. Copy the key — it is free, no card required.",
+        "help_gmail_steps":    "1. Go to [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords)\n2. Make sure 2-Step Verification is **on**\n3. Create the `Job Hunter` app → copy the 16 characters",
+        "ph_email_sender":     "you@gmail.com",
+        "ph_email_recip":      "recipient@gmail.com",
         # Hero — initial state
         "hero_eyebrow_search":  "AI-Powered Job Search",
         "hero_title_search":    "Find the job that truly fits.",
-        "hero_sub_search":      "Job Hunter gathers listings from 15+ portals, scores them against your profile, and generates ready-to-send cover letters.",
-        "hero_note_search":     "All logic runs on your machine. Your credentials never leave the browser.",
+        "hero_sub_search":      "Upload your CV: Job Hunter searches {n} portals, scores every listing against your real profile, and explains why each one fits.",
+        "hero_note_search":     "Your CV and API key are used only during this session, to search and evaluate listings with Google Gemini. They are not stored.",
         "hero_tag_scoring":     "AI Scoring",
         "hero_tag_multi":       "Multi-source",
-        "hero_tag_letters":     "Cover letters",
-        "hero_tag_local":       "Local-first",
-        "hero_stat_sources":    "active sources",
+        "hero_tag_letters":     "On-demand letters",
+        "hero_tag_local":       "No profile inflation",
+        "hero_stat_sources":    "available portals",
         "hero_stat_score":      "score per listing",
-        "hero_stat_ai":         "cover letters",
-        "hero_stat_time":       "per search",
+        "hero_stat_ai":         "all you need",
+        "hero_stat_time":       "languages",
         # Hero — results
         "hero_eyebrow_results": "Results Dashboard",
         "hero_title_results":   "Your opportunities, prioritized.",
         "hero_sub_results":     "The AI evaluated each listing against your profile. Recommended ones are in the tab below, sorted by score.",
-        "hero_note_results":    "Results ready. Refine the search or export the letters.",
+        "hero_note_results":    "Results ready. Generate letters only for the listings you care about.",
         "hero_tag_done":        "Search completed",
         "hero_stat_analyzed":   "analyzed",
         "hero_stat_rec":        "recommended",
@@ -1326,22 +1362,22 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         # Empty state
         "empty_label":  "How it works",
         "empty_title":  "A 4-step flow, no visual noise.",
-        "empty_copy":   "Configure once, launch the search, and receive results sorted by relevance with letters ready to send.",
+        "empty_copy":   "Upload your CV, launch the search, and get listings sorted by relevance, with the reasoning behind every score.",
         "feat1_title":  "Discover",
         "feat1_desc":   "Remotive, Get on Board, Himalayas, LatoJobs, WeWorkRemotely and 10+ more sources in a single search.",
         "feat2_title":  "Prioritize",
         "feat2_desc":   "The AI scores each listing from 0 to 100, comparing the job description with your real profile. No seniority inflation.",
         "feat3_title":  "Write",
-        "feat3_desc":   "Generates a unique cover letter per listing, in the language of the ad, with specific references to the role.",
+        "feat3_desc":   "Request a cover letter for the listing you choose, in the language of the ad and based only on your CV.",
         "feat4_title":  "Act",
-        "feat4_desc":   "Download letters individually, export everything as JSON, or receive a digest by email.",
+        "feat4_desc":   "Download your letters, export results as JSON, or get a summary by email.",
         # Action buttons
         "searching_notice": "Search in progress — you can stop it at any time.",
         "btn_stop":          "Stop",
         "btn_stop_config":   "Stop & Configure",
         "btn_new_search":    "New search",
         "btn_config_search": "Configure search",
-        "search_time_hint":  "A full search typically takes 6 to 8 minutes.",
+        "search_time_hint":  "Duration depends on how many portals and listings you include. You can stop the search at any time.",
         # Results
         "tab_recommended":       "Recommended",
         "tab_all":               "All",
@@ -1410,7 +1446,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "step3_params":        "**⚙️ Parameters**",
         "step3_remote_chk":    "Remote listings only",
         "step3_remote_help":   "Enable only if your CV specifies remote preference. Disabled by default to avoid missing hybrid or on-site listings.",
-        "step3_score_label":   "Minimum score for 'Recommended' and letters",
+        "step3_score_label":   "Minimum score for 'Recommended'",
         "step3_score_help":    "Threshold for the 'Recommended' tab and letter generation. Listings below the threshold remain visible in 'All'.",
         "step3_sources":       "**Search sources**",
         "step3_global":        "🌍 Global remote",
@@ -1444,8 +1480,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "wf_step_label":   "Step {n}  ·  {title}",
         "wf_step1_title":  "Search listings",
         "wf_step2_title":  "Analyze with AI",
-        "wf_step3_title":  "Generate letters",
-        "wf_step4_title":  "Send summary by email",
         "wf_starting":     "Starting...",
         "wf_searching":    "Searching **{platform}**...",
         "wf_stopped":      "⏹️ Search stopped after {n} source(s) — {jobs} listings found so far.",
@@ -1454,15 +1488,11 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "wf_scoring":      "Analyzing **{i}/{n}**: {title} @ {company}",
         "wf_quota":        "Daily Gemini quota exceeded. Analyzed {i} of {n} listings.",
         "wf_scored":       "✅ **{top} recommended** of {total} analyzed — {time}",
-        "wf_letter":       "Generating letter **{i}/{n}** — {title}",
-        "wf_letter_1":     "letter generated",
-        "wf_letter_n":     "letters generated",
         "wf_email_send":   "Sending summary to {recipient}...",
         "wf_email_ok":     "✅ Summary sent to **{recipient}**.",
         "wf_email_err":    "Could not send email: {error}",
         "wf_src_prog":     "{done}/{total} sources{eta}",
         "wf_ai_prog":      "{done}/{total} analyzed{eta}",
-        "wf_let_prog":     "{done}/{total} letters{eta}",
         "wf_eta":          "  ·  ~{time} remaining",
         "wf_err_platform": "⚠️ Error on {platform}: {error}",
         "wf_best_label":   "Best so far",
@@ -1478,236 +1508,50 @@ def _t(key: str, **kw) -> str:
     return txt.format(**kw) if kw else txt
 
 
+# ─── Toolbar: tema e idioma ───────────────────────────────────────────────────
+# Todo del lado del servidor: cambiar idioma o tema hace un rerun, no recarga
+# la página, así que la sesión (API key, CV analizado, resultados) se conserva.
+def _on_lang_change():
+    st.session_state.lang = st.session_state._lang_widget
+    st.query_params["lang"] = st.session_state.lang
+
+
+def _on_theme_change():
+    st.session_state.dark_mode = (st.session_state._theme_widget == "dark")
+    st.query_params["theme"] = st.session_state._theme_widget
+
+
+st.session_state._lang_widget  = st.session_state.lang
+st.session_state._theme_widget = "dark" if st.session_state.dark_mode else "light"
+
 st.markdown("""
 <style>
-#jh-toggles {
-  position: fixed; top: 60px; right: 7.5rem;
-  z-index: 100000; display: flex; gap: 7px; align-items: center;
+.st-key-jh_toolbar {
+  position: fixed; top: 60px; right: 7.5rem; z-index: 100000;
+  width: auto !important;
 }
-.jh-seg {
-  display: inline-flex; align-items: center;
-  background: var(--surface); border: 1px solid var(--b2);
-  border-radius: 9999px; padding: 2px; gap: 1px; box-shadow: var(--s1);
-}
-.jh-seg-o {
-  display: inline-flex; align-items: center; justify-content: center;
-  height: 24px; padding: 0 9px; border-radius: 9999px;
-  color: var(--t3); font-size: 12px; font-weight: 600;
-  font-family: 'Inter', sans-serif; cursor: pointer;
-  text-decoration: none !important; user-select: none;
-  transition: all 120ms ease; line-height: 1;
-}
-.jh-seg-o:hover { color: var(--t1); background: var(--surface-2); }
-.jh-seg-o.on    { background: var(--pm); color: var(--p); font-weight: 700; }
 </style>
-
-<div id="jh-toggles">
-  <div class="jh-seg" title="Modo claro / Dark mode">
-    <a class="jh-seg-o" data-theme-opt="light" id="btn-light">☀️</a>
-    <a class="jh-seg-o" data-theme-opt="dark"  id="btn-dark">🌙</a>
-  </div>
-  <div class="jh-seg" title="Idioma / Language">
-    <a class="jh-seg-o" data-lang-opt="es" id="btn-es">ES</a>
-    <a class="jh-seg-o" data-lang-opt="en" id="btn-en">EN</a>
-  </div>
-</div>
 """, unsafe_allow_html=True)
 
-# JS en component separado — st.markdown NO ejecuta <script>, components.html sí
-components.html("""<script>
-(function() {
+with st.container(key="jh_toolbar", horizontal=True, width="content"):
+    st.segmented_control(
+        _t("theme_label"), ["light", "dark"], required=True,
+        format_func={"light": "☀️", "dark": "🌙"}.get,
+        key="_theme_widget", on_change=_on_theme_change, label_visibility="collapsed",
+    )
+    st.segmented_control(
+        _t("lang_label"), ["es", "en"], required=True,
+        format_func=str.upper,
+        key="_lang_widget", on_change=_on_lang_change, label_visibility="collapsed",
+    )
 
-  /* ── Acceso al documento y localStorage del padre (Streamlit) ────────── */
-  var ROOT = window.parent.document;
-  var LS   = window.parent.localStorage;
-
-  /* ── Traducciones ────────────────────────────────────────────────────── */
-  var T = {
-    es: {
-      "hero_eyebrow_search":  "Búsqueda de empleo con IA",
-      "hero_title_search":    "Encontrá el trabajo que realmente encaja.",
-      "hero_sub_search":      "Job Hunter reúne ofertas de 15+ portales, las puntúa según tu perfil y genera cartas de presentación listas para enviar.",
-      "hero_note_search":     "Toda la lógica corre en tu máquina. Tus credenciales nunca salen del navegador.",
-      "hero_tag_scoring":     "Scoring con IA",
-      "hero_tag_multi":       "Multi-source",
-      "hero_tag_letters":     "Cover letters",
-      "hero_tag_local":       "Local-first",
-      "hero_stat_sources":    "fuentes activas",
-      "hero_stat_score":      "score por oferta",
-      "hero_stat_ai":         "cover letters",
-      "hero_stat_time":       "por búsqueda",
-      "hero_eyebrow_results": "Panel de resultados",
-      "hero_title_results":   "Tus oportunidades, priorizadas.",
-      "hero_sub_results":     "La IA evaluó cada oferta contra tu perfil. Las recomendadas están en la pestaña de abajo, ordenadas por score.",
-      "hero_note_results":    "Resultados listos. Refiná las búsquedas o exportá las cartas.",
-      "hero_tag_done":        "Búsqueda completada",
-      "hero_stat_analyzed":   "analizadas",
-      "hero_stat_rec":        "recomendadas",
-      "hero_stat_best":       "mejor score",
-      "hero_stat_threshold":  "umbral",
-      "empty_label":  "Cómo funciona",
-      "empty_title":  "Un flujo de 4 pasos, sin ruido visual.",
-      "empty_copy":   "Configurás una vez, lanzás la búsqueda y recibís resultados ordenados por relevancia con cartas listas para enviar.",
-      "feat1_title":  "Descubrí",
-      "feat1_desc":   "Remotive, Get on Board, Himalayas, LatoJobs, WeWorkRemotely y 10+ fuentes más en una sola búsqueda.",
-      "feat2_title":  "Priorizá",
-      "feat2_desc":   "La IA puntúa cada oferta del 0 al 100 comparando el job description con tu perfil real. Sin inflado de seniority.",
-      "feat3_title":  "Redactá",
-      "feat3_desc":   "Genera una cover letter única por oferta, en el idioma del aviso, con referencias específicas al puesto.",
-      "feat4_title":  "Actuá",
-      "feat4_desc":   "Descargá las cartas individualmente, exportá todo como JSON o recibí un digest por email.",
-      "searching_notice": "La búsqueda está en curso — podés detenerla en cualquier momento.",
-      "search_time_hint":  "Una búsqueda completa suele tardar entre 6 y 8 minutos.",
-      "metric_analyzed":    "Analizadas",
-      "metric_recommended": "Recomendadas",
-      "metric_best":        "Mejor score",
-      "metric_excellent":   "Excelentes 80+",
-      "wf_best_label":    "Mejores hasta ahora",
-      "why_fits":         "Por qué encaja",
-      "what_missing":     "Lo que podría faltar",
-      "no_reasons":       "Sin razones calculadas.",
-      "no_missing":       "Sin faltantes críticos.",
-      "remote_tag":       "Remota",
-      "offer_link":       "Ver oferta →"
-    },
-    en: {
-      "hero_eyebrow_search":  "AI-Powered Job Search",
-      "hero_title_search":    "Find the job that truly fits.",
-      "hero_sub_search":      "Job Hunter gathers listings from 15+ portals, scores them against your profile, and generates ready-to-send cover letters.",
-      "hero_note_search":     "All logic runs on your machine. Your credentials never leave the browser.",
-      "hero_tag_scoring":     "AI Scoring",
-      "hero_tag_multi":       "Multi-source",
-      "hero_tag_letters":     "Cover letters",
-      "hero_tag_local":       "Local-first",
-      "hero_stat_sources":    "active sources",
-      "hero_stat_score":      "score per listing",
-      "hero_stat_ai":         "cover letters",
-      "hero_stat_time":       "per search",
-      "hero_eyebrow_results": "Results Dashboard",
-      "hero_title_results":   "Your opportunities, prioritized.",
-      "hero_sub_results":     "The AI evaluated each listing against your profile. Recommended ones are in the tab below, sorted by score.",
-      "hero_note_results":    "Results ready. Refine the search or export the letters.",
-      "hero_tag_done":        "Search completed",
-      "hero_stat_analyzed":   "analyzed",
-      "hero_stat_rec":        "recommended",
-      "hero_stat_best":       "best score",
-      "hero_stat_threshold":  "threshold",
-      "empty_label":  "How it works",
-      "empty_title":  "A 4-step flow, no visual noise.",
-      "empty_copy":   "Configure once, launch the search, and receive results sorted by relevance with letters ready to send.",
-      "feat1_title":  "Discover",
-      "feat1_desc":   "Remotive, Get on Board, Himalayas, LatoJobs, WeWorkRemotely and 10+ more sources in a single search.",
-      "feat2_title":  "Prioritize",
-      "feat2_desc":   "The AI scores each listing from 0 to 100, comparing the job description with your real profile. No seniority inflation.",
-      "feat3_title":  "Write",
-      "feat3_desc":   "Generates a unique cover letter per listing, in the language of the ad, with specific references to the role.",
-      "feat4_title":  "Act",
-      "feat4_desc":   "Download letters individually, export everything as JSON, or receive a digest by email.",
-      "searching_notice": "Search in progress — you can stop it at any time.",
-      "search_time_hint":  "A full search typically takes 6 to 8 minutes.",
-      "metric_analyzed":    "Analyzed",
-      "metric_recommended": "Recommended",
-      "metric_best":        "Best score",
-      "metric_excellent":   "Excellent 80+",
-      "wf_best_label":    "Best so far",
-      "why_fits":         "Why it fits",
-      "what_missing":     "What might be missing",
-      "no_reasons":       "No reasons calculated.",
-      "no_missing":       "No critical gaps.",
-      "remote_tag":       "Remote",
-      "offer_link":       "View listing →"
-    }
-  };
-
-  /* ── Aplicar tema ────────────────────────────────────────────────────── */
-  function applyTheme(theme) {
-    ROOT.documentElement.setAttribute('data-theme', theme);
-    ROOT.querySelectorAll('[data-theme-opt]').forEach(function(el) {
-      el.classList.toggle('on', el.getAttribute('data-theme-opt') === theme);
-    });
-  }
-
-  /* ── Aplicar idioma ──────────────────────────────────────────────────── */
-  function applyLang(lang) {
-    var d = T[lang];
-    if (!d) return;
-    ROOT.querySelectorAll('[data-i18n]').forEach(function(el) {
-      var v = d[el.getAttribute('data-i18n')];
-      if (v !== undefined) el.innerHTML = v;
-    });
-    ROOT.querySelectorAll('[data-lang-opt]').forEach(function(el) {
-      el.classList.toggle('on', el.getAttribute('data-lang-opt') === lang);
-    });
-  }
-
-  /* ── Leer localStorage y aplicar todo ───────────────────────────────── */
-  var _applying = false;
-  function applyAll() {
-    if (_applying) return;
-    _applying = true;
-    try {
-      applyTheme(LS.getItem('jh_theme') || 'light');
-      applyLang(LS.getItem('jh_lang') || 'es');
-    } finally { _applying = false; }
-  }
-
-  /* ── Conectar botones (están en el DOM del padre) ────────────────────── */
-  var _wired = false;
-  function wireButtons() {
-    if (_wired) return;
-    var light = ROOT.getElementById('btn-light');
-    var dark  = ROOT.getElementById('btn-dark');
-    var es    = ROOT.getElementById('btn-es');
-    var en    = ROOT.getElementById('btn-en');
-    if (!light || !dark || !es || !en) return;
-    _wired = true;
-    light.addEventListener('click', function(e) { e.preventDefault(); jhSetTheme('light'); });
-    dark .addEventListener('click', function(e) { e.preventDefault(); jhSetTheme('dark');  });
-    es   .addEventListener('click', function(e) { e.preventDefault(); jhSetLang('es');     });
-    en   .addEventListener('click', function(e) { e.preventDefault(); jhSetLang('en');     });
-  }
-
-  function jhSetTheme(theme) {
-    LS.setItem('jh_theme', theme);
-    applyTheme(theme);
-  }
-
-  function jhSetLang(lang) {
-    // Los labels de widgets Streamlit son server-rendered (Python _t()).
-    // Requieren un rerun del servidor → navegamos con ?lang=X.
-    // El dark mode sobrevive porque MutationObserver lo re-aplica al recargar.
-    var cur = LS.getItem('jh_lang') || 'es';
-    LS.setItem('jh_lang', lang);
-    applyLang(lang); // actualiza data-i18n inmediatamente mientras carga
-    if (lang !== cur) {
-      try {
-        var u = new URL(window.parent.location.href);
-        u.searchParams.set('lang', lang);
-        window.parent.location.href = u.toString(); // rerun Streamlit
-      } catch(e) {}
-    }
-  }
-
-  /* ── Inicialización ──────────────────────────────────────────────────── */
-  applyAll();
-  setTimeout(function() { applyAll(); wireButtons(); }, 100);
-
-  /* ── MutationObserver: re-aplicar tras cada rerun de Streamlit ───────── */
-  if (!window.parent._jhObserver) {
-    var _dbt;
-    window.parent._jhObserver = new MutationObserver(function() {
-      clearTimeout(_dbt);
-      _dbt = setTimeout(function() {
-        _wired = false;
-        applyAll();
-        wireButtons();
-      }, 120);
-    });
-    window.parent._jhObserver.observe(ROOT.body, { childList: true, subtree: true });
-  }
-
-})();
-</script>""", height=0)
+# El CSS del modo oscuro cuelga de html[data-theme]. El iframe se vuelve a
+# ejecutar solo cuando cambia su contenido, o sea, cuando cambia el tema.
+_theme = "dark" if st.session_state.dark_mode else "light"
+components.html(
+    f"<script>window.parent.document.documentElement.setAttribute('data-theme','{_theme}');</script>",
+    height=0,
+)
 
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -1835,7 +1679,7 @@ def _analyze_cv(uploaded_file, api_key: str, model: str) -> dict | None:
                 return json.loads(m.group())
         return None
     except Exception as e:
-        st.error(f"Error analizando el CV: {e}")
+        st.error(_t("cv_error", error=e))
         return None
 
 
@@ -1860,7 +1704,7 @@ def show_config_wizard():
             _t("wiz_close"),
             use_container_width=True,
             key="wizard_cancel",
-            help="Cierra el formulario sin ejecutar búsqueda.",
+            help=_t("wiz_close_help"),
         ):
             st.session_state.show_dialog = False
             st.rerun()
@@ -1872,11 +1716,7 @@ def show_config_wizard():
         with st.container(border=True):
             st.markdown(_t("step1_header"))
             with st.expander(_t("step1_gemini_help"), icon="❓"):
-                st.markdown("""
-1. Ir a [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)
-2. Iniciar sesión con Google → **Create API Key**
-3. Copiar la clave — es gratis, no requiere tarjeta.
-""")
+                st.markdown(_t("help_gemini_steps"))
             st.session_state.gemini_key = st.text_input(
                 _t("step1_key_label"),
                 value=st.session_state.gemini_key,
@@ -1892,9 +1732,6 @@ def show_config_wizard():
                 "models/gemini-2.5-flash-lite",
                 "models/gemini-2.0-flash",
                 "models/gemini-2.0-flash-lite",
-                "models/gemini-1.5-pro",
-                "models/gemini-1.5-flash",
-                "models/gemini-1.5-flash-8b",
             ]
             if st.session_state.selected_model not in _models:
                 st.session_state.selected_model = "models/gemini-3.1-flash-lite"
@@ -1905,23 +1742,19 @@ def show_config_wizard():
             st.checkbox(_t("step1_email_chk"), key="send_email")
             if st.session_state.send_email:
                 with st.expander(_t("step1_email_help"), icon="❓"):
-                    st.markdown("""
-1. [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords)
-2. Verificación en 2 pasos **activada**
-3. Crear app `Job Hunter` → copiar los 16 caracteres
-""")
+                    st.markdown(_t("help_gmail_steps"))
                 c1, c2 = st.columns(2)
                 with c1:
                     st.session_state.email_sender = st.text_input(
                         _t("step1_gmail_label"),
                         value=st.session_state.email_sender,
-                        placeholder="tu@gmail.com",
+                        placeholder=_t("ph_email_sender"),
                     )
                 with c2:
                     st.session_state.email_recipient = st.text_input(
                         _t("step1_recip_label"),
                         value=st.session_state.email_recipient,
-                        placeholder="destino@gmail.com",
+                        placeholder=_t("ph_email_recip"),
                     )
                 st.session_state.email_password_raw = st.text_input(
                     _t("step1_pass_label"),
@@ -2072,7 +1905,7 @@ def show_config_wizard():
             with g5:
                 st.session_state.use_workingnomads = st.checkbox("WorkingNomads", value=st.session_state.use_workingnomads)
 
-            st.caption("🌎 Latinoamérica")
+            st.caption(_t("step3_latam"))
             l1, l2, l3, l4, l5 = st.columns(5)
             with l1:
                 st.session_state.use_getonboard   = st.checkbox("Get on Board",   value=st.session_state.use_getonboard)
@@ -2222,17 +2055,24 @@ if st.session_state.show_dialog:
     st.stop()
 
 # ─── Hero ─────────────────────────────────────────────────────────────────────
+# Portales realmente disponibles en este entorno (sin Playwright no hay portales con login).
+N_PORTALS = sum(
+    1 for k in _defaults
+    if k.startswith("use_") and k != "use_max_results" and (not IS_CLOUD or not k.endswith("_browser"))
+)
+
 def _render_hero():
     if st.session_state.search_done and st.session_state.scored_jobs:
         _s   = st.session_state.scored_jobs
         _top = st.session_state.top_matches
-        best = _s[0].score if _s else 0
+        _ev  = [j for j in _s if j.evaluated]
+        best = _ev[0].score if _ev else "—"
         stat_html = (
             f'<div class="jh-stat-grid">'
-            f'<div class="jh-stat"><strong>{len(_s)}</strong><span data-i18n="hero_stat_analyzed">{_t("hero_stat_analyzed")}</span></div>'
-            f'<div class="jh-stat"><strong>{len(_top)}</strong><span data-i18n="hero_stat_rec">{_t("hero_stat_rec")}</span></div>'
-            f'<div class="jh-stat"><strong>{best}/100</strong><span data-i18n="hero_stat_best">{_t("hero_stat_best")}</span></div>'
-            f'<div class="jh-stat"><strong>{st.session_state.min_score_last}</strong><span data-i18n="hero_stat_threshold">{_t("hero_stat_threshold")}</span></div>'
+            f'<div class="jh-stat"><strong>{len(_ev)}</strong><span>{_t("hero_stat_analyzed")}</span></div>'
+            f'<div class="jh-stat"><strong>{len(_top)}</strong><span>{_t("hero_stat_rec")}</span></div>'
+            f'<div class="jh-stat"><strong>{best}/100</strong><span>{_t("hero_stat_best")}</span></div>'
+            f'<div class="jh-stat"><strong>{st.session_state.min_score_last}</strong><span>{_t("hero_stat_threshold")}</span></div>'
             f'</div>'
         )
         note_key    = "hero_note_results"
@@ -2242,14 +2082,14 @@ def _render_hero():
         tag_key     = "hero_tag_done"
         note    = _t(note_key);    eyebrow = _t(eyebrow_key)
         title   = _t(title_key);  sub     = _t(sub_key)
-        tags    = f'<span class="jh-tag jh-tag-blue" data-i18n="{tag_key}">{_t(tag_key)}</span>'
+        tags    = f'<span class="jh-tag jh-tag-blue">{_t(tag_key)}</span>'
     else:
         stat_html = (
             f'<div class="jh-stat-grid">'
-            f'<div class="jh-stat"><strong>15+</strong><span data-i18n="hero_stat_sources">{_t("hero_stat_sources")}</span></div>'
-            f'<div class="jh-stat"><strong>0–100</strong><span data-i18n="hero_stat_score">{_t("hero_stat_score")}</span></div>'
-            f'<div class="jh-stat"><strong>IA</strong><span data-i18n="hero_stat_ai">{_t("hero_stat_ai")}</span></div>'
-            f'<div class="jh-stat"><strong>6–8 min</strong><span data-i18n="hero_stat_time">{_t("hero_stat_time")}</span></div>'
+            f'<div class="jh-stat"><strong>{N_PORTALS}</strong><span>{_t("hero_stat_sources")}</span></div>'
+            f'<div class="jh-stat"><strong>0–100</strong><span>{_t("hero_stat_score")}</span></div>'
+            f'<div class="jh-stat"><strong>CV</strong><span>{_t("hero_stat_ai")}</span></div>'
+            f'<div class="jh-stat"><strong>ES · EN</strong><span>{_t("hero_stat_time")}</span></div>'
             f'</div>'
         )
         note_key    = "hero_note_search"
@@ -2257,25 +2097,25 @@ def _render_hero():
         title_key   = "hero_title_search"
         sub_key     = "hero_sub_search"
         note    = _t(note_key);    eyebrow = _t(eyebrow_key)
-        title   = _t(title_key);  sub     = _t(sub_key)
+        title   = _t(title_key);  sub     = _t(sub_key, n=N_PORTALS)
         tags    = (
-            f'<span class="jh-tag jh-tag-blue"   data-i18n="hero_tag_scoring">{_t("hero_tag_scoring")}</span>'
-            f'<span class="jh-tag jh-tag-violet" data-i18n="hero_tag_multi">{_t("hero_tag_multi")}</span>'
-            f'<span class="jh-tag jh-tag-green"  data-i18n="hero_tag_letters">{_t("hero_tag_letters")}</span>'
-            f'<span class="jh-tag jh-tag-gray"   data-i18n="hero_tag_local">{_t("hero_tag_local")}</span>'
+            f'<span class="jh-tag jh-tag-blue"  >{_t("hero_tag_scoring")}</span>'
+            f'<span class="jh-tag jh-tag-violet">{_t("hero_tag_multi")}</span>'
+            f'<span class="jh-tag jh-tag-green" >{_t("hero_tag_letters")}</span>'
+            f'<span class="jh-tag jh-tag-gray"  >{_t("hero_tag_local")}</span>'
         )
 
     st.markdown(f"""
 <div class="jh-hero">
   <div class="jh-hero-copy">
-    <span class="jh-eyebrow" data-i18n="{eyebrow_key}">{eyebrow}</span>
-    <h1 class="jh-hero-title" data-i18n="{title_key}">{title}</h1>
-    <p class="jh-hero-sub" data-i18n="{sub_key}">{sub}</p>
+    <span class="jh-eyebrow">{eyebrow}</span>
+    <h1 class="jh-hero-title">{title}</h1>
+    <p class="jh-hero-sub">{sub}</p>
     <div class="jh-tags">{tags}</div>
   </div>
   <aside class="jh-panel">
     {stat_html}
-    <p class="jh-panel-note" data-i18n="{note_key}">{note}</p>
+    <p class="jh-panel-note">{note}</p>
   </aside>
 </div>
 """, unsafe_allow_html=True)
@@ -2294,30 +2134,30 @@ def render_empty_state():
     with empty_state_placeholder.container():
         st.markdown(f"""
 <div class="jh-section" style="margin-top:1.5rem;">
-  <span class="jh-label" data-i18n="empty_label">{_t("empty_label")}</span>
-  <h2 class="jh-title" data-i18n="empty_title">{_t("empty_title")}</h2>
-  <p class="jh-copy" data-i18n="empty_copy">{_t("empty_copy")}</p>
+  <span class="jh-label">{_t("empty_label")}</span>
+  <h2 class="jh-title">{_t("empty_title")}</h2>
+  <p class="jh-copy">{_t("empty_copy")}</p>
 </div>
 <div class="jh-features">
   <div class="jh-feature">
     <span class="jh-f-icon">01</span>
-    <div class="jh-f-title" data-i18n="feat1_title">{_t("feat1_title")}</div>
-    <p class="jh-f-desc" data-i18n="feat1_desc">{_t("feat1_desc")}</p>
+    <div class="jh-f-title">{_t("feat1_title")}</div>
+    <p class="jh-f-desc">{_t("feat1_desc")}</p>
   </div>
   <div class="jh-feature">
     <span class="jh-f-icon">02</span>
-    <div class="jh-f-title" data-i18n="feat2_title">{_t("feat2_title")}</div>
-    <p class="jh-f-desc" data-i18n="feat2_desc">{_t("feat2_desc")}</p>
+    <div class="jh-f-title">{_t("feat2_title")}</div>
+    <p class="jh-f-desc">{_t("feat2_desc")}</p>
   </div>
   <div class="jh-feature">
     <span class="jh-f-icon">03</span>
-    <div class="jh-f-title" data-i18n="feat3_title">{_t("feat3_title")}</div>
-    <p class="jh-f-desc" data-i18n="feat3_desc">{_t("feat3_desc")}</p>
+    <div class="jh-f-title">{_t("feat3_title")}</div>
+    <p class="jh-f-desc">{_t("feat3_desc")}</p>
   </div>
   <div class="jh-feature">
     <span class="jh-f-icon">04</span>
-    <div class="jh-f-title" data-i18n="feat4_title">{_t("feat4_title")}</div>
-    <p class="jh-f-desc" data-i18n="feat4_desc">{_t("feat4_desc")}</p>
+    <div class="jh-f-title">{_t("feat4_title")}</div>
+    <p class="jh-f-desc">{_t("feat4_desc")}</p>
   </div>
 </div>
 """, unsafe_allow_html=True)
@@ -2332,7 +2172,7 @@ with action_placeholder.container():
         st.markdown(
             f'<p style="text-align:center;font-size:13px;font-weight:600;'
             f'color:var(--t2);margin-bottom:.75rem;letter-spacing:-.01em;"'
-            f' data-i18n="searching_notice">{_t("searching_notice")}</p>',
+            f'>{_t("searching_notice")}</p>',
             unsafe_allow_html=True,
         )
         c1, c_gap, c2 = st.columns([1, 0.12, 1.4])
@@ -2361,7 +2201,7 @@ with action_placeholder.container():
         if not st.session_state.search_done:
             st.markdown(
                 f'<p style="text-align:center;font-size:13px;color:var(--t3);margin-top:.5rem;"'
-                f' data-i18n="search_time_hint">{_t("search_time_hint")}</p>',
+                f'>{_t("search_time_hint")}</p>',
                 unsafe_allow_html=True,
             )
 
@@ -2388,28 +2228,17 @@ if st.session_state.run_search:
     candidate_profile = st.session_state.candidate_profile
     browser_profile_dir = st.session_state.browser_profile_dir
 
-    os.environ["GEMINI_API_KEY"]  = gemini_key
-    os.environ["EMAIL_SENDER"]    = email_sender
-    os.environ["EMAIL_PASSWORD"]  = email_password
-    os.environ["EMAIL_RECIPIENT"] = email_recipient
-
     st.session_state.result_page     = 0
     st.session_state.result_page_all = 0
 
+    # API key, perfil y credenciales viajan por parámetro: el proceso es compartido
+    # entre usuarios y nada de esto puede quedar en variables de módulo.
+    # TODO(fase 1): ONLY_REMOTE también debería pasar por parámetro a los scrapers.
     import config as cfg
-    cfg.GEMINI_API_KEY    = gemini_key
-    cfg.SEARCH_KEYWORDS   = keywords
-    cfg.MIN_MATCH_SCORE   = min_score
-    cfg.CANDIDATE_PROFILE = candidate_profile
-    cfg.ONLY_REMOTE       = st.session_state.only_remote
-    cfg.EMAIL_SENDER      = email_sender
-    cfg.EMAIL_PASSWORD    = email_password
-    cfg.EMAIL_RECIPIENT   = email_recipient
+    cfg.ONLY_REMOTE = st.session_state.only_remote
 
     import ai_engine
-    ai_engine.MODEL = selected_model
-    from google import genai as _genai
-    ai_engine.client = _genai.Client(api_key=gemini_key)
+    from ai_engine import ScoredJob
 
     import scrapers as sc
 
@@ -2454,13 +2283,14 @@ if st.session_state.run_search:
     enabled_list    = [p for p, v in platforms_enabled.items() if v]
     total_platforms = len(enabled_list)
     scrape_started  = time.monotonic()
+    per_portal      = -(-max_results_limit // total_platforms) if max_results_limit > 0 and total_platforms else 0
 
     for idx, platform_name in enumerate(enabled_list):
         platform_status.info(_t("wf_searching", platform=platform_name))
         if max_results_limit > 0 and len(all_jobs) >= max_results_limit:
             break
         try:
-            remaining = max_results_limit - len(all_jobs) if max_results_limit > 0 else 0
+            remaining = min(per_portal, max_results_limit - len(all_jobs)) if max_results_limit > 0 else 0
             if platform_name == "Remotive":
                 jobs = sc.scrape_remotive(keywords, max_results=remaining)
             elif platform_name == "Arbeitnow":
@@ -2532,11 +2362,13 @@ if st.session_state.run_search:
     scored_jobs    = []
     top_matches    = []
     quota_exceeded = False
+    st.session_state.run_notice = None
     st.session_state.scored_jobs = []
     st.session_state.top_matches = []
     total_jobs     = len(all_jobs)
 
     if total_jobs == 0:
+        st.session_state.run_notice = ("wf_no_jobs", {})
         ai_status.warning(_t("wf_no_jobs"))
         progress_ai.progress(1.0)
     else:
@@ -2545,26 +2377,38 @@ if st.session_state.run_search:
 
         for i, job in enumerate(all_jobs):
             ai_status.info(_t("wf_scoring", i=i+1, n=total_jobs, title=job.title[:50], company=job.company))
-            data  = ai_engine.score_job(job)
+            data  = ai_engine.score_job(
+                job, candidate_profile,
+                api_key=gemini_key, model=selected_model, lang=st.session_state.lang,
+            )
             score = data.get("score", 0)
-            if data.get("quota_exceeded", False):
+            if data.get("quota_exceeded", False) or data.get("auth_error", False):
+                # Cuota agotada o key inválida: fallarían todas, no tiene sentido seguir llamando.
                 quota_exceeded = True
-                ai_notice.error(_t("wf_quota", i=i, n=total_jobs))
+                st.session_state.run_notice = (
+                    ("wf_auth_error", {}) if data.get("auth_error") else ("wf_quota", {"i": i, "n": total_jobs})
+                )
+                ai_notice.error(_t(st.session_state.run_notice[0], **st.session_state.run_notice[1]))
+                scored_jobs.extend(
+                    ScoredJob(job=j, score=0, match_reasons=[], missing_skills=[],
+                              cover_letter=None, summary="", evaluated=False)
+                    for j in all_jobs[i:]
+                )
                 break
 
-            from ai_engine import ScoredJob
             sj = ScoredJob(
                 job=job, score=score,
                 match_reasons=data.get("match_reasons", []),
                 missing_skills=data.get("missing_skills", []),
                 cover_letter=None,
                 summary=data.get("summary", ""),
+                evaluated=not data.get("error", False),
             )
             scored_jobs.append(sj)
 
-            top5 = sorted(scored_jobs, key=lambda x: x.score, reverse=True)[:5]
+            top5 = sorted((j for j in scored_jobs if j.evaluated), key=lambda x: x.score, reverse=True)[:5]
             with live_results.container():
-                st.markdown(f'<div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--t3);margin-bottom:6px;" data-i18n="wf_best_label">{_t("wf_best_label")}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--t3);margin-bottom:6px;">{_t("wf_best_label")}</div>', unsafe_allow_html=True)
                 for t in top5:
                     sc = "jh-score-hi" if t.score >= 80 else "jh-score-md" if t.score >= 60 else "jh-score-lo"
                     import html as _h
@@ -2584,8 +2428,8 @@ if st.session_state.run_search:
             progress_ai.progress(completed / total_jobs, text=_t("wf_ai_prog", done=completed, total=total_jobs, eta=eta))
             time.sleep(0.1)
 
-        scored_jobs.sort(key=lambda x: x.score, reverse=True)
-        top_matches = [j for j in scored_jobs if j.score >= min_score]
+        scored_jobs.sort(key=ai_engine.rank_key)
+        top_matches = ai_engine.recommended(scored_jobs, min_score)
         st.session_state.scored_jobs = scored_jobs
         st.session_state.top_matches = top_matches
         st.session_state.min_score_last = min_score
@@ -2593,71 +2437,33 @@ if st.session_state.run_search:
             ai_status.success(_t("wf_scored", top=len(top_matches), total=len(scored_jobs), time=format_duration(time.monotonic() - scoring_started)))
         progress_ai.progress(1.0)
 
-    # ── STEP 3: Cover Letters ─────────────────────────────────────────────────
-    if top_matches:
-        cl_status, _, progress_cl, _ = render_workflow_step(3, _t("wf_step3_title"))
-        progress_cl.progress(0, text=_t("wf_starting"))
-        cover_started = time.monotonic()
-        total_letters = len(top_matches)
-
-        for i, sj in enumerate(top_matches):
-            cl_status.info(_t("wf_letter", i=i+1, n=total_letters, title=sj.job.title))
-            sj.cover_letter = ai_engine.generate_cover_letter(sj.job, {"match_reasons": sj.match_reasons})
-            completed = i + 1
-            elapsed   = time.monotonic() - cover_started
-            rem_let   = total_letters - completed
-            eta       = _t("wf_eta", time=format_duration((elapsed / completed) * rem_let)) if rem_let > 0 else ""
-            progress_cl.progress(completed / total_letters, text=_t("wf_let_prog", done=completed, total=total_letters, eta=eta))
-
-        _letter_word = _t("wf_letter_1") if total_letters == 1 else _t("wf_letter_n")
-        cl_status.success(f"✅ {total_letters} {_letter_word} — {format_duration(time.monotonic() - cover_started)}")
-        progress_cl.progress(1.0)
-
-    # ── STEP 4: Email ─────────────────────────────────────────────────────────
+    # ── STEP 3: Email ─────────────────────────────────────────────────────────
     if send_email and top_matches and email_sender and email_password:
-        email_status, _, _, _ = render_workflow_step(4, _t("wf_step4_title"))
+        email_status, _, _, _ = render_workflow_step(3, _t("wf_email_title"))
         try:
             from notifier import send_digest
-            cfg.EMAIL_SENDER    = email_sender
-            cfg.EMAIL_PASSWORD  = email_password
-            cfg.EMAIL_RECIPIENT = email_recipient
-            cfg.EMAIL_SENDER    = email_sender
-            cfg.EMAIL_PASSWORD  = email_password
-            cfg.EMAIL_RECIPIENT = email_recipient
-            email_status.info(_t("wf_email_sending", recipient=email_recipient))
-            send_digest(scored_jobs)
-            email_status.success(_t("wf_email_sent", recipient=email_recipient))
+            email_status.info(_t("wf_email_send", recipient=email_recipient))
+            send_digest(
+                scored_jobs,
+                sender=email_sender, password=email_password,
+                recipient=email_recipient, min_score=min_score,
+            )
+            email_status.success(_t("wf_email_ok", recipient=email_recipient))
         except Exception as e:
-            email_status.error(_t("wf_email_error", error=e))
+            email_status.error(_t("wf_email_err", error=e))
 
     workflow_placeholder.empty()
-
-    # ── Guardar resultados ────────────────────────────────────────────────────
-    results_dir = Path("results")
-    results_dir.mkdir(exist_ok=True)
-    ts          = datetime.now().strftime("%Y%m%d_%H%M")
-    result_file = results_dir / f"results_{ts}.json"
-    data_out    = [
-        {
-            "score":            sj.score,
-            "title":            sj.job.title,
-            "company":          sj.job.company,
-            "source":           sj.job.source,
-            "url":              sj.job.url,
-            "match_reasons":    sj.match_reasons,
-            "summary":          sj.summary,
-            "has_cover_letter": sj.cover_letter is not None,
-        }
-        for sj in scored_jobs
-    ]
-    with open(result_file, "w", encoding="utf-8") as f:
-        json.dump(data_out, f, ensure_ascii=False, indent=2)
 
     st.session_state.search_done  = True
     st.session_state.is_searching = False
     st.session_state.cancel_search = False
+    st.rerun()
 
 # ── Renderizado de resultados ────────────────────────────────────────────────
+if st.session_state.search_done and not st.session_state.scored_jobs and st.session_state.get("run_notice"):
+    with results_placeholder.container():
+        st.warning(_t(st.session_state.run_notice[0], **st.session_state.run_notice[1]))
+
 if st.session_state.search_done and st.session_state.scored_jobs:
     _scored   = st.session_state.scored_jobs
     _top      = st.session_state.top_matches
@@ -2665,25 +2471,30 @@ if st.session_state.search_done and st.session_state.scored_jobs:
 
     with results_placeholder.container():
         import html as _html
+        import ai_engine
 
-        exc = sum(1 for j in _scored if j.score >= 80)
+        _evaluated = [j for j in _scored if j.evaluated]
+        _n_uneval  = len(_scored) - len(_evaluated)
+        if st.session_state.get("run_notice"):
+            st.warning(_t(st.session_state.run_notice[0], **st.session_state.run_notice[1]))
+        exc = sum(1 for j in _evaluated if j.score >= 80)
         st.markdown(f"""
 <div class="jh-metrics">
   <div class="jh-metric">
-    <div class="jh-metric-val">{len(_scored)}</div>
-    <div class="jh-metric-lbl" data-i18n="metric_analyzed">{_t("metric_analyzed")}</div>
+    <div class="jh-metric-val">{len(_evaluated)}</div>
+    <div class="jh-metric-lbl">{_t("metric_analyzed")}</div>
   </div>
   <div class="jh-metric">
     <div class="jh-metric-val">{len(_top)}</div>
-    <div class="jh-metric-lbl" data-i18n="metric_recommended">{_t("metric_recommended")}</div>
+    <div class="jh-metric-lbl">{_t("metric_recommended")}</div>
   </div>
   <div class="jh-metric">
-    <div class="jh-metric-val">{_scored[0].score if _scored else "—"}<span style="font-size:1rem;font-weight:500;color:var(--t3)">/100</span></div>
-    <div class="jh-metric-lbl" data-i18n="metric_best">{_t("metric_best")}</div>
+    <div class="jh-metric-val">{_evaluated[0].score if _evaluated else "—"}<span style="font-size:1rem;font-weight:500;color:var(--t3)">/100</span></div>
+    <div class="jh-metric-lbl">{_t("metric_best")}</div>
   </div>
   <div class="jh-metric">
     <div class="jh-metric-val">{exc}</div>
-    <div class="jh-metric-lbl" data-i18n="metric_excellent">{_t("metric_excellent")}</div>
+    <div class="jh-metric-lbl">{_t("metric_excellent")}</div>
   </div>
 </div>
 """, unsafe_allow_html=True)
@@ -2694,22 +2505,36 @@ if st.session_state.search_done and st.session_state.scored_jobs:
         def _src_cls(source):
             return "src-" + source.replace(" ", "-").replace(".", "-")
 
+        def _generate_letter(sj):
+            with st.spinner(_t("letter_generating")):
+                try:
+                    sj.cover_letter = ai_engine.generate_cover_letter(
+                        sj.job, sj.match_reasons, st.session_state.candidate_profile,
+                        api_key=st.session_state.gemini_key, model=st.session_state.selected_model,
+                    )
+                except Exception as e:
+                    st.error(_t("letter_error", error=e))
+
         def render_job_card(sj, idx, section):
             score = sj.score
-            sc    = _score_cls(score)
             src   = _src_cls(sj.job.source)
 
+            if sj.evaluated:
+                score_badge = f'<span class="jh-score {_score_cls(score)}">{score}/100</span>'
+                label = f"{score}/100 — {sj.job.title} @ {sj.job.company}"
+            else:
+                score_badge = f'<span class="jh-score jh-score-lo">{_t("not_evaluated")}</span>'
+                label = f"{_t('not_evaluated')} — {sj.job.title} @ {sj.job.company}"
             badges = (
-                f'<span class="jh-score {sc}">{score}/100</span> '
-                f'<span class="jh-src {src}">{sj.job.source}</span>'
+                f'{score_badge} '
+                f'<span class="jh-src {src}">{_html.escape(sj.job.source)}</span>'
             )
             if getattr(sj.job, "remote", False):
-                badges += f' <span class="jh-tag jh-tag-green" style="height:20px;font-size:11px;" data-i18n="remote_tag">{_t("remote_tag")}</span>'
+                badges += f' <span class="jh-tag jh-tag-green" style="height:20px;font-size:11px;">{_t("remote_tag")}</span>'
             if getattr(sj.job, "location", "") and not getattr(sj.job, "remote", False):
                 loc = _html.escape(sj.job.location[:30])
                 badges += f' <span class="jh-tag jh-tag-gray" style="height:20px;font-size:11px;">{loc}</span>'
 
-            label = f"{score}/100 — {sj.job.title} @ {sj.job.company}"
             with st.expander(label, expanded=(idx == 0)):
                 hcol, lcol = st.columns([4, 1])
                 with hcol:
@@ -2731,25 +2556,32 @@ if st.session_state.search_done and st.session_state.scored_jobs:
 
                 st.markdown('<div style="height:.6rem;"></div>', unsafe_allow_html=True)
 
+                if not sj.evaluated:
+                    return
+
                 r1, r2 = st.columns(2)
                 with r1:
-                    st.markdown(f'<div class="jh-col-lbl" data-i18n="why_fits">{_t("why_fits")}</div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="jh-col-lbl">{_t("why_fits")}</div>', unsafe_allow_html=True)
                     if sj.match_reasons:
                         for reason in sj.match_reasons:
                             st.markdown(f'<div class="jh-reason">{_html.escape(reason)}</div>', unsafe_allow_html=True)
                     else:
-                        st.markdown(f'<span style="font-size:13px;color:var(--t3)" data-i18n="no_reasons">{_t("no_reasons")}</span>', unsafe_allow_html=True)
+                        st.markdown(f'<span style="font-size:13px;color:var(--t3)">{_t("no_reasons")}</span>', unsafe_allow_html=True)
                 with r2:
-                    st.markdown(f'<div class="jh-col-lbl" data-i18n="what_missing">{_t("what_missing")}</div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="jh-col-lbl">{_t("what_missing")}</div>', unsafe_allow_html=True)
                     if sj.missing_skills:
                         for skill in sj.missing_skills:
                             st.markdown(f'<div class="jh-reason jh-skill">{_html.escape(skill)}</div>', unsafe_allow_html=True)
                     else:
-                        st.markdown(f'<span style="font-size:13px;color:var(--t3)" data-i18n="no_missing">{_t("no_missing")}</span>', unsafe_allow_html=True)
+                        st.markdown(f'<span style="font-size:13px;color:var(--t3)">{_t("no_missing")}</span>', unsafe_allow_html=True)
+
+                if sj.evaluated and not sj.cover_letter:
+                    if st.button(_t("btn_gen_letter"), key=f"gen_{section}_{sj.job.id}_{idx}"):
+                        _generate_letter(sj)
 
                 if sj.cover_letter:
                     st.markdown('<div style="height:.5rem;"></div>', unsafe_allow_html=True)
-                    with st.expander(_t("cover_letter_expander")):
+                    with st.expander(_t("cover_letter_expander"), expanded=True):
                         st.markdown(
                             f'<div class="jh-letter">{_html.escape(sj.cover_letter)}</div>',
                             unsafe_allow_html=True,
@@ -2804,17 +2636,34 @@ if st.session_state.search_done and st.session_state.scored_jobs:
             if _top:
                 render_paginated(_top, "top")
             else:
-                st.info(_t("no_recommended", score=_minscore))
+                st.info(_t("no_recommended", score=_minscore) if _evaluated else _t("none_evaluated"))
         with all_tab:
             st.caption(_t("all_tab_caption"))
+            if _n_uneval:
+                st.caption(_t("uneval_note", n=_n_uneval))
             render_paginated(_scored, "all")
 
-        _results_files = sorted(Path("results").glob("results_*.json"), reverse=True)
-        if _results_files:
-            _data_raw = _results_files[0].read_text(encoding="utf-8")
-            st.download_button(
-                _t("btn_download_json"),
-                data=_data_raw,
-                file_name=_results_files[0].name,
-                mime="application/json",
-            )
+        # Exportación desde la sesión del usuario (nunca desde disco compartido).
+        _export = [
+            {
+                "score":          sj.score if sj.evaluated else None,
+                "evaluated":      sj.evaluated,
+                "title":          sj.job.title,
+                "company":        sj.job.company,
+                "source":         sj.job.source,
+                "url":            sj.job.url,
+                "location":       sj.job.location,
+                "remote":         sj.job.remote,
+                "match_reasons":  sj.match_reasons,
+                "missing_skills": sj.missing_skills,
+                "summary":        sj.summary,
+                "cover_letter":   sj.cover_letter,
+            }
+            for sj in _scored
+        ]
+        st.download_button(
+            _t("btn_download_json"),
+            data=json.dumps(_export, ensure_ascii=False, indent=2),
+            file_name=f"job_hunter_{datetime.now().strftime('%Y%m%d_%H%M')}.json",
+            mime="application/json",
+        )
