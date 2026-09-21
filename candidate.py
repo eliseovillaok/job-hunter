@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import io
 from dataclasses import asdict, dataclass, field
+from datetime import date
 from typing import Optional
 
 import ai_engine
@@ -219,21 +220,24 @@ STRICT RULES:
 - Use only information explicitly present in the CV. Never invent experience, skills, titles, education, certifications, languages or years.
 - Do NOT infer or upgrade seniority. Set "seniority" only when the CV states the level or it follows unambiguously from explicit titles/dates; otherwise "unknown". Always quote the supporting text in "seniority_evidence".
 - If the CV says the person analyzed, supported, collaborated, documented, tested or learned something, keep those verbs. Do not rewrite them as built, led, owned or delivered.
-- "years_experience": only if stated or reliably computable from dates in the CV; otherwise null.
+- "years_experience": only if stated or reliably computable from dates in the CV; otherwise null. Today is {today}: "present", "actualidad", "hoy" or "current" mean today.
 - A generic mention does not imply specific items: "experience with AWS services" does NOT mean EC2, S3 or Lambda.
 - List every skill, tool, experience, education entry and certification that the CV mentions. Do not truncate.
+- "skills" must include BOTH the skills section AND the concrete competencies evidenced in the experience descriptions (e.g. "Administración de medicación" from "administración de medicación a pacientes"), each with its evidence.
 - Location and languages: exactly as stated, or "unknown".
 
 SEARCH TERMS ("search_terms"): short phrases a person would type in a job board to find openings for THIS candidate, in Spanish ("es") and in English ("en"):
 - Mostly job titles matching the roles in the CV at the candidate's actual level, plus common synonyms of those titles.
 - Add 2-3 core skills or specialties that recruiters use as keywords in this field.
 - Work for any profession (e.g. nurse, accountant, electrician, teacher, salesperson, developer). Do not bias toward technology roles.
-- 1 to 4 words each. No seniority words unless the CV states the level."""
+- 1 to 4 words each. No seniority words unless the CV states the level.
+- Never use soft skills or generic words (e.g. "trabajo en equipo", "teamwork", "comunicación", "responsabilidad"): they match almost any job posting."""
 
 
 def extract_profile(cv_input, *, api_key: str, model: str) -> CandidateProfile:
     """Extrae el perfil estructurado. `cv_input` es lo que devuelve cv_contents()."""
-    contents = [cv_input, _EXTRACT_PROMPT] if not isinstance(cv_input, str) else f"{_EXTRACT_PROMPT}\n\nCV:\n{cv_input}"
+    prompt = _EXTRACT_PROMPT.replace("{today}", date.today().isoformat())
+    contents = [cv_input, prompt] if not isinstance(cv_input, str) else f"{prompt}\n\nCV:\n{cv_input}"
     data = ai_engine.generate_json(contents, PROFILE_SCHEMA, api_key=api_key, model=model)
     if not isinstance(data, dict):
         raise ValueError("invalid_profile_response")

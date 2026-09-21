@@ -1069,7 +1069,7 @@ _defaults = {
     "run_search":         False,
     "search_done":        False,
     "gemini_key":         "",
-    "selected_model":     "models/gemini-3.1-flash-lite",
+    "selected_model":     ai_engine.DEFAULT_MODEL,
     "send_email":         False,
     "email_sender":       "",
     "email_password_raw": "",
@@ -1840,18 +1840,9 @@ def show_config_wizard():
                 type="password",
                 placeholder="AIzaXXXXXXXXXXXXXXXXX",
             )
-            _models = [
-                "models/gemini-3.1-pro",
-                "models/gemini-3.1-flash-lite",
-                "models/gemini-3.0-flash",
-                "models/gemini-2.5-pro",
-                "models/gemini-2.5-flash",
-                "models/gemini-2.5-flash-lite",
-                "models/gemini-2.0-flash",
-                "models/gemini-2.0-flash-lite",
-            ]
+            _models = ai_engine.AVAILABLE_MODELS
             if st.session_state.selected_model not in _models:
-                st.session_state.selected_model = "models/gemini-3.1-flash-lite"
+                st.session_state.selected_model = ai_engine.DEFAULT_MODEL
             _idx = _models.index(st.session_state.selected_model)
             st.session_state.selected_model = st.selectbox(_t("step1_model_label"), _models, index=_idx)
 

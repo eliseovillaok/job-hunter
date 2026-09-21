@@ -22,12 +22,23 @@ from scrapers import JobPosting
 
 log = logging.getLogger(__name__)
 
-DEFAULT_MODEL = "models/gemini-3.1-flash-lite"
+DEFAULT_MODEL = "models/gemini-3.5-flash-lite"
+# Modelos ofrecidos en la app. Verificados contra la API (2026-09): los retirados devuelven 404.
+AVAILABLE_MODELS = [
+    "models/gemini-3.5-flash-lite",
+    "models/gemini-3.5-flash",
+    "models/gemini-3.1-flash-lite",
+    "models/gemini-2.5-flash",
+    "models/gemini-3.1-pro-preview",
+    "models/gemini-2.5-pro",
+]
 EMBEDDING_MODEL = "models/gemini-embedding-001"
 
 # Free tier: 15 req/min → esperar 4s entre requests para no pasarse
 REQUEST_DELAY = 4.0
 MAX_RETRIES = 3
+# Sin timeout, una llamada lenta del free tier puede colgar la búsqueda por minutos.
+HTTP_TIMEOUT_MS = 60_000
 # Temperatura 0 + seed fijo: la misma oferta con el mismo perfil debe dar el mismo resultado.
 DETERMINISTIC = {"temperature": 0.0, "seed": 42}
 
@@ -70,6 +81,13 @@ def _is_auth_error(e: Exception) -> bool:
     return any(s in msg for s in ("API_KEY_INVALID", "API key not valid", "PERMISSION_DENIED", "UNAUTHENTICATED"))
 
 
+def _client(api_key: str) -> genai.Client:
+    return genai.Client(api_key=api_key, http_options=types.HttpOptions(timeout=HTTP_TIMEOUT_MS))
+
+
+_TRANSIENT = ("503", "UNAVAILABLE", "500", "INTERNAL", "DEADLINE_EXCEEDED", "timed out", "Timeout", "ReadTimeout")
+
+
 def _call_with_retry(fn):
     """Ejecuta una llamada a Gemini reintentando ante rate limit (429).
 
@@ -94,19 +112,25 @@ def _call_with_retry(fn):
                     time.sleep(wait)
                     continue
                 raise QuotaExceeded(err_str) from e
+            if any(s in err_str for s in _TRANSIENT) and attempt < MAX_RETRIES - 1:
+                # Modelo saturado o respuesta lenta: reintento con espera creciente.
+                wait = 3 * (attempt + 1) ** 2
+                log.warning(f"Error transitorio de Gemini, reintento en {wait}s: {err_str[:120]}")
+                time.sleep(wait)
+                continue
             raise
     raise RuntimeError("unreachable")
 
 
 def generate_text(contents: Any, *, api_key: str, model: str) -> str:
-    client = genai.Client(api_key=api_key)
+    client = _client(api_key)
     resp = _call_with_retry(lambda: client.models.generate_content(model=model, contents=contents))
     return (resp.text or "").strip()
 
 
 def generate_json(contents: Any, schema: dict, *, api_key: str, model: str) -> Any:
     """Genera una respuesta JSON validada por Gemini contra `schema` (JSON Schema)."""
-    client = genai.Client(api_key=api_key)
+    client = _client(api_key)
     config = types.GenerateContentConfig(
         response_mime_type="application/json",
         response_json_schema=schema,
@@ -118,7 +142,7 @@ def generate_json(contents: Any, schema: dict, *, api_key: str, model: str) -> A
 
 def embed(texts: list[str], *, api_key: str, task_type: str, batch_size: int = 100) -> list[list[float]]:
     """Embeddings para pre-rankear. task_type: RETRIEVAL_QUERY (perfil) o RETRIEVAL_DOCUMENT (ofertas)."""
-    client = genai.Client(api_key=api_key)
+    client = _client(api_key)
     config = types.EmbedContentConfig(task_type=task_type)
     vectors: list[list[float]] = []
     for i in range(0, len(texts), batch_size):
