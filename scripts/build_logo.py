@@ -76,6 +76,9 @@ def svg(w, h, body, bg: str | None = None, rx: float = 0) -> str:
             f'{rect}{body}</svg>\n')
 
 
+ICON_CAP = 0.40   # altura de la H respecto del ícono (y de los lockups, con o sin recuadro)
+
+
 def monogram(font: Font, box: float, cap_ratio: float, colors) -> str:
     """JH centrada ópticamente en un cuadrado de lado `box`."""
     # Tamaño tal que la altura de la H ocupe `cap_ratio` del cuadrado.
@@ -102,8 +105,10 @@ def lockup(font: Font, height: float, icon_body: str | None, glyph_colors, job, 
         mark = f'<svg x="0" y="0" width="{height}" height="{height}" viewBox="0 0 100 100">{icon_body}</svg>'
         mark_w = height
     else:
-        mark = f'<svg x="0" y="0" width="{height}" height="{height}" viewBox="0 0 100 100">{monogram(font, 100, 0.62, glyph_colors)}</svg>'
-        mark_w = height * 0.9
+        # Misma JH y misma posición que dentro del recuadro (ICON_CAP): al cambiar de tema solo
+        # desaparece el fondo; las letras no cambian de tamaño ni el nombre se desplaza.
+        mark = f'<svg x="0" y="0" width="{height}" height="{height}" viewBox="0 0 100 100">{monogram(font, 100, ICON_CAP, glyph_colors)}</svg>'
+        mark_w = height
     dx = mark_w + gap - x0
     dy = height / 2 - (y0 + y1) / 2
     w = mark_w + gap + word_w + 2
@@ -137,7 +142,7 @@ def main() -> int:
 
     on_dark = [MINT, WHITE]
     on_light = [EMERALD, FOREST]
-    icon_body = monogram(font, 100, 0.40, on_dark)
+    icon_body = monogram(font, 100, ICON_CAP, on_dark)
     icon_rounded = f'<rect width="100" height="100" rx="22.5" fill="{FOREST}"/>{icon_body}'
 
     # Ícono de app: cuadrado sin redondear (las tiendas aplican su máscara) y versión web redondeada.
