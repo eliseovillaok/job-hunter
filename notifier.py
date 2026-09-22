@@ -16,11 +16,11 @@ log = logging.getLogger(__name__)
 
 def _score_color(score: int) -> str:
     if score >= 80:
-        return "#22c55e"  # verde
+        return "#377227"  # verde
     elif score >= 65:
-        return "#f59e0b"  # amarillo
+        return "#8F5D00"  # amarillo
     else:
-        return "#94a3b8"  # gris
+        return "#58736A"  # gris
 
 
 def _score_label(score: int) -> str:
@@ -47,12 +47,12 @@ def _build_html(jobs: list[ScoredJob], top_jobs: list[ScoredJob], run_date: str)
             cover_section = f"""
           <div style="padding:0 24px 24px;">
             <details style="cursor:pointer;">
-              <summary style="font-weight:600;color:#6366f1;font-size:14px;padding:10px 0;
-                              border-top:1px solid #f1f5f9;list-style:none;">
+              <summary style="font-weight:600;color:#1F6F54;font-size:14px;padding:10px 0;
+                              border-top:1px solid #F4F8F5;list-style:none;">
                 📝 Cover Letter generada — click para ver
               </summary>
-              <div style="background:#fafafa;border:1px solid #e2e8f0;border-radius:8px;
-                          padding:18px;margin-top:12px;font-size:13px;color:#334155;
+              <div style="background:#FFFFFF;border:1px solid #DCE8E1;border-radius:8px;
+                          padding:18px;margin-top:12px;font-size:13px;color:#13261E;
                           line-height:1.8;white-space:pre-wrap;font-family:Georgia,serif;">
                 {esc(sj.cover_letter)}
               </div>
@@ -61,17 +61,17 @@ def _build_html(jobs: list[ScoredJob], top_jobs: list[ScoredJob], run_date: str)
         modality = "🌐 Remoto" if sj.job.remote else f"📍 {esc(sj.job.location or 'Ubicación no especificada')}"
 
         source_badge = {
-            "GetOnBoard": "#6366f1",
-            "Torre.co":   "#0ea5e9",
-            "LinkedIn":   "#0077b5",
-            "Indeed":     "#2557a7",
-        }.get(sj.job.source, "#64748b")
+            "GetOnBoard": "#1F6F54",
+            "Torre.co":   "#2B5C8A",
+            "LinkedIn":   "#2B5C8A",
+            "Indeed":     "#2B5C8A",
+        }.get(sj.job.source, "#3E5A4E")
 
         job_cards += f"""
         <div style="background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08);
                     margin-bottom:28px;overflow:hidden;">
           <!-- Header -->
-          <div style="padding:20px 24px;border-bottom:1px solid #f1f5f9;">
+          <div style="padding:20px 24px;border-bottom:1px solid #F4F8F5;">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
               <span style="background:{source_badge};color:#fff;font-size:11px;font-weight:600;
                            padding:3px 9px;border-radius:20px;">{esc(sj.job.source)}</span>
@@ -80,32 +80,32 @@ def _build_html(jobs: list[ScoredJob], top_jobs: list[ScoredJob], run_date: str)
               <span style="color:{_score_color(sj.score)};font-size:13px;font-weight:600;">
                 {_score_label(sj.score)}</span>
             </div>
-            <h2 style="margin:0 0 4px;font-size:18px;color:#1e293b;">{esc(sj.job.title)}</h2>
-            <p style="margin:0;color:#64748b;font-size:14px;">
+            <h2 style="margin:0 0 4px;font-size:18px;color:#13261E;">{esc(sj.job.title)}</h2>
+            <p style="margin:0;color:#3E5A4E;font-size:14px;">
               🏢 <strong>{esc(sj.job.company)}</strong> &nbsp;|&nbsp; 
               {modality} &nbsp;|&nbsp;
-              <a href="{esc(sj.job.url, quote=True)}" style="color:#6366f1;text-decoration:none;">Ver oferta →</a>
+              <a href="{esc(sj.job.url, quote=True)}" style="color:#1F6F54;text-decoration:none;">Ver oferta →</a>
             </p>
           </div>
 
           <!-- Summary -->
-          <div style="padding:16px 24px;background:#f8fafc;border-bottom:1px solid #f1f5f9;">
-            <p style="margin:0;color:#475569;font-style:italic;font-size:14px;">{esc(sj.summary)}</p>
+          <div style="padding:16px 24px;background:#EAF3EE;border-bottom:1px solid #F4F8F5;">
+            <p style="margin:0;color:#3E5A4E;font-style:italic;font-size:14px;">{esc(sj.summary)}</p>
           </div>
 
           <!-- Match Details -->
           <div style="padding:20px 24px;display:flex;gap:24px;flex-wrap:wrap;">
             <div style="flex:1;min-width:200px;">
-              <h4 style="margin:0 0 8px;color:#22c55e;font-size:13px;text-transform:uppercase;
+              <h4 style="margin:0 0 8px;color:#377227;font-size:13px;text-transform:uppercase;
                           letter-spacing:.05em;">✅ Por qué matchea</h4>
-              <ul style="margin:0;padding-left:18px;color:#475569;font-size:13px;line-height:1.7;">
+              <ul style="margin:0;padding-left:18px;color:#3E5A4E;font-size:13px;line-height:1.7;">
                 {reasons_html}
               </ul>
             </div>
             <div style="flex:1;min-width:200px;">
-              <h4 style="margin:0 0 8px;color:#f59e0b;font-size:13px;text-transform:uppercase;
+              <h4 style="margin:0 0 8px;color:#8F5D00;font-size:13px;text-transform:uppercase;
                           letter-spacing:.05em;">⚠️ Skills faltantes</h4>
-              <ul style="margin:0;padding-left:18px;color:#475569;font-size:13px;line-height:1.7;">
+              <ul style="margin:0;padding-left:18px;color:#3E5A4E;font-size:13px;line-height:1.7;">
                 {missing_html}
               </ul>
             </div>
@@ -126,13 +126,13 @@ def _build_html(jobs: list[ScoredJob], top_jobs: list[ScoredJob], run_date: str)
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Job Hunt Digest — {run_date}</title>
 </head>
-<body style="margin:0;padding:0;background:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,
+<body style="margin:0;padding:0;background:#F4F8F5;font-family:-apple-system,BlinkMacSystemFont,
              'Segoe UI',Roboto,sans-serif;">
 
   <div style="max-width:700px;margin:0 auto;padding:24px 16px;">
 
     <!-- Header -->
-    <div style="background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:16px;
+    <div style="background:linear-gradient(135deg,#1F6F54,#185A44);border-radius:16px;
                 padding:32px;margin-bottom:24px;text-align:center;color:#fff;">
       <h1 style="margin:0 0 8px;font-size:26px;">🎯 Job Hunt Digest</h1>
       <p style="margin:0;opacity:.85;font-size:14px;">{run_date}</p>
@@ -151,10 +151,10 @@ def _build_html(jobs: list[ScoredJob], top_jobs: list[ScoredJob], run_date: str)
 
     <!-- Job Cards -->
     {job_cards if job_cards else
-     '<div style="text-align:center;padding:40px;color:#94a3b8;">No se encontraron matches hoy. ¡Mañana puede ser diferente!</div>'}
+     '<div style="text-align:center;padding:40px;color:#58736A;">No se encontraron matches hoy. ¡Mañana puede ser diferente!</div>'}
 
     <!-- Footer -->
-    <div style="text-align:center;padding:16px;color:#94a3b8;font-size:12px;">
+    <div style="text-align:center;padding:16px;color:#58736A;font-size:12px;">
       Generado automáticamente por Job Hunter<br>
       Powered by Google Gemini 🤖
     </div>

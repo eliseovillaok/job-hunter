@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Job Hunter · Propuesta de rediseño v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F4F8F5; --surface:#FFFFFF; --surface-2:#EAF3EE; --tint:#DDF0E6; --border:#DCE8E1; --border-2:#CFE0D6;
+    --text:#13261E; --text-2:#3E5A4E; --muted:#58736A;
+    --primary:#1F6F54; --primary-h:#185A44; --mint:#7FC8A9; --coral:#E07A5F; --coral-s:#A8472E;
+    --ok:#377227; --warn:#8F5D00; --forest:#13261E;
+    --display:'Bricolage Grotesque', 'Inter', sans-serif; --body:'Inter', system-ui, sans-serif;
+  }
+  *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font-family:var(--body)}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 28px}
+  .tag{display:inline-block;font:600 12px var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:48px 0 12px}
+
+  /* Nav */
+  nav{display:flex;align-items:center;justify-content:space-between;padding:22px 0}
+  .logo{display:flex;align-items:center;gap:10px;font:800 22px var(--display);letter-spacing:-.02em}
+  .mark{width:34px;height:34px;border-radius:10px;background:var(--primary);position:relative}
+  .mark::after{content:"";position:absolute;width:12px;height:12px;border-radius:50%;background:var(--coral);right:-4px;top:-4px;border:3px solid var(--bg)}
+  .links{display:flex;gap:28px;font-size:14px;font-weight:500;color:var(--text-2)}
+  .navr{display:flex;gap:10px;align-items:center}
+  .seg{display:flex;border:1px solid var(--border-2);border-radius:999px;padding:3px;background:var(--surface)}
+  .seg span{font-size:12px;font-weight:700;padding:5px 10px;border-radius:999px;color:var(--muted)}
+  .seg .on{background:var(--tint);color:var(--primary)}
+  .btn{display:inline-flex;align-items:center;gap:8px;border-radius:999px;font:700 14px var(--body);padding:12px 22px;border:0;cursor:pointer}
+  .btn-p{background:var(--primary);color:#fff} .btn-p:hover{background:var(--primary-h)}
+  .btn-o{background:var(--surface);color:var(--primary);border:1.5px solid var(--primary)}
+  .btn-g{background:transparent;color:var(--text-2);padding:10px 12px}
+
+  /* Hero */
+  .hero{display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:center;padding:28px 0 56px}
+  .eyebrow{display:inline-flex;gap:8px;align-items:center;background:var(--tint);color:var(--primary);font:700 12.5px var(--body);padding:7px 14px;border-radius:999px}
+  h1{font:800 clamp(40px,5.6vw,68px)/.98 var(--display);letter-spacing:-.03em;text-transform:uppercase;margin:18px 0 18px}
+  h1 em{font-style:normal;color:var(--primary)}
+  .sub{font-size:17px;line-height:1.55;color:var(--text-2);max-width:500px;margin:0 0 28px}
+  .drop{display:flex;align-items:center;gap:12px;background:var(--surface);border:1.5px dashed var(--border-2);border-radius:999px;padding:8px 8px 8px 20px;max-width:520px}
+  .drop p{flex:1;margin:0;font-size:14.5px;color:var(--text-2)} .drop b{color:var(--text)}
+  .alt{font-size:13.5px;color:var(--muted);margin:12px 0 0 20px} .alt a{color:var(--primary);font-weight:600}
+  .proof{display:flex;align-items:center;gap:14px;margin-top:30px}
+  .icons{display:flex} .icons i{width:36px;height:36px;border-radius:50%;border:3px solid var(--bg);margin-left:-8px;display:grid;place-items:center;font-style:normal;font-size:16px}
+  .icons i:first-child{margin-left:0}
+  .proof p{margin:0;font-size:13.5px;line-height:1.35;color:var(--text-2)} .proof b{color:var(--text)}
+
+  .mosaic{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:210px 210px;gap:0;border-radius:28px;overflow:hidden}
+  .tile{position:relative;display:grid;place-items:center}
+  .tile .lbl{position:absolute;left:16px;bottom:14px;font:700 12.5px var(--body);padding:6px 12px;border-radius:999px;background:rgba(255,255,255,.92);color:var(--text)}
+  .t1{background:var(--primary)} .t2{background:var(--mint)} .t3{background:var(--coral)} .t4{background:var(--forest)}
+
+  /* Stats band */
+  .band{background:var(--forest);color:#E8F2EC;border-radius:28px;padding:34px 40px;display:grid;grid-template-columns:1.2fr repeat(4,1fr);gap:28px;align-items:center}
+  .band .n{font:800 40px var(--display);letter-spacing:-.02em;color:#fff}
+  .band .l{font-size:13px;color:#A9C2B6;margin-top:4px;line-height:1.35}
+  .band .intro{font-size:15px;line-height:1.5;color:#E8F2EC}
+  .shapes{display:flex;gap:6px;margin-bottom:12px} .shapes span{width:18px;height:18px;border-radius:5px}
+
+  /* Steps */
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+  .step{background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:26px}
+  .step .num{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font:800 18px var(--display);color:#fff;margin-bottom:16px}
+  .step h3{font:800 20px var(--display);margin:0 0 8px;letter-spacing:-.01em} .step p{margin:0;color:var(--text-2);font-size:14.5px;line-height:1.55}
+
+  /* Results */
+  .rhead{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:18px}
+  .rhead h2{font:800 34px var(--display);letter-spacing:-.02em;margin:0}
+  .rhead p{margin:6px 0 0;color:var(--text-2);font-size:14px}
+  .funnel{font-size:12.5px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:10px 14px}
+  .results{display:grid;grid-template-columns:260px 1fr;gap:24px;align-items:start}
+  .filters{background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:22px;position:sticky;top:20px}
+  .filters h4{font:700 12px var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:18px 0 10px}
+  .filters h4:first-child{margin-top:0}
+  .chip{display:inline-block;font-size:13px;font-weight:600;padding:7px 12px;border-radius:999px;border:1px solid var(--border-2);color:var(--text-2);margin:0 6px 8px 0;background:var(--surface)}
+  .chip.on{background:var(--tint);border-color:var(--tint);color:var(--primary)}
+  .range{height:6px;border-radius:9px;background:var(--surface-2);position:relative;margin:8px 0 6px}
+  .range b{position:absolute;left:0;width:65%;height:100%;border-radius:9px;background:var(--primary)}
+  .range i{position:absolute;left:calc(65% - 8px);top:-5px;width:16px;height:16px;border-radius:50%;background:#fff;border:3px solid var(--primary)}
+  .small{font-size:12.5px;color:var(--muted)}
+
+  .job{background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:22px 24px;margin-bottom:14px;display:grid;grid-template-columns:52px 1fr 108px;gap:18px}
+  .job:hover{border-color:var(--border-2);box-shadow:0 10px 30px rgba(19,38,30,.07)}
+  .avatar{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;font:800 20px var(--display);color:#fff}
+  .job h3{font:700 19px var(--body);margin:0 0 4px;letter-spacing:-.01em}
+  .meta{font-size:13.5px;color:var(--text-2);margin-bottom:10px}
+  .pills span{display:inline-block;font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px;background:var(--surface-2);color:var(--text-2);margin:0 6px 6px 0}
+  .pills .new{background:var(--coral-s);color:#fff}
+  .why{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:8px;font-size:13.5px;line-height:1.5}
+  .why .ok{color:var(--ok)} .why .no{color:var(--warn)}
+  .acts{display:flex;gap:8px;margin-top:16px}
+  .acts .btn{padding:10px 18px;font-size:13.5px}
+  .score{text-align:center}
+  .ring{width:88px;height:88px;border-radius:50%;margin:0 auto 8px;display:grid;place-items:center;background:conic-gradient(var(--primary) calc(var(--v)*1%), var(--surface-2) 0)}
+  .ring div{width:70px;height:70px;border-radius:50%;background:var(--surface);display:grid;place-items:center;font:800 24px var(--display)}
+  .score small{display:block;font-size:12px;font-weight:700;color:var(--primary)}
+  .score .mid{color:var(--warn)}
+  .ring.mid{background:conic-gradient(#C98A1A calc(var(--v)*1%), var(--surface-2) 0)}
+
+  .note{margin:40px 0 60px;padding:18px 22px;border-radius:18px;background:var(--surface);border:1px solid var(--border);font-size:13.5px;color:var(--text-2);line-height:1.6}
+  @media(max-width:520px){nav{flex-wrap:wrap;gap:12px}.navr .btn-p{padding:10px 16px}.drop{flex-wrap:wrap;border-radius:22px;padding:14px}.drop .btn{width:100%;justify-content:center}.why{grid-template-columns:1fr}.acts{flex-wrap:wrap}.band{padding:26px}}
+  @media(max-width:900px){.hero,.results{grid-template-columns:1fr}.band{grid-template-columns:1fr 1fr}.steps{grid-template-columns:1fr}.links{display:none}.job{grid-template-columns:44px 1fr}.score{grid-column:1/-1;display:flex;gap:12px;align-items:center}.ring{margin:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <span class="tag">Pantalla 1 · Inicio</span>
+  <nav>
+    <div class="logo"><div class="mark"></div>jobhunter</div>
+    <div class="links"><span>Cómo funciona</span><span>Portales</span><span>Privacidad</span></div>
+    <div class="navr">
+      <div class="seg"><span class="on">ES</span><span>EN</span></div>
+      <button class="btn btn-p">Empezar</button>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <div>
+      <span class="eyebrow">● Para cualquier profesión</span>
+      <h1>Encontrá el trabajo que <em>encaja</em> con vos</h1>
+      <p class="sub">Subí tu CV. Buscamos en 19 portales y te mostramos por qué cada oferta encaja con tu experiencia real, sin inflar tu perfil.</p>
+      <div class="drop">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1F6F54" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M12 18v-6M9 15l3-3 3 3"/></svg>
+        <p><b>Arrastrá tu CV</b> · PDF, DOCX o TXT</p>
+        <button class="btn btn-p">Subir CV</button>
+      </div>
+      <p class="alt">¿Sin CV a mano? <a>Escribí tu perfil</a></p>
+      <div class="proof">
+        <div class="icons">
+          <i style="background:#DDF0E6">🩺</i><i style="background:#FBE9E4">👩‍🍳</i><i style="background:#E8F3E3">⚡</i><i style="background:#EAF3EE">📚</i><i style="background:#DDF0E6">💻</i>
+        </div>
+        <p><b>Probado con 12 profesiones</b><br>el mismo criterio para todas</p>
+      </div>
+    </div>
+    <div class="mosaic">
+      <div class="tile t1">
+        <svg width="96" height="96" viewBox="0 0 96 96" fill="none" stroke="#DDF0E6" stroke-width="6" stroke-linecap="round"><path d="M28 18v22a20 20 0 0 0 40 0V18"/><path d="M48 60v10a12 12 0 0 0 24 0v-6"/><circle cx="72" cy="58" r="7"/></svg>
+        <span class="lbl">Salud</span>
+      </div>
+      <div class="tile t2">
+        <svg width="120" height="120" viewBox="0 0 120 120"><circle cx="60" cy="60" r="46" fill="#13261E"/><path d="M26 52l11-9 11 9 11-9 11 9 11-9 11 9M26 72l11-9 11 9 11-9 11 9 11-9 11 9" stroke="#7FC8A9" stroke-width="6" fill="none" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="tile t3">
+        <svg width="120" height="120" viewBox="0 0 120 120"><path d="M60 14l46 46-46 46-46-46z" fill="#FBE9E4"/><path d="M60 38l22 22-22 22-22-22z" fill="#A8472E"/></svg>
+      </div>
+      <div class="tile t4">
+        <svg width="96" height="96" viewBox="0 0 96 96" fill="none" stroke="#7FC8A9" stroke-width="6" stroke-linejoin="round"><path d="M52 10L24 54h22l-4 32 30-46H50z"/></svg>
+        <span class="lbl">Oficios</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="band">
+    <div>
+      <div class="shapes"><span style="background:#7FC8A9"></span><span style="background:#E07A5F;border-radius:50%"></span><span style="background:#1F6F54;border:2px solid #7FC8A9"></span></div>
+      <div class="intro">Transparente de punta a punta: cada puntaje viene con su porqué.</div>
+    </div>
+    <div><div class="n">19</div><div class="l">portales de empleo en una búsqueda</div></div>
+    <div><div class="n">5</div><div class="l">factores explicados por oferta</div></div>
+    <div><div class="n">12</div><div class="l">profesiones en nuestro test de sesgo</div></div>
+    <div><div class="n">ES·EN</div><div class="l">interfaz y resultados</div></div>
+  </section>
+
+  <span class="tag">Cómo funciona</span>
+  <section class="steps">
+    <div class="step"><div class="num" style="background:#1F6F54">1</div><h3>Subí tu CV</h3><p>Leemos tu experiencia real: roles, nivel, habilidades e idiomas. Lo que tu CV no dice, no lo inventamos.</p></div>
+    <div class="step"><div class="num" style="background:#E07A5F">2</div><h3>Revisá tu perfil</h3><p>Corregí lo que haga falta y elegí modalidad, idioma y ubicación. Vos decidís qué se busca.</p></div>
+    <div class="step"><div class="num" style="background:#13261E">3</div><h3>Recibí ofertas explicadas</h3><p>Ordenadas por encaje, con el motivo de cada puntaje y lo que te podría faltar.</p></div>
+  </section>
+
+  <span class="tag">Pantalla 2 · Resultados</span>
+  <div class="rhead">
+    <div><h2>Tus mejores oportunidades</h2><p>Contador/a · Junior · Mendoza o remoto</p></div>
+    <div class="funnel">112 encontradas · 16 descartadas por tus filtros · 40 evaluadas · 4 recomendadas</div>
+  </div>
+  <section class="results">
+    <aside class="filters">
+      <h4>Modalidad</h4><span class="chip on">Remoto</span><span class="chip on">Híbrido</span><span class="chip">Presencial</span>
+      <h4>Nivel</h4><span class="chip on">Junior</span><span class="chip">Semi senior</span><span class="chip">Senior</span>
+      <h4>Encaje mínimo</h4><div class="range"><b></b><i></i></div><div class="small">65 o más</div>
+      <h4>Mostrar</h4><span class="chip on">Recomendadas (4)</span><span class="chip">Todas (40)</span>
+    </aside>
+    <div>
+      <article class="job">
+        <div class="avatar" style="background:#1F6F54">E</div>
+        <div>
+          <h3>Contador/a Junior</h3>
+          <div class="meta">Estudio Demo &amp; Asociados · Mendoza, Argentina · Get on Board</div>
+          <div class="pills"><span class="new">Nueva</span><span>Presencial</span><span>Junior</span></div>
+          <div class="why">
+            <div class="ok">✓ Liquidación de IVA e Ingresos Brutos<br>✓ Conciliaciones bancarias</div>
+            <div class="no">Nada crítico faltante</div>
+          </div>
+          <div class="acts"><button class="btn btn-p">Ver oferta</button><button class="btn btn-o">Generar carta</button><button class="btn btn-g">Por qué este puntaje ▾</button></div>
+        </div>
+        <div class="score"><div class="ring" style="--v:98"><div>98</div></div><small>Encaje fuerte</small></div>
+      </article>
+      <article class="job">
+        <div class="avatar" style="background:#E07A5F">D</div>
+        <div>
+          <h3>Junior Accountant (Remote)</h3>
+          <div class="meta">Demo Bookkeeping LLC · Remoto LATAM · Remotive</div>
+          <div class="pills"><span>Remoto</span><span>Junior</span><span>Inglés</span></div>
+          <div class="why">
+            <div class="ok">✓ Conciliaciones bancarias<br>✓ Nivel junior</div>
+            <div class="no">• QuickBooks<br>• Inglés fluido</div>
+          </div>
+          <div class="acts"><button class="btn btn-p">Ver oferta</button><button class="btn btn-o">Generar carta</button><button class="btn btn-g">Por qué este puntaje ▾</button></div>
+        </div>
+        <div class="score"><div class="ring" style="--v:86"><div>86</div></div><small>Encaje fuerte</small></div>
+      </article>
+      <article class="job">
+        <div class="avatar" style="background:#13261E">I</div>
+        <div>
+          <h3>Analista Contable Semi Senior</h3>
+          <div class="meta">Industria Ficticia SA · Híbrido, Mendoza · Arbeitnow</div>
+          <div class="pills"><span>Híbrido</span><span>Semi senior</span></div>
+          <div class="why">
+            <div class="ok">✓ Liquidación de impuestos<br>✓ Conciliaciones</div>
+            <div class="no">• Cierres mensuales<br>• Pide 3 a 5 años</div>
+          </div>
+          <div class="acts"><button class="btn btn-p">Ver oferta</button><button class="btn btn-o">Generar carta</button><button class="btn btn-g">Por qué este puntaje ▾</button></div>
+        </div>
+        <div class="score"><div class="ring mid" style="--v:78"><div>78</div></div><small class="mid">Encaje sólido</small></div>
+      </article>
+    </div>
+  </section>
+
+  <div class="note"><b>Notas de la propuesta.</b> Tipografía de display Bricolage Grotesque (títulos) + Inter (texto), ambas gratis en Google Fonts. Colores y contrastes de <code>docs/brand/tokens.json</code>. El mosaico usa íconos de profesiones y formas geométricas en lugar de fotos (sin licencias de imágenes). Cifras reales del producto (no inventamos usuarios). Datos de ejemplo ficticios.</div>
+</div>
+</body>
+</html>

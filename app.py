@@ -55,43 +55,43 @@ st.markdown("""
   forced-color-adjust: none;
 
   /* Brand palette */
-  --blue-50:#eff6ff; --blue-100:#dbeafe; --blue-200:#bfdbfe;
-  --blue-500:#3b82f6; --blue-600:#2563eb; --blue-700:#1d4ed8; --blue-900:#1e3a8a;
-  --violet-50:#f5f3ff; --violet-100:#ede9fe;
-  --violet-500:#8b5cf6; --violet-600:#7c3aed;
-  --emerald-50:#ecfdf5; --emerald-100:#d1fae5;
-  --emerald-600:#059669; --emerald-700:#047857; --emerald-900:#064e3b;
-  --amber-50:#fffbeb; --amber-100:#fef3c7;
-  --amber-600:#d97706; --amber-900:#78350f;
-  --red-50:#fef2f2; --red-100:#fee2e2;
-  --red-600:#dc2626; --red-900:#7f1d1d;
-  --slate-50:#f8fafc; --slate-100:#f1f5f9; --slate-200:#e2e8f0;
-  --slate-300:#cbd5e1; --slate-400:#94a3b8; --slate-500:#64748b;
-  --slate-600:#475569; --slate-700:#334155; --slate-800:#1e293b; --slate-900:#0f172a;
+  --blue-50:#EAF3EE; --blue-100:#DDF0E6; --blue-200:#CFE0D6;
+  --blue-500:#2E8B69; --blue-600:#1F6F54; --blue-700:#185A44; --blue-900:#0F3D2E;
+  --violet-50:#FBE9E4; --violet-100:#FBE9E4;
+  --violet-500:#E07A5F; --violet-600:#A8472E;
+  --emerald-50:#E8F3E3; --emerald-100:#D3EACB;
+  --emerald-600:#377227; --emerald-700:#2B5A20; --emerald-900:#22461A;
+  --amber-50:#FBF3E2; --amber-100:#F6E6C2;
+  --amber-600:#8F5D00; --amber-900:#5C3C00;
+  --red-50:#FCE9E7; --red-100:#F8D5D1;
+  --red-600:#B42318; --red-900:#7A160F;
+  --slate-50:#F4F8F5; --slate-100:#EAF3EE; --slate-200:#DCE8E1;
+  --slate-300:#CFE0D6; --slate-400:#8FA79B; --slate-500:#58736A;
+  --slate-600:#3E5A4E; --slate-700:#2F463C; --slate-800:#16241E; --slate-900:#13261E;
 
   /* Semantic — surfaces */
-  --bg:        #f8fafc;
-  --surface:   #ffffff;
-  --surface-2: #f1f5f9;
-  --surface-3: #e2e8f0;
+  --bg:        #F4F8F5;
+  --surface:   #FFFFFF;
+  --surface-2: #EAF3EE;
+  --surface-3: #DCE8E1;
 
-  /* Semantic — text */
-  --t1: #0f172a;   /* primary text   */
-  --t2: #475569;   /* secondary text */
-  --t3: #94a3b8;   /* muted text     */
-  --ti: #ffffff;   /* inverse text   */
+  /* Texto */
+  --t1: #13261E;   /* primary text   */
+  --t2: #3E5A4E;   /* secondary text */
+  --t3: #58736A;   /* muted text (4.8:1 sobre fondo) */
+  --ti: #FFFFFF;   /* inverse text   */
 
-  /* Semantic — borders */
-  --b1: #e2e8f0;
-  --b2: #cbd5e1;
+  /* Bordes */
+  --b1: #DCE8E1;
+  --b2: #CFE0D6;
 
-  /* Semantic — brand */
-  --p:   #2563eb;  --ph:  #1d4ed8;
-  --ps:  #eff6ff;  --pm:  #dbeafe;
-  --a:   #7c3aed;  --as:  #f5f3ff;
-  --ok:  #059669;  --oks: #ecfdf5; --okm: #d1fae5; --okt: #064e3b;
-  --wn:  #d97706;  --wns: #fffbeb; --wnt: #78350f;
-  --er:  #dc2626;  --ers: #fef2f2; --ert: #7f1d1d;
+  /* Marca (docs/brand/tokens.json) */
+  --p:   #1F6F54;  --ph:  #185A44;
+  --ps:  #EAF3EE;  --pm:  #DDF0E6;
+  --a:   #A8472E;  --as:  #FBE9E4;
+  --ok:  #377227;  --oks: #E8F3E3; --okm: #D3EACB; --okt: #22461A;
+  --wn:  #8F5D00;  --wns: #FBF3E2; --wnt: #5C3C00;
+  --er:  #B42318;  --ers: #FCE9E7; --ert: #7A160F;
 
   /* Typography */
   --font:    'Inter', system-ui, -apple-system, sans-serif;
@@ -101,13 +101,13 @@ st.markdown("""
   --r1:4px; --r2:6px; --r3:10px; --r4:14px; --r5:20px; --r6:28px; --rf:9999px;
 
   /* Shadows */
-  --s0: 0 1px 2px rgba(15,23,42,.05);
-  --s1: 0 1px 3px rgba(15,23,42,.08),0 1px 2px rgba(15,23,42,.04);
-  --s2: 0 4px 8px rgba(15,23,42,.07),0 2px 4px rgba(15,23,42,.04);
-  --s3: 0 12px 24px rgba(15,23,42,.09),0 4px 8px rgba(15,23,42,.04);
-  --s4: 0 24px 48px rgba(15,23,42,.11),0 8px 16px rgba(15,23,42,.05);
-  --sp: 0 8px 24px rgba(37,99,235,.28);
-  --sr: 0 0 0 3px rgba(37,99,235,.15);
+  --s0: 0 1px 2px rgba(19,38,30,.05);
+  --s1: 0 1px 3px rgba(19,38,30,.08),0 1px 2px rgba(19,38,30,.04);
+  --s2: 0 4px 8px rgba(19,38,30,.07),0 2px 4px rgba(19,38,30,.04);
+  --s3: 0 12px 24px rgba(19,38,30,.09),0 4px 8px rgba(19,38,30,.04);
+  --s4: 0 24px 48px rgba(19,38,30,.11),0 8px 16px rgba(19,38,30,.05);
+  --sp: 0 8px 24px rgba(31,111,84,.28);
+  --sr: 0 0 0 3px rgba(31,111,84,.15);
   --se: 0 0 0 3px rgba(220,38,38,.14);
 
   /* Motion */
@@ -176,7 +176,7 @@ button[data-testid="baseButton-primary"],button[kind="primary"] {
 button[data-testid="baseButton-primary"]:hover,button[kind="primary"]:hover {
   background: var(--ph) !important;
   transform: translateY(-1px) !important;
-  box-shadow: 0 12px 28px rgba(37,99,235,.34) !important;
+  box-shadow: 0 12px 28px rgba(31,111,84,.34) !important;
 }
 button[data-testid="baseButton-primary"]:active,button[kind="primary"]:active {
   transform: translateY(0) !important;
@@ -379,12 +379,12 @@ button[data-testid="stFormSubmitButton"] > button:hover,
 /* ── Checkboxes — force light styling ── */
 [data-testid="stCheckbox"] { color: var(--t1) !important; }
 [data-testid="stCheckbox"] input[type="checkbox"] {
-  accent-color: #2563eb !important;
+  accent-color: #1F6F54 !important;
   width: 16px !important;
   height: 16px !important;
   cursor: pointer !important;
   background: #ffffff !important;
-  border: 1.5px solid #cbd5e1 !important;
+  border: 1.5px solid #CFE0D6 !important;
 }
 [data-testid="stCheckbox"] label,
 [data-testid="stCheckbox"] p {
@@ -394,12 +394,12 @@ button[data-testid="stFormSubmitButton"] > button:hover,
 
 /* ── Slider — force primary color ── */
 [data-testid="stSlider"] [role="slider"] {
-  background: #2563eb !important;
-  border-color: #2563eb !important;
-  box-shadow: 0 0 0 3px rgba(37,99,235,.18) !important;
+  background: #1F6F54 !important;
+  border-color: #1F6F54 !important;
+  box-shadow: 0 0 0 3px rgba(31,111,84,.18) !important;
 }
 [data-testid="stSlider"] [data-baseweb="slider"] div[data-testid*="StyledThumb"] {
-  background: #2563eb !important;
+  background: #1F6F54 !important;
 }
 
 /* ── Streamlit header — force light ── */
@@ -451,7 +451,7 @@ header[data-testid="stHeader"] * { color: var(--t2) !important; }
   padding: 2.25rem 2.5rem;
   border: 1px solid var(--b1);
   border-radius: var(--r6);
-  background: linear-gradient(135deg,rgba(37,99,235,.05) 0%,rgba(124,58,237,.04) 100%), var(--surface);
+  background: linear-gradient(135deg,rgba(31,111,84,.05) 0%,rgba(168,71,46,.04) 100%), var(--surface);
   box-shadow: var(--s2);
   animation: fadeUp var(--t3d) var(--ease) both;
   position: relative;
@@ -462,7 +462,7 @@ header[data-testid="stHeader"] * { color: var(--t2) !important; }
   position:absolute;
   width:400px; height:400px;
   top:-150px; right:-100px;
-  background:radial-gradient(circle,rgba(37,99,235,.06),transparent 65%);
+  background:radial-gradient(circle,rgba(31,111,84,.06),transparent 65%);
   pointer-events:none;
 }
 .jh-hero-copy {
@@ -577,7 +577,7 @@ header[data-testid="stHeader"] * { color: var(--t2) !important; }
   background:linear-gradient(135deg,var(--p),var(--a));
   color:#fff; font-size:14px; font-weight:800;
   font-family:var(--font-d); flex-shrink:0;
-  box-shadow:0 4px 10px rgba(37,99,235,.22);
+  box-shadow:0 4px 10px rgba(31,111,84,.22);
 }
 .jh-f-title { font-weight:700; font-size:14px; color:var(--t1); letter-spacing:-.01em; }
 .jh-f-desc  { font-size:13px; color:var(--t2); line-height:1.55; }
@@ -595,9 +595,9 @@ header[data-testid="stHeader"] * { color: var(--t2) !important; }
   transition:all var(--t2d) var(--ease);
 }
 .jh-step--active {
-  border-color:rgba(37,99,235,.35);
-  background:linear-gradient(135deg,rgba(37,99,235,.04),rgba(124,58,237,.03));
-  box-shadow:0 0 0 3px rgba(37,99,235,.08),var(--s1);
+  border-color:rgba(31,111,84,.35);
+  background:linear-gradient(135deg,rgba(31,111,84,.04),rgba(168,71,46,.03));
+  box-shadow:0 0 0 3px rgba(31,111,84,.08),var(--s1);
 }
 .jh-step--done {
   border-color:rgba(5,150,105,.25);
@@ -614,7 +614,7 @@ header[data-testid="stHeader"] * { color: var(--t2) !important; }
 }
 .jh-step--active .jh-step-num {
   background:linear-gradient(135deg,var(--p),var(--a));
-  color:#fff; box-shadow:0 4px 12px rgba(37,99,235,.3);
+  color:#fff; box-shadow:0 4px 12px rgba(31,111,84,.3);
 }
 .jh-step--done .jh-step-num {
   background:var(--oks); border:1px solid var(--okm); color:var(--ok);
@@ -637,27 +637,9 @@ header[data-testid="stHeader"] * { color: var(--t2) !important; }
   display:inline-flex; align-items:center;
   height:20px; padding:0 8px;
   border-radius:var(--rf);
-  font-size:11px; font-weight:600; color:#fff;
+  font-size:11px; font-weight:600;
+  color:var(--t2); background:var(--surface-2); border:1px solid var(--b1);
 }
-.src-Remotive        {background:linear-gradient(135deg,#2563eb,#7c3aed)}
-.src-Arbeitnow       {background:linear-gradient(135deg,#0ea5e9,#0284c7)}
-.src-WeWorkRemotely  {background:linear-gradient(135deg,#059669,#047857)}
-.src-Himalayas       {background:linear-gradient(135deg,#f59e0b,#d97706)}
-.src-RemoteOK        {background:linear-gradient(135deg,#7c3aed,#6d28d9)}
-.src-Jobicy          {background:linear-gradient(135deg,#14b8a6,#0d9488)}
-.src-GetOnBoard      {background:linear-gradient(135deg,#10b981,#059669)}
-.src-LatoJobs        {background:linear-gradient(135deg,#3b82f6,#2563eb)}
-.src-PuenteTalent    {background:linear-gradient(135deg,#f59e0b,#d97706)}
-.src-WorkingNomads   {background:linear-gradient(135deg,#6366f1,#4f46e5)}
-.src-TheMuse         {background:linear-gradient(135deg,#ec4899,#db2777)}
-.src-Remote-co       {background:linear-gradient(135deg,#059669,#047857)}
-.src-Jobspresso      {background:linear-gradient(135deg,#ef4444,#dc2626)}
-.src-JustJoin-it     {background:linear-gradient(135deg,#f97316,#ea580c)}
-.src-AuthenticJobs   {background:linear-gradient(135deg,#8b5cf6,#7c3aed)}
-.src-LinkedInBrowser {background:linear-gradient(135deg,#0a66c2,#004182)}
-.src-BumeranBrowser  {background:linear-gradient(135deg,#f97316,#ea580c)}
-.src-ComputrabajoBrowser{background:linear-gradient(135deg,#ef4444,#dc2626)}
-.src-IndeedBrowser   {background:linear-gradient(135deg,#2557a7,#1d4ed8)}
 
 /* Job card */
 .jh-job {
@@ -738,9 +720,9 @@ div[data-testid="stMarkdownContainer"] .cancel-marker { display:none; }
 /* Stop buttons durante búsqueda */
 div[data-testid="stMarkdownContainer"] .stop-marker { display:none; }
 [data-testid="stMarkdownContainer"]:has(.stop-marker) ~ [data-testid="stButton"] > button {
-  background: #dc2626 !important;
+  background: #B42318 !important;
   color: #ffffff !important;
-  border: 1px solid #dc2626 !important;
+  border: 1px solid #B42318 !important;
   box-shadow: 0 4px 12px rgba(220,38,38,.28) !important;
   font-size: 15px !important;
   font-weight: 700 !important;
@@ -767,7 +749,7 @@ div[data-testid="stMarkdownContainer"] .config-marker { display:none; }
 [data-testid="stMarkdownContainer"]:has(.config-marker) ~ [data-testid="stButton"] > button:hover {
   background: var(--ph) !important;
   transform: translateY(-1px) !important;
-  box-shadow: 0 12px 28px rgba(37,99,235,.34) !important;
+  box-shadow: 0 12px 28px rgba(31,111,84,.34) !important;
 }
 
 /* ── 15. RESPONSIVE ─────────────────────────────────────────────────── */
@@ -794,37 +776,38 @@ html[data-theme="dark"] {
   forced-color-adjust: none !important;
 
   /* Design tokens redefinidos para dark */
-  --bg:        #0f172a;
-  --surface:   #1e293b;
-  --surface-2: #263548;
-  --surface-3: #304562;
+  --bg:        #0F1A16;
+  --surface:   #16241E;
+  --surface-2: #1E3129;
+  --surface-3: #24362E;
 
-  --t1: #f1f5f9;
-  --t2: #cbd5e1;
-  --t3: #94a3b8;
-  --ti: #0f172a;
+  --t1: #E8F2EC;
+  --t2: #A9C2B6;
+  --t3: #8FA79B;
+  --ti: #0F1A16;
 
-  --b1: #2d3f55;
-  --b2: #3d5470;
+  --b1: #24362E;
+  --b2: #2F463C;
 
-  --ps:  #1e3a8a;  --pm: #1e40af;
-  --as:  #2e1065;
-  --oks: #052e16;  --okm: #14532d;
-  --wns: #422006;
-  --ers: #450a0a;
+  --p:   #5FCB9F;  --ph:  #7AD6B0;
+  --ps:  #1E3129;  --pm:  #24402F;
+  --a:   #F29A80;  --as:  #3A2019;
+  --ok:  #8BCB6F;  --oks: #1B2E14; --okm: #25401B; --okt: #CDEBBE;
+  --wn:  #F0B955;  --wns: #33260B; --wnt: #F6DDA6;
+  --er:  #F28B7F;  --ers: #3A1512; --ert: #F8C4BD;
 
   --s0: 0 1px 2px rgba(0,0,0,.5);
   --s1: 0 1px 3px rgba(0,0,0,.6),0 1px 2px rgba(0,0,0,.4);
   --s2: 0 4px 8px rgba(0,0,0,.55),0 2px 4px rgba(0,0,0,.35);
   --s3: 0 12px 24px rgba(0,0,0,.6),0 4px 8px rgba(0,0,0,.4);
   --s4: 0 24px 48px rgba(0,0,0,.7),0 8px 16px rgba(0,0,0,.45);
-  --sp: 0 8px 24px rgba(37,99,235,.5);
+  --sp: 0 8px 24px rgba(31,111,84,.5);
 
   /* Variables internas de Streamlit */
-  --text-color: #f1f5f9 !important;
-  --background-color: #0f172a !important;
-  --secondary-background-color: #1e293b !important;
-  --primary-color: #3b82f6 !important;
+  --text-color: #EAF3EE !important;
+  --background-color: #13261E !important;
+  --secondary-background-color: #16241E !important;
+  --primary-color: #2E8B69 !important;
 }
 
 /* ── Fondos principales ─────────────────────────────────────────────────── */
@@ -840,59 +823,59 @@ html[data-theme="dark"] div.block-container {
 }
 
 /* ── Texto genérico: hex directo para no depender de var() ──────────────── */
-/* #f1f5f9 = --t1 (text primary)  #cbd5e1 = --t2  #94a3b8 = --t3           */
+/* #EAF3EE = --t1 (text primary)  #CFE0D6 = --t2  #8FA79B = --t3           */
 html[data-theme="dark"] h1,
 html[data-theme="dark"] h2,
 html[data-theme="dark"] h3,
 html[data-theme="dark"] h4,
 html[data-theme="dark"] h5,
-html[data-theme="dark"] h6 { color: #f1f5f9 !important; }
+html[data-theme="dark"] h6 { color: #EAF3EE !important; }
 
-html[data-theme="dark"] p   { color: #cbd5e1 !important; }
-html[data-theme="dark"] li  { color: #cbd5e1 !important; }
+html[data-theme="dark"] p   { color: #CFE0D6 !important; }
+html[data-theme="dark"] li  { color: #CFE0D6 !important; }
 html[data-theme="dark"] span { color: inherit !important; }
-html[data-theme="dark"] label { color: #cbd5e1 !important; }
+html[data-theme="dark"] label { color: #CFE0D6 !important; }
 
 /* Streamlit markdown wrapper */
 html[data-theme="dark"] [data-testid="stMarkdownContainer"] h1,
 html[data-theme="dark"] [data-testid="stMarkdownContainer"] h2,
 html[data-theme="dark"] [data-testid="stMarkdownContainer"] h3,
-html[data-theme="dark"] [data-testid="stMarkdownContainer"] h4 { color: #f1f5f9 !important; }
-html[data-theme="dark"] [data-testid="stMarkdownContainer"] p  { color: #cbd5e1 !important; }
-html[data-theme="dark"] [data-testid="stMarkdownContainer"] li { color: #cbd5e1 !important; }
+html[data-theme="dark"] [data-testid="stMarkdownContainer"] h4 { color: #EAF3EE !important; }
+html[data-theme="dark"] [data-testid="stMarkdownContainer"] p  { color: #CFE0D6 !important; }
+html[data-theme="dark"] [data-testid="stMarkdownContainer"] li { color: #CFE0D6 !important; }
 html[data-theme="dark"] [data-testid="stMarkdownContainer"] strong,
-html[data-theme="dark"] [data-testid="stMarkdownContainer"] b  { color: #f1f5f9 !important; }
+html[data-theme="dark"] [data-testid="stMarkdownContainer"] b  { color: #EAF3EE !important; }
 html[data-theme="dark"] [data-testid="stMarkdownContainer"] span { color: inherit !important; }
 
 /* Widget labels (todos los widgets nativos de Streamlit) */
 html[data-theme="dark"] [data-testid="stWidgetLabel"] p,
 html[data-theme="dark"] [data-testid="stWidgetLabel"] span,
 html[data-theme="dark"] [data-testid="stWidgetLabel"] label,
-html[data-theme="dark"] [data-testid="stWidgetLabel"] { color: #cbd5e1 !important; }
+html[data-theme="dark"] [data-testid="stWidgetLabel"] { color: #CFE0D6 !important; }
 
 /* Caption / small text */
 html[data-theme="dark"] [data-testid="stCaptionContainer"] p,
 html[data-theme="dark"] [data-testid="stCaptionContainer"],
-html[data-theme="dark"] small { color: #94a3b8 !important; }
+html[data-theme="dark"] small { color: #8FA79B !important; }
 
 /* Streamlit "st.markdown" usado como párrafo suelto */
-html[data-theme="dark"] [data-testid="stText"] { color: #cbd5e1 !important; }
+html[data-theme="dark"] [data-testid="stText"] { color: #CFE0D6 !important; }
 
 /* Texto dentro de expanders */
 html[data-theme="dark"] [data-testid="stExpanderDetails"] p,
 html[data-theme="dark"] [data-testid="stExpanderDetails"] span,
-html[data-theme="dark"] [data-testid="stExpanderDetails"] label { color: #cbd5e1 !important; }
+html[data-theme="dark"] [data-testid="stExpanderDetails"] label { color: #CFE0D6 !important; }
 html[data-theme="dark"] [data-testid="stExpanderDetails"] h3,
-html[data-theme="dark"] [data-testid="stExpanderDetails"] h4 { color: #f1f5f9 !important; }
+html[data-theme="dark"] [data-testid="stExpanderDetails"] h4 { color: #EAF3EE !important; }
 
 /* Checkbox y radio labels */
 html[data-theme="dark"] [data-testid="stCheckbox"] p,
 html[data-theme="dark"] [data-testid="stRadio"] p,
 html[data-theme="dark"] [data-testid="stCheckbox"] span,
-html[data-theme="dark"] [data-testid="stRadio"] span { color: #cbd5e1 !important; }
+html[data-theme="dark"] [data-testid="stRadio"] span { color: #CFE0D6 !important; }
 
 /* Número de pasos, tooltips y helper texts */
-html[data-theme="dark"] [data-testid="stTooltipIcon"] { color: #94a3b8 !important; }
+html[data-theme="dark"] [data-testid="stTooltipIcon"] { color: #8FA79B !important; }
 
 /* ── Inputs: text, number, textarea ────────────────────────────────────── */
 html[data-theme="dark"] input,
@@ -934,7 +917,7 @@ html[data-theme="dark"] [data-baseweb="option"][aria-selected="true"] {
   background: var(--surface-2) !important;
 }
 html[data-theme="dark"] [data-baseweb="tag"] {
-  background: var(--pm) !important; color: #bfdbfe !important;
+  background: var(--pm) !important; color: #CFE0D6 !important;
 }
 
 /* ── Checkboxes / radios ────────────────────────────────────────────────── */
@@ -1023,7 +1006,7 @@ html[data-theme="dark"] hr { border-color: var(--b1) !important; }
 
 /* ── Componentes custom del app (JH) ────────────────────────────────────── */
 html[data-theme="dark"] .jh-hero {
-  background: linear-gradient(135deg,rgba(37,99,235,.10) 0%,rgba(124,58,237,.09) 100%), var(--surface) !important;
+  background: linear-gradient(135deg,rgba(31,111,84,.10) 0%,rgba(168,71,46,.09) 100%), var(--surface) !important;
   border-color: var(--b1) !important;
 }
 html[data-theme="dark"] .jh-card {
@@ -1038,19 +1021,19 @@ html[data-theme="dark"] .jh-step-active .jh-step-label { color: var(--t1) !impor
 html[data-theme="dark"] .jh-panel { background: var(--surface) !important; border-color: var(--b1) !important; }
 html[data-theme="dark"] .jh-panel-note { background: var(--surface-2) !important; border-color: var(--b1) !important; color: var(--t2) !important; }
 html[data-theme="dark"] .jh-feature { background: var(--surface) !important; border-color: var(--b1) !important; }
-html[data-theme="dark"] .jh-f-icon { background: var(--pm) !important; color: #bfdbfe !important; }
+html[data-theme="dark"] .jh-f-icon { background: var(--pm) !important; color: #CFE0D6 !important; }
 html[data-theme="dark"] .jh-f-title { color: var(--t1) !important; }
 html[data-theme="dark"] .jh-f-desc  { color: var(--t2) !important; }
 html[data-theme="dark"] .jh-tag { opacity: .85; }
-html[data-theme="dark"] .jh-tag-blue   { background: #1e3a8a !important; color: #bfdbfe !important; }
-html[data-theme="dark"] .jh-tag-violet { background: #2e1065 !important; color: #ddd6fe !important; }
-html[data-theme="dark"] .jh-tag-green  { background: #052e16 !important; color: #6ee7b7 !important; }
+html[data-theme="dark"] .jh-tag-blue   { background: #0F3D2E !important; color: #CFE0D6 !important; }
+html[data-theme="dark"] .jh-tag-violet { background: #3A2019 !important; color: #ddd6fe !important; }
+html[data-theme="dark"] .jh-tag-green  { background: #16300F !important; color: #8BCB6F !important; }
 html[data-theme="dark"] .jh-tag-gray   { background: var(--surface-3) !important; color: var(--t2) !important; }
 html[data-theme="dark"] .jh-stat strong { color: var(--t1) !important; }
 html[data-theme="dark"] .jh-stat span   { color: var(--t3) !important; }
-html[data-theme="dark"] .jh-badge-ok  { background: #052e16 !important; color: #6ee7b7 !important; }
-html[data-theme="dark"] .jh-badge-wn  { background: #422006 !important; color: #fcd34d !important; }
-html[data-theme="dark"] .jh-badge-er  { background: #450a0a !important; color: #fca5a5 !important; }
+html[data-theme="dark"] .jh-badge-ok  { background: #16300F !important; color: #8BCB6F !important; }
+html[data-theme="dark"] .jh-badge-wn  { background: #33260B !important; color: #fcd34d !important; }
+html[data-theme="dark"] .jh-badge-er  { background: #3A1512 !important; color: #fca5a5 !important; }
 html[data-theme="dark"] .jh-score     { background: var(--surface-3) !important; color: var(--t1) !important; }
 html[data-theme="dark"] .jh-why-title { color: var(--t2) !important; }
 html[data-theme="dark"] .jh-label     { color: var(--t3) !important; }
@@ -1140,6 +1123,22 @@ if "_prefs_loaded" not in st.session_state:
         _lv = "en" if _locale.startswith("en") else "es"
     st.session_state.lang = _lv
     st.session_state.dark_mode = (_qp.get("theme") == "dark")
+
+# ─── Modo demo (solo desarrollo, JOB_HUNTER_DEMO=1): UI con datos ficticios, sin IA ──
+import demo as _demo
+if _demo.enabled() and "_demo_loaded" not in st.session_state:
+    st.session_state._demo_loaded = True
+    _dp, _ds = _demo.load()
+    st.session_state.profile        = _dp.to_dict()
+    st.session_state.cv_analyzed    = True
+    st.session_state.keywords_list  = _dp.all_search_terms()
+    st.session_state["kw_options"]  = list(st.session_state.keywords_list)
+    st.session_state.scored_jobs    = _ds
+    st.session_state.top_matches    = [s for s in _ds if s.score >= st.session_state.min_score]
+    st.session_state.min_score_last = st.session_state.min_score
+    st.session_state.search_done    = True
+    st.session_state.funnel = {"found": 112, "dups": 6, "excluded": {"modality": 9, "language": 4, "location": 3},
+                               "out": 50, "evaluated": len(_ds), "top_n": 40, "emb_failed": False}
 
 # ─── Traducciones / Translations ─────────────────────────────────────────────
 TRANSLATIONS: dict[str, dict[str, str]] = {
