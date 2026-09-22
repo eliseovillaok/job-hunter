@@ -1,0 +1,120 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1010" viewBox="0 0 1200 1010" font-family="Inter, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+  <rect width="1200" height="1010" fill="#F7F5EE"/>
+
+  <!-- Encabezado -->
+  <text x="60" y="72" font-size="30" font-weight="700" fill="#1F2A1B">Job Hunter · Paleta Oliva</text>
+  <text x="60" y="104" font-size="15" fill="#4A5443">Crecimiento (oliva) · Estabilidad (verde bosque) · Bienestar (salvia y crema) · Calidez humana (ámbar)</text>
+  <text x="60" y="126" font-size="13" fill="#4A5443">Todos los pares de texto verificados con WCAG AA (≥ 4.5:1) en modo claro y oscuro.</text>
+
+  <!-- Colores de marca -->
+  <text x="60" y="172" font-size="13" font-weight="700" fill="#5E6B2E" letter-spacing="1.5">COLORES DE MARCA</text>
+  <g font-size="13">
+    <rect x="60" y="186" width="170" height="150" rx="14" fill="#5E6B2E"/>
+    <text x="76" y="306" fill="#FFFFFF" font-weight="700" font-size="15">Oliva</text>
+    <text x="76" y="325" fill="#FFFFFF">#5E6B2E</text>
+    <text x="60" y="358" fill="#1F2A1B" font-weight="600">Primario</text>
+    <text x="60" y="376" fill="#4A5443">Botones, enlaces, marca</text>
+    <text x="60" y="394" fill="#4A5443">Texto blanco: 5.8 ✓</text>
+
+    <rect x="248" y="186" width="170" height="150" rx="14" fill="#1F2A1B"/>
+    <text x="264" y="306" fill="#FFFFFF" font-weight="700" font-size="15">Verde bosque</text>
+    <text x="264" y="325" fill="#FFFFFF">#1F2A1B</text>
+    <text x="248" y="358" fill="#1F2A1B" font-weight="600">Texto</text>
+    <text x="248" y="376" fill="#4A5443">Títulos y texto principal</text>
+    <text x="248" y="394" fill="#4A5443">Sobre crema: 13.7 ✓</text>
+
+    <rect x="436" y="186" width="170" height="150" rx="14" fill="#A3B18A"/>
+    <text x="452" y="306" fill="#1F2A1B" font-weight="700" font-size="15">Salvia</text>
+    <text x="452" y="325" fill="#1F2A1B">#A3B18A</text>
+    <text x="436" y="358" fill="#1F2A1B" font-weight="600">Secundario</text>
+    <text x="436" y="376" fill="#4A5443">Ilustraciones, bordes activos</text>
+    <text x="436" y="394" fill="#4A5443">Decorativo (no para texto)</text>
+
+    <rect x="624" y="186" width="170" height="150" rx="14" fill="#DDE5CF"/>
+    <text x="640" y="306" fill="#1F2A1B" font-weight="700" font-size="15">Salvia claro</text>
+    <text x="640" y="325" fill="#1F2A1B">#DDE5CF</text>
+    <text x="624" y="358" fill="#1F2A1B" font-weight="600">Superficie</text>
+    <text x="624" y="376" fill="#4A5443">Chips, tarjetas destacadas</text>
+    <text x="624" y="394" fill="#4A5443">Con texto bosque ✓</text>
+
+    <rect x="812" y="186" width="170" height="150" rx="14" fill="#F7F5EE" stroke="#D9DCCB" stroke-width="2"/>
+    <text x="828" y="306" fill="#1F2A1B" font-weight="700" font-size="15">Crema</text>
+    <text x="828" y="325" fill="#1F2A1B">#F7F5EE</text>
+    <text x="812" y="358" fill="#1F2A1B" font-weight="600">Fondo</text>
+    <text x="812" y="376" fill="#4A5443">Fondo general, cálido</text>
+    <text x="812" y="394" fill="#4A5443">Borde: #D9DCCB</text>
+
+    <rect x="1000" y="186" width="140" height="72" rx="14" fill="#C9822B"/>
+    <text x="1014" y="218" fill="#1F2A1B" font-weight="700" font-size="14">Ámbar</text>
+    <text x="1014" y="238" fill="#1F2A1B" font-size="13">#C9822B</text>
+    <rect x="1000" y="264" width="140" height="72" rx="14" fill="#8A5A1C"/>
+    <text x="1014" y="296" fill="#FFFFFF" font-weight="700" font-size="14">Ámbar oscuro</text>
+    <text x="1014" y="316" fill="#FFFFFF" font-size="13">#8A5A1C</text>
+    <text x="1000" y="358" fill="#1F2A1B" font-weight="600">Acento (uno solo)</text>
+    <text x="1000" y="376" fill="#4A5443">Íconos · destacados</text>
+    <text x="1000" y="394" fill="#4A5443">Texto: usar oscuro 5.9 ✓</text>
+  </g>
+
+  <!-- Estados -->
+  <text x="60" y="446" font-size="13" font-weight="700" fill="#5E6B2E" letter-spacing="1.5">ESTADOS (distintos del verde de marca)</text>
+  <g font-size="13">
+    <rect x="60" y="460" width="256" height="56" rx="12" fill="#2F6B4A"/>
+    <text x="78" y="494" fill="#FFFFFF" font-weight="700">Éxito  #2F6B4A  · 6.3 ✓</text>
+    <rect x="332" y="460" width="256" height="56" rx="12" fill="#8F5A0A"/>
+    <text x="350" y="494" fill="#FFFFFF" font-weight="700">Aviso  #8F5A0A  · 5.8 ✓</text>
+    <rect x="604" y="460" width="256" height="56" rx="12" fill="#A63A28"/>
+    <text x="622" y="494" fill="#FFFFFF" font-weight="700">Error  #A63A28  · 6.5 ✓</text>
+    <rect x="876" y="460" width="264" height="56" rx="12" fill="#35596E"/>
+    <text x="894" y="494" fill="#FFFFFF" font-weight="700">Info  #35596E  · 7.5 ✓</text>
+  </g>
+
+  <!-- Ejemplo modo claro -->
+  <text x="60" y="566" font-size="13" font-weight="700" fill="#5E6B2E" letter-spacing="1.5">EN USO · MODO CLARO</text>
+  <rect x="60" y="580" width="530" height="250" rx="18" fill="#FFFFFF" stroke="#D9DCCB" stroke-width="1.5"/>
+  <rect x="84" y="604" width="74" height="28" rx="14" fill="#DDE5CF"/>
+  <text x="97" y="623" font-size="13" font-weight="700" fill="#3F4A1E">87/100</text>
+  <rect x="168" y="604" width="72" height="28" rx="14" fill="#F7F5EE" stroke="#D9DCCB"/>
+  <text x="180" y="623" font-size="12" fill="#4A5443">Remoto</text>
+  <rect x="250" y="604" width="96" height="28" rx="14" fill="#F7F5EE" stroke="#D9DCCB"/>
+  <text x="262" y="623" font-size="12" fill="#4A5443">Semi senior</text>
+  <text x="84" y="668" font-size="20" font-weight="700" fill="#1F2A1B">Analista Contable</text>
+  <text x="84" y="692" font-size="14" fill="#4A5443">Empresa Ficticia · Rosario</text>
+  <text x="84" y="724" font-size="13" fill="#2F6B4A">✓ Liquidación de impuestos · ✓ Conciliaciones</text>
+  <text x="84" y="746" font-size="13" fill="#8F5A0A">• Falta: SAP FI (deseable)</text>
+  <rect x="84" y="768" width="140" height="40" rx="10" fill="#5E6B2E"/>
+  <text x="112" y="793" font-size="14" font-weight="700" fill="#FFFFFF">Ver oferta</text>
+  <rect x="236" y="768" width="170" height="40" rx="10" fill="#FFFFFF" stroke="#5E6B2E" stroke-width="1.5"/>
+  <text x="256" y="793" font-size="14" font-weight="700" fill="#5E6B2E">Generar carta</text>
+
+  <!-- Ejemplo modo oscuro -->
+  <text x="610" y="566" font-size="13" font-weight="700" fill="#5E6B2E" letter-spacing="1.5">EN USO · MODO OSCURO</text>
+  <rect x="610" y="580" width="530" height="250" rx="18" fill="#141A12"/>
+  <rect x="626" y="596" width="498" height="218" rx="14" fill="#1C2419" stroke="#2E3A2A"/>
+  <rect x="646" y="614" width="74" height="28" rx="14" fill="#2E3A2A"/>
+  <text x="659" y="633" font-size="13" font-weight="700" fill="#B5C47A">87/100</text>
+  <rect x="730" y="614" width="72" height="28" rx="14" fill="#1C2419" stroke="#2E3A2A"/>
+  <text x="742" y="633" font-size="12" fill="#B9C0AE">Remoto</text>
+  <text x="646" y="676" font-size="20" font-weight="700" fill="#EEF0E6">Analista Contable</text>
+  <text x="646" y="700" font-size="14" fill="#B9C0AE">Empresa Ficticia · Rosario</text>
+  <text x="646" y="730" font-size="13" fill="#86C9A2">✓ Liquidación de impuestos · ✓ Conciliaciones</text>
+  <text x="646" y="752" font-size="13" fill="#E9B96A">• Falta: SAP FI (deseable)</text>
+  <rect x="646" y="768" width="140" height="36" rx="10" fill="#B5C47A"/>
+  <text x="674" y="791" font-size="14" font-weight="700" fill="#141A12">Ver oferta</text>
+  <rect x="798" y="768" width="170" height="36" rx="10" fill="#1C2419" stroke="#B5C47A" stroke-width="1.5"/>
+  <text x="818" y="791" font-size="14" font-weight="700" fill="#B5C47A">Generar carta</text>
+
+  <!-- Tokens modo oscuro -->
+  <text x="60" y="878" font-size="13" font-weight="700" fill="#5E6B2E" letter-spacing="1.5">TOKENS MODO OSCURO</text>
+  <g font-size="12">
+    <rect x="60" y="892" width="120" height="44" rx="10" fill="#141A12"/><text x="72" y="919" fill="#EEF0E6">Fondo #141A12</text>
+    <rect x="190" y="892" width="130" height="44" rx="10" fill="#1C2419"/><text x="200" y="919" fill="#EEF0E6">Superficie #1C2419</text>
+    <rect x="330" y="892" width="120" height="44" rx="10" fill="#EEF0E6" stroke="#D9DCCB"/><text x="342" y="919" fill="#141A12">Texto #EEF0E6</text>
+    <rect x="460" y="892" width="130" height="44" rx="10" fill="#B5C47A"/><text x="470" y="919" fill="#141A12">Primario #B5C47A</text>
+    <rect x="600" y="892" width="120" height="44" rx="10" fill="#E3A75E"/><text x="610" y="919" fill="#141A12">Acento #E3A75E</text>
+    <rect x="730" y="892" width="100" height="44" rx="10" fill="#86C9A2"/><text x="740" y="919" fill="#141A12">Éxito</text>
+    <rect x="840" y="892" width="100" height="44" rx="10" fill="#E9B96A"/><text x="850" y="919" fill="#141A12">Aviso</text>
+    <rect x="950" y="892" width="90" height="44" rx="10" fill="#EE8C78"/><text x="960" y="919" fill="#141A12">Error</text>
+    <rect x="1050" y="892" width="90" height="44" rx="10" fill="#94BBD0"/><text x="1060" y="919" fill="#141A12">Info</text>
+  </g>
+  <text x="60" y="968" font-size="12" fill="#4A5443">Modo oscuro: todos los textos y el primario ≥ 7:1 sobre fondo y superficie. Salvia y ámbar claro se usan solo como decoración en modo claro.</text>
+</svg>
