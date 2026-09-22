@@ -9,7 +9,7 @@ Prioridades del producto: relevancia, control del usuario, transparencia, simpli
 Deploy público: https://jobhunter-ia.streamlit.app (sin Playwright → portales con login deshabilitados). Se despliega desde `main`: no pushear sin probar el flujo completo.
 
 **Ruta:** [docs/roadmap.md](docs/roadmap.md) — etapas iterativas con disparadores medibles. Antes de proponer trabajo, ubicarlo en la etapa actual; lo de etapas futuras se anota, no se construye.
-**Marca:** [docs/brand/palette.svg](docs/brand/palette.svg) — paleta oliva con tokens claro/oscuro y contraste verificado. Usar esos tokens; no inventar colores.
+**Marca:** [docs/brand/palette.svg](docs/brand/palette.svg) + [docs/brand/tokens.json](docs/brand/tokens.json) — paleta Esmeralda (esmeralda profundo + menta + coral) con tokens claro/oscuro y contraste verificado. Usar esos tokens; no inventar colores.
 
 ## Rol de Claude
 Ingeniero Senior/Staff pragmático y asesor técnico (Python, apps con LLM, scraping, seguridad, producto).
