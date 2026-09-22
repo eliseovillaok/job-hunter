@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>JobHunter · Logotipo v4 (J y H legibles)</title>
+<title>JobHunter · Logotipo v5</title>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{--bg:#F4F8F5;--surface:#FFFFFF;--border:#DCE8E1;--text:#13261E;--text-2:#3E5A4E;--muted:#58736A;--primary:#1F6F54}
   *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}
   .wrap{max-width:1200px;margin:0 auto;padding:40px 28px 60px}
   h1{font:800 34px 'Bricolage Grotesque',sans-serif;letter-spacing:-.02em;margin:0 0 6px}
-  .lead{color:var(--text-2);margin:0 0 28px;font-size:15px;max-width:820px;line-height:1.5}
+  .lead{color:var(--text-2);margin:0 0 28px;font-size:15px;max-width:860px;line-height:1.5}
   .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:22px}
   .card{background:var(--surface);border:1px solid var(--border);border-radius:24px;overflow:hidden}
   .head{padding:20px 24px 4px;display:flex;align-items:baseline;gap:10px}
@@ -29,86 +29,92 @@
   .app svg{border-radius:14px} .small svg{border-radius:7px}
   .inv{display:flex;align-items:center;gap:10px;margin-left:auto;background:#fff;border-radius:14px;padding:8px 12px;color:var(--text-2);font-size:11px}
   .inv svg{border-radius:12px;border:1px solid var(--border)}
-  .mono{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;letter-spacing:-3px}
+  .mono{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;letter-spacing:-2px}
   @media(max-width:900px){.grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute">
   <defs>
-    <!-- C1 · Monograma separado: J con barra superior (no se confunde con I) + H completa -->
-    <g id="C1g" fill="none" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M22 25H40M36 25V58c0 11-6 16-13 16-5 0-9-3-11-7"/>
-      <path d="M54 25V75M80 25V75M54 50H80"/>
-    </g>
-    <symbol id="C1" viewBox="0 0 100 100"><rect width="100" height="100" fill="#1F6F54"/><use href="#C1g" stroke="#FFFFFF"/></symbol>
-    <symbol id="C1i" viewBox="0 0 100 100"><rect width="100" height="100" fill="#FFFFFF"/><use href="#C1g" stroke="#1F6F54"/></symbol>
-
-    <!-- C2 · Tipográfico: JH en la tipografía del nombre -->
-    <symbol id="C2" viewBox="0 0 100 100"><rect width="100" height="100" fill="#1F6F54"/>
-      <text x="50" y="69" text-anchor="middle" class="mono" font-size="56" fill="#FFFFFF">JH</text></symbol>
-    <symbol id="C2i" viewBox="0 0 100 100"><rect width="100" height="100" fill="#FFFFFF"/>
-      <text x="50" y="69" text-anchor="middle" class="mono" font-size="56" fill="#1F6F54">JH</text></symbol>
-
-    <!-- C3 · Monograma separado con puente coral: el travesaño va justo entre las astas de la H -->
-    <symbol id="C3" viewBox="0 0 100 100"><rect width="100" height="100" fill="#1F6F54"/>
-      <g fill="none" stroke="#FFFFFF" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"><path d="M22 25H40M36 25V58c0 11-6 16-13 16-5 0-9-3-11-7"/><path d="M54 25V75M80 25V75"/></g>
-      <rect x="59.5" y="44.5" width="15" height="11" fill="#E07A5F"/></symbol>
-    <symbol id="C3i" viewBox="0 0 100 100"><rect width="100" height="100" fill="#FFFFFF"/>
-      <g fill="none" stroke="#1F6F54" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"><path d="M22 25H40M36 25V58c0 11-6 16-13 16-5 0-9-3-11-7"/><path d="M54 25V75M80 25V75"/></g>
-      <rect x="59.5" y="44.5" width="15" height="11" fill="#A8472E"/></symbol>
-
-    <!-- C4 · Dos tonos: J menta + H blanca -->
-    <symbol id="C4" viewBox="0 0 100 100"><rect width="100" height="100" fill="#1F6F54"/>
+    <!-- D1 · Dos tonos sobre verde bosque (C4 corregida: menta 8.1:1 en vez de 3.1:1) -->
+    <symbol id="D1" viewBox="0 0 100 100"><rect width="100" height="100" fill="#13261E"/>
       <text x="50" y="69" text-anchor="middle" class="mono" font-size="56"><tspan fill="#7FC8A9">J</tspan><tspan fill="#FFFFFF">H</tspan></text></symbol>
-    <symbol id="C4i" viewBox="0 0 100 100"><rect width="100" height="100" fill="#FFFFFF"/>
-      <text x="50" y="69" text-anchor="middle" class="mono" font-size="56"><tspan fill="#2E8B69">J</tspan><tspan fill="#13261E">H</tspan></text></symbol>
+    <symbol id="D1i" viewBox="0 0 100 100"><rect width="100" height="100" fill="#FFFFFF"/>
+      <text x="50" y="69" text-anchor="middle" class="mono" font-size="56"><tspan fill="#1F6F54">J</tspan><tspan fill="#13261E">H</tspan></text></symbol>
+
+    <!-- D2 · Maletín: el ícono es un maletín blanco; J coral fuerte + H esmeralda -->
+    <symbol id="D2" viewBox="0 0 100 100"><rect width="100" height="100" fill="#1F6F54"/>
+      <path d="M38 31v-6a6 6 0 0 1 6-6h12a6 6 0 0 1 6 6v6" fill="none" stroke="#FFFFFF" stroke-width="6"/>
+      <rect x="13" y="30" width="74" height="54" rx="13" fill="#FFFFFF"/>
+      <text x="50" y="72" text-anchor="middle" class="mono" font-size="40"><tspan fill="#A8472E">J</tspan><tspan fill="#1F6F54">H</tspan></text></symbol>
+    <symbol id="D2i" viewBox="0 0 100 100"><rect width="100" height="100" fill="#FFFFFF"/>
+      <path d="M38 31v-6a6 6 0 0 1 6-6h12a6 6 0 0 1 6 6v6" fill="none" stroke="#1F6F54" stroke-width="6"/>
+      <rect x="13" y="30" width="74" height="54" rx="13" fill="#1F6F54"/>
+      <text x="50" y="72" text-anchor="middle" class="mono" font-size="40"><tspan fill="#7FC8A9">J</tspan><tspan fill="#FFFFFF">H</tspan></text></symbol>
+
+    <!-- D3 · Maletín dos tonos sobre bosque: contorno menta, J menta + H blanca -->
+    <symbol id="D3" viewBox="0 0 100 100"><rect width="100" height="100" fill="#13261E"/>
+      <path d="M38 31v-6a6 6 0 0 1 6-6h12a6 6 0 0 1 6 6v6" fill="none" stroke="#7FC8A9" stroke-width="6"/>
+      <rect x="15" y="31" width="70" height="52" rx="12" fill="none" stroke="#7FC8A9" stroke-width="6"/>
+      <text x="50" y="71" text-anchor="middle" class="mono" font-size="36"><tspan fill="#7FC8A9">J</tspan><tspan fill="#FFFFFF">H</tspan></text></symbol>
+    <symbol id="D3i" viewBox="0 0 100 100"><rect width="100" height="100" fill="#FFFFFF"/>
+      <path d="M38 31v-6a6 6 0 0 1 6-6h12a6 6 0 0 1 6 6v6" fill="none" stroke="#1F6F54" stroke-width="6"/>
+      <rect x="15" y="31" width="70" height="52" rx="12" fill="none" stroke="#1F6F54" stroke-width="6"/>
+      <text x="50" y="71" text-anchor="middle" class="mono" font-size="36"><tspan fill="#1F6F54">J</tspan><tspan fill="#13261E">H</tspan></text></symbol>
+
+    <!-- D4 · JH con asa coral: las letras forman el cuerpo del maletín -->
+    <symbol id="D4" viewBox="0 0 100 100"><rect width="100" height="100" fill="#1F6F54"/>
+      <path d="M37 32v-5a6 6 0 0 1 6-6h14a6 6 0 0 1 6 6v5" fill="none" stroke="#E07A5F" stroke-width="6" stroke-linecap="round"/>
+      <text x="50" y="80" text-anchor="middle" class="mono" font-size="52" fill="#FFFFFF">JH</text></symbol>
+    <symbol id="D4i" viewBox="0 0 100 100"><rect width="100" height="100" fill="#FFFFFF"/>
+      <path d="M37 32v-5a6 6 0 0 1 6-6h14a6 6 0 0 1 6 6v5" fill="none" stroke="#A8472E" stroke-width="6" stroke-linecap="round"/>
+      <text x="50" y="80" text-anchor="middle" class="mono" font-size="52" fill="#1F6F54">JH</text></symbol>
   </defs>
 </svg>
 
 <div class="wrap">
-  <h1>JobHunter · Logotipo v4</h1>
-  <p class="lead">Corrección de la v3: la ligadura hacía que la J dejara de leerse (A1 parecía solo una H y A4 se leía "JI"). Acá la <b>J y la H son siempre dos letras claras</b>. C2 y C4 usan la misma tipografía del nombre (Bricolage Grotesque); la versión final se convierte a trazos vectoriales.</p>
+  <h1>JobHunter · Logotipo v5</h1>
+  <p class="lead">Dos correcciones: <b>la J menta ahora resalta</b> (sobre verde bosque tiene contraste 8.1:1; sobre esmeralda era 3.1:1) y <b>el maletín</b> suma el código visual universal de "empleo" sin caer en algo genérico como una lupa.</p>
   <div class="grid">
 
     <div class="card">
-      <div class="head"><b>C1</b><span>Monograma separado</span></div>
-      <p class="idea">J y H dibujadas por separado. La J lleva una barra arriba para que nunca se confunda con una I. Geométrico y firme.</p>
-      <div class="row"><svg class="icon"><use href="#C1"/></svg>
-        <div class="lock"><div class="lockup"><svg><use href="#C1"/></svg><span class="word">Job<i>Hunter</i></span></div>
-        <div class="lockup dark"><svg><use href="#C1"/></svg><span class="word">Job<i>Hunter</i></span></div></div></div>
-      <div class="phone"><div class="app"><svg width="60" height="60"><use href="#C1"/></svg>JobHunter</div><div class="app small"><svg width="32" height="32"><use href="#C1"/></svg>32</div><div class="app small"><svg width="16" height="16"><use href="#C1"/></svg>16</div>
-        <div class="inv"><svg width="44" height="44"><use href="#C1i"/></svg>Invertida</div></div>
+      <div class="head"><b>D1</b><span>Dos tonos sobre bosque</span></div>
+      <p class="idea">Tu C4 corregida: mismo concepto (J menta + H blanca), sobre verde bosque. La J ya no se pierde, ni siquiera a 16 px.</p>
+      <div class="row"><svg class="icon"><use href="#D1"/></svg>
+        <div class="lock"><div class="lockup"><svg><use href="#D1"/></svg><span class="word">Job<i>Hunter</i></span></div>
+        <div class="lockup dark"><svg><use href="#D1"/></svg><span class="word">Job<i>Hunter</i></span></div></div></div>
+      <div class="phone"><div class="app"><svg width="60" height="60"><use href="#D1"/></svg>JobHunter</div><div class="app small"><svg width="32" height="32"><use href="#D1"/></svg>32</div><div class="app small"><svg width="16" height="16"><use href="#D1"/></svg>16</div>
+        <div class="inv"><svg width="44" height="44"><use href="#D1i"/></svg>Invertida</div></div>
     </div>
 
     <div class="card">
-      <div class="head"><b>C2</b><span>Tipográfico</span></div>
-      <p class="idea">"JH" con la tipografía del nombre. Lo más legible y coherente: el ícono y el logotipo hablan el mismo idioma visual.</p>
-      <div class="row"><svg class="icon"><use href="#C2"/></svg>
-        <div class="lock"><div class="lockup"><svg><use href="#C2"/></svg><span class="word">Job<i>Hunter</i></span></div>
-        <div class="lockup dark"><svg><use href="#C2"/></svg><span class="word">Job<i>Hunter</i></span></div></div></div>
-      <div class="phone"><div class="app"><svg width="60" height="60"><use href="#C2"/></svg>JobHunter</div><div class="app small"><svg width="32" height="32"><use href="#C2"/></svg>32</div><div class="app small"><svg width="16" height="16"><use href="#C2"/></svg>16</div>
-        <div class="inv"><svg width="44" height="44"><use href="#C2i"/></svg>Invertida</div></div>
+      <div class="head"><b>D2</b><span>Maletín</span></div>
+      <p class="idea">El ícono entero es un maletín: se entiende al instante que es trabajo. Adentro, J coral y H esmeralda (dos tonos, ambos con buen contraste sobre blanco).</p>
+      <div class="row"><svg class="icon"><use href="#D2"/></svg>
+        <div class="lock"><div class="lockup"><svg><use href="#D2"/></svg><span class="word">Job<i>Hunter</i></span></div>
+        <div class="lockup dark"><svg><use href="#D2"/></svg><span class="word">Job<i>Hunter</i></span></div></div></div>
+      <div class="phone"><div class="app"><svg width="60" height="60"><use href="#D2"/></svg>JobHunter</div><div class="app small"><svg width="32" height="32"><use href="#D2"/></svg>32</div><div class="app small"><svg width="16" height="16"><use href="#D2"/></svg>16</div>
+        <div class="inv"><svg width="44" height="44"><use href="#D2i"/></svg>Invertida</div></div>
     </div>
 
     <div class="card">
-      <div class="head"><b>C3</b><span>Monograma con puente coral</span></div>
-      <p class="idea">Como C1, con el travesaño de la H en coral. Se mantiene el acento cálido, pero ahora las dos letras son inconfundibles.</p>
-      <div class="row"><svg class="icon"><use href="#C3"/></svg>
-        <div class="lock"><div class="lockup"><svg><use href="#C3"/></svg><span class="word">Job<i>Hunter</i></span></div>
-        <div class="lockup dark"><svg><use href="#C3"/></svg><span class="word">Job<i>Hunter</i></span></div></div></div>
-      <div class="phone"><div class="app"><svg width="60" height="60"><use href="#C3"/></svg>JobHunter</div><div class="app small"><svg width="32" height="32"><use href="#C3"/></svg>32</div><div class="app small"><svg width="16" height="16"><use href="#C3"/></svg>16</div>
-        <div class="inv"><svg width="44" height="44"><use href="#C3i"/></svg>Invertida</div></div>
+      <div class="head"><b>D3</b><span>Maletín dos tonos</span></div>
+      <p class="idea">Une las dos ideas: maletín en contorno menta sobre bosque, con la J menta y la H blanca adentro. Más liviano y elegante que D2.</p>
+      <div class="row"><svg class="icon"><use href="#D3"/></svg>
+        <div class="lock"><div class="lockup"><svg><use href="#D3"/></svg><span class="word">Job<i>Hunter</i></span></div>
+        <div class="lockup dark"><svg><use href="#D3"/></svg><span class="word">Job<i>Hunter</i></span></div></div></div>
+      <div class="phone"><div class="app"><svg width="60" height="60"><use href="#D3"/></svg>JobHunter</div><div class="app small"><svg width="32" height="32"><use href="#D3"/></svg>32</div><div class="app small"><svg width="16" height="16"><use href="#D3"/></svg>16</div>
+        <div class="inv"><svg width="44" height="44"><use href="#D3i"/></svg>Invertida</div></div>
     </div>
 
     <div class="card">
-      <div class="head"><b>C4</b><span>Dos tonos</span></div>
-      <p class="idea">J en menta y H en blanco: se leen como dos letras al instante y refleja el nombre (Job + Hunter) igual que el logotipo escrito.</p>
-      <div class="row"><svg class="icon"><use href="#C4"/></svg>
-        <div class="lock"><div class="lockup"><svg><use href="#C4"/></svg><span class="word">Job<i>Hunter</i></span></div>
-        <div class="lockup dark"><svg><use href="#C4"/></svg><span class="word">Job<i>Hunter</i></span></div></div></div>
-      <div class="phone"><div class="app"><svg width="60" height="60"><use href="#C4"/></svg>JobHunter</div><div class="app small"><svg width="32" height="32"><use href="#C4"/></svg>32</div><div class="app small"><svg width="16" height="16"><use href="#C4"/></svg>16</div>
-        <div class="inv"><svg width="44" height="44"><use href="#C4i"/></svg>Invertida</div></div>
+      <div class="head"><b>D4</b><span>JH con asa</span></div>
+      <p class="idea">Tu C2 con un asa coral encima: las letras mismas forman el maletín. El guiño de "empleo" es sutil y la JH se mantiene protagonista.</p>
+      <div class="row"><svg class="icon"><use href="#D4"/></svg>
+        <div class="lock"><div class="lockup"><svg><use href="#D4"/></svg><span class="word">Job<i>Hunter</i></span></div>
+        <div class="lockup dark"><svg><use href="#D4"/></svg><span class="word">Job<i>Hunter</i></span></div></div></div>
+      <div class="phone"><div class="app"><svg width="60" height="60"><use href="#D4"/></svg>JobHunter</div><div class="app small"><svg width="32" height="32"><use href="#D4"/></svg>32</div><div class="app small"><svg width="16" height="16"><use href="#D4"/></svg>16</div>
+        <div class="inv"><svg width="44" height="44"><use href="#D4i"/></svg>Invertida</div></div>
     </div>
 
   </div>
