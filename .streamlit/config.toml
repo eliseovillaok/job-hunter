@@ -8,3 +8,5 @@ font            = "sans serif"
 
 [server]
 headless = true
+# CVs: tope de 10 MB (BRAND/CLAUDE: validar tamaño de archivos subidos)
+maxUploadSize = 10

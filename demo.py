@@ -55,6 +55,6 @@ def load() -> tuple[CandidateProfile, list[ScoredJob]]:
         factors = _factors(*f, ej=j["description"][:90], ecv="Asistente contable junior: liquidación de IVA")
         scored.append(ScoredJob(job=job, score=matching.compute_score(factors), match_reasons=reasons,
                                 missing_skills=missing, cover_letter=None,
-                                summary=f"Encaje estimado para {j['title']}.", evaluated=True, factors=factors))
+                                summary=f"Afinidad estimada con {j['title']}.", evaluated=True, factors=factors))
     scored.sort(key=lambda s: -s.score)
     return profile, scored

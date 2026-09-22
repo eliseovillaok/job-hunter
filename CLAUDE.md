@@ -42,7 +42,7 @@ Si una ambigüedad afecta el comportamiento del producto: presentar las alternat
 2. **Planificar**: qué encontraste, qué cambia, qué archivos toca, decisiones y riesgos.
 3. **Confirmar**, si cae en la lista de arriba.
 4. **Implementar**: el cambio más chico y limpio posible.
-5. **Validar**: tests, y correr `streamlit run app.py` para probar el flujo tocado (wizard → búsqueda → resultados) en ES/EN y en light/dark.
+5. **Validar**: tests, y correr `streamlit run app.py` (con `$env:JOB_HUNTER_DEMO="1"` para ver resultados sin gastar cuota) para probar el flujo tocado (wizard → búsqueda → resultados) en ES/EN y en light/dark.
 6. **Informar**: qué cambió y por qué, qué archivos, qué se validó, qué queda pendiente y qué necesita mi aprobación.
 
 ## IA, CV y matching
@@ -68,7 +68,11 @@ Los portales son dependencias poco confiables: HTML y APIs cambian, hay rate lim
 ## Mapa del código
 | Archivo | Rol |
 |---|---|
-| `app.py` (~2.9k líneas) | UI Streamlit: CSS design system, i18n ES/EN (`TRANSLATIONS` + `_t()`), wizard (CV → perfil editable → filtros), orquestación de la búsqueda, resultados con desglose |
+| `app.py` (~1.1k líneas) | UI Streamlit: navegación, landing, asistente de 4 pasos (CV → acceso a la IA → perfil → búsqueda), orquestación de la búsqueda, resultados con filtros y desglose |
+| `theme.py` | CSS de marca generado desde `docs/brand/tokens.json` (claro/oscuro) y SVG del logo |
+| `ui.py` | Fragmentos HTML puros de la UI (hero, tarjeta de oferta, anillo de afinidad, stepper); todo texto externo con `html.escape` |
+| `i18n.py` | `TRANSLATIONS` ES/EN (se usa vía `_t()` en `app.py`) |
+| `demo.py` | Modo demo (`JOB_HUNTER_DEMO=1`): resultados ficticios sin IA ni red, para probar la UI |
 | `scrapers.py` | Scrapers HTTP/RSS sin auth. Firma: `scrape_x(keywords, max_results=0) -> list[JobPosting]` |
 | `browser_scrapers.py` | Portales con login vía Playwright (LinkedIn, Bumeran, Computrabajo, Indeed), registrados en `PORTALS` |
 | `browser_login.py` | Guarda una sesión persistente: `python browser_login.py linkedin` |
@@ -80,6 +84,7 @@ Los portales son dependencias poco confiables: HTML y APIs cambian, hay rate lim
 | `tests/` | pytest sin red ni IA (corre en GitHub Actions) |
 | `notifier.py` | Digest HTML por SMTP (Gmail) |
 | `main.py` | CLI headless (`--cv`, `--top-n`, `--dry-run`, `--no-email`) |
+| `scripts/build_logo.py` | Genera los SVG/PNG del logo en `docs/brand/logo/` |
 | `config.py` | Globals de configuración (el wizard los sobreescribe; ver deuda) |
 
 No hay base de datos ni API propia todavía. Cuando existan: migraciones sin cambios destructivos y contratos estables (cualquier cambio de contrato se explica y se confirma).
@@ -101,13 +106,13 @@ Tests: `pytest -q` (sin red ni IA; el LLM se reemplaza con un `generate` falso).
 Eval con Gemini real (a mano, consume cuota): `python -m eval.run` — lee `GEMINI_API_KEY` de `.env`. Correrlo antes y después de tocar prompts, pesos o normalización.
 
 ## Convenciones
-- Todo texto visible va por `_t()`, con clave en ES **y** EN.
+- Todo texto visible va por `_t()`, con clave en ES **y** EN en `i18n.py`. Estilos solo con variables de `theme.py`; HTML nuevo en `ui.py`.
 - **Nuevo portal** = función en `scrapers.py` (o entrada en `PORTALS`) + `use_<portal>` en `_defaults` + rama en el pipeline + checkbox en el wizard + claves i18n + README.
 - Modelo Gemini por defecto: `_defaults["selected_model"]` en `app.py`. Mantener `ai_engine.DEFAULT_MODEL` alineado y no usar modelos deprecados.
 - Los comentarios explican el *por qué*, no el *qué*. Commits enfocados, sin tocar archivos ajenos a la tarea.
 
 ## Deuda conocida (no empeorarla; atacarla solo con OK)
-- `app.py` monolítico (CSS + i18n + wizard + pipeline).
+- `app.py` todavía mezcla asistente, orquestación de la búsqueda y resultados.
 - Scraping duplicado entre `app.py` (cadena de `elif` por portal) y `scrapers.get_all_jobs()`. El matching ya es único (`matching.match_jobs`).
 - Sin caché de evaluaciones: repetir una búsqueda vuelve a evaluar las mismas ofertas.
 - Scraper de GetOnBoard: una request por oferta, secuencial (~90 s para 8 ofertas). Migrar a su API pública.
