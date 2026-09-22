@@ -15,8 +15,28 @@ def test_weights_sum_to_one():
 def test_compute_score_is_weighted_sum():
     factors = {"skills": FactorScore(100), "seniority": FactorScore(0), "role": FactorScore(50),
                "language": FactorScore(100), "location": FactorScore(100)}
-    # 40 + 0 + 10 + 10 + 5
+    # 40 + 0 + 10 + 10 + 5 (rol/skills ≥ 50: la compuerta no reduce nada)
     assert matching.compute_score(factors) == 65
+
+
+def _factors(skills, seniority, role, language, location):
+    return {"skills": FactorScore(skills), "seniority": FactorScore(seniority), "role": FactorScore(role),
+            "language": FactorScore(language), "location": FactorScore(location)}
+
+
+def test_gate_zeroes_unrelated_jobs():
+    # Otro campo: rol y skills en 0 → los factores secundarios no suman.
+    assert matching.compute_score(_factors(0, 100, 0, 100, 100)) == 0
+
+
+def test_gate_scales_partial_fit():
+    # base = 8 + 25 + 2 + 10 + 5 = 50; encaje max(20, 10) = 20 → ×0.4 → 20
+    assert matching.compute_score(_factors(20, 100, 10, 100, 100)) == 20
+
+
+def test_gate_does_not_affect_same_field():
+    f = _factors(60, 60, 80, 100, 100)
+    assert matching.compute_score(f) == round(sum(matching.WEIGHTS[k] * f[k].score for k in f))
 
 
 # ─── Filtros duros ───────────────────────────────────────────────────────────

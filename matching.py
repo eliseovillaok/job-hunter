@@ -210,8 +210,16 @@ def clean_list(items) -> list[str]:
     return out
 
 
+# Compuerta por rol: seniority, idioma y ubicación solo suman en proporción a cuánto
+# encaja el trabajo en sí (rol o skills). Sin esto, una jefatura de otro campo en la
+# misma ciudad sacaba ~50–60 solo por los factores secundarios. Ver docs/scoring.md.
+GATE_THRESHOLD = 50
+
+
 def compute_score(factors: dict[str, FactorScore]) -> int:
-    return round(sum(WEIGHTS[f] * factors[f].score for f in FACTORS))
+    base = sum(WEIGHTS[f] * factors[f].score for f in FACTORS)
+    fit = max(factors["role"].score, factors["skills"].score)
+    return round(base * min(1.0, fit / GATE_THRESHOLD))
 
 
 def parse_result(item: dict) -> Optional[tuple[dict[str, FactorScore], dict]]:

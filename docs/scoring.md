@@ -27,7 +27,15 @@ el idioma, la oferta pasa. La ubicación solo filtra ofertas presenciales o híb
 | `language` | 10% | El CV cubre el idioma requerido | Desconocido o parcial | Falta un idioma requerido |
 | `location` | 5% | Compatible o remoto sin restricciones | Información insuficiente | Claramente incompatible |
 
-`score = 0.40·skills + 0.25·seniority + 0.20·role + 0.10·language + 0.05·location` (redondeado).
+```
+base  = 0.40·skills + 0.25·seniority + 0.20·role + 0.10·language + 0.05·location
+score = base × min(1, max(role, skills) / 50)        (redondeado)
+```
+
+**Compuerta por rol.** Seniority, idioma y ubicación describen *cómo* encaja una oferta, no *si* es del campo
+del candidato. Por eso solo suman en proporción al encaje del trabajo en sí: si `role` o `skills` llega a 50,
+la compuerta no reduce nada; si ambos están cerca de 0 (otro campo), el score tiende a 0. Sin la compuerta, en
+el eval una jefatura de enfermería sacaba 60 para un supervisor de depósito solo por nivel, idioma y ciudad.
 
 Los pesos viven en `matching.WEIGHTS`. **Cambiarlos requiere aprobación y actualizar este documento.**
 

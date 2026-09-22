@@ -8,8 +8,8 @@ Uso (desde la raíz del repo, con GEMINI_API_KEY en .env o en el entorno):
     python -m eval.run --repeat-check          # re-evalúa un perfil para medir estabilidad
 
 Relevancia esperada (reglas, no etiquetas a mano):
-    2 = misma profesión y a ≤1 nivel de seniority
-    1 = misma profesión a ≥2 niveles, o profesión vecina a ≤1 nivel
+    2 = misma profesión y mismo nivel de seniority
+    1 = misma profesión a otro nivel, o profesión vecina a ≤1 nivel
     0 = el resto
 """
 
@@ -58,7 +58,7 @@ def load_env() -> None:
 def relevance(profile: dict, job: dict, levels: dict, adjacent: set) -> int:
     dist = abs(levels[profile["level"]] - levels[job["level"]])
     if profile["profession"] == job["profession"]:
-        return 2 if dist <= 1 else 1
+        return 2 if dist == 0 else 1
     if frozenset((profile["profession"], job["profession"])) in adjacent and dist <= 1:
         return 1
     return 0
