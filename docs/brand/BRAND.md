@@ -34,14 +34,20 @@ Referencias vivas:
 
 ## 3. Logotipo
 
-Estado: **pendiente de elección** entre las opciones de [logo-options.html](logo-options.html).
-Mientras tanto se usa la opción **D** (bloque esmeralda + punto coral), la de la maqueta.
+**Oficial: monograma JH de dos tonos** (versión D1). Lámina con todos los usos: [logo-options.html](logo-options.html).
+Tipografía del monograma: Bricolage Grotesque 800 (en los archivos finales, convertida a trazos vectoriales).
 
-Reglas (aplican a la opción elegida):
+| Pieza | Cómo es | Dónde |
+|---|---|---|
+| **Ícono de app / favicon** | Recuadro verde bosque `#13261E`, **J menta `#7FC8A9` + H blanca**. Sin borde ni sombra: el sistema recorta la forma | Tiendas, pantalla de inicio, pestaña del navegador |
+| **Logo sobre fondo claro** | Ícono con recuadro + "JobHunter", o JH sin recuadro (J esmeralda `#1F6F54` + H bosque `#13261E`) | Encabezado de la app, documentos |
+| **Logo sobre fondo oscuro o de color** | **Siempre JH sin recuadro**: J menta + H blanca (sobre esmeralda: J menta clara `#DDF0E6` + H blanca) | Banners oscuros, modo oscuro, piezas de marketing |
+
+Reglas:
+- **Nunca** poner el recuadro verde bosque sobre fondos casi negros: ahí se usa la JH sin recuadro.
 - Área de respeto: la mitad del alto del isotipo alrededor de todo el logo.
-- Tamaño mínimo: isotipo 16 px (favicon); isotipo + nombre, 100 px de ancho.
-- Versiones: claro (sobre `bg`/`surface`), oscuro (sobre `dark.bg`), monocromo (un solo color de texto).
-- No: deformar, rotar, agregar sombras o degradados, cambiar colores fuera de los tokens, poner el logo sobre fotos sin fondo.
+- Tamaño mínimo: ícono 16 px (favicon); ícono + nombre, 100 px de ancho.
+- No: bordes, sombras, degradados, rotar, deformar, cambiar colores fuera de los tokens, poner el logo sobre fotos sin fondo.
 
 ## 4. Color
 

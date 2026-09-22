@@ -3,96 +3,81 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>JobHunter · Logotipo v6 (sobre D1)</title>
+<title>JobHunter · Logotipo oficial (D1)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{--bg:#F4F8F5;--surface:#FFFFFF;--border:#DCE8E1;--text:#13261E;--text-2:#3E5A4E;--muted:#58736A;--primary:#1F6F54}
   *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}
   .wrap{max-width:1200px;margin:0 auto;padding:40px 28px 60px}
   h1{font:800 34px 'Bricolage Grotesque',sans-serif;letter-spacing:-.02em;margin:0 0 6px}
-  .lead{color:var(--text-2);margin:0 0 28px;font-size:15px;max-width:880px;line-height:1.5}
-  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:22px}
-  .card{background:var(--surface);border:1px solid var(--border);border-radius:24px;overflow:hidden}
-  .head{padding:20px 24px 4px;display:flex;align-items:baseline;gap:10px}
-  .head b{font:800 20px 'Bricolage Grotesque',sans-serif;color:var(--primary)} .head span{font-weight:700;font-size:16px}
-  .idea{padding:0 24px;color:var(--text-2);font-size:13.5px;line-height:1.5;min-height:40px}
-  .row{display:grid;grid-template-columns:auto 1fr;gap:26px;align-items:center;padding:20px 24px}
-  .icon{width:120px;height:120px;border-radius:27px;box-shadow:0 10px 26px rgba(19,38,30,.18)}
-  .lockup{display:flex;align-items:center;gap:12px}
-  .lockup svg{width:44px;height:44px;border-radius:11px}
-  .word{font:800 30px 'Bricolage Grotesque',sans-serif;letter-spacing:-.025em;color:var(--text)} .word i{font-style:normal;color:var(--primary)}
-  .banner{background:#0F1A16;padding:16px 24px;display:flex;align-items:center;gap:18px}
-  .banner .word{color:#E8F2EC;font-size:24px} .banner .word i{color:#5FCB9F}
-  .banner > svg{width:40px;height:40px;border-radius:10px}
-  .banner .sizes{margin-left:auto;display:flex;gap:12px;align-items:flex-end;color:#A9C2B6;font-size:11px}
-  .banner .sizes svg{border-radius:6px}
-  .phone{display:flex;gap:18px;align-items:flex-end;padding:16px 24px 20px;background:linear-gradient(135deg,#2B3A33,#4B5D54)}
-  .app{display:flex;flex-direction:column;align-items:center;gap:6px;color:#fff;font-size:11px}
-  .app svg{border-radius:14px} .small svg{border-radius:7px}
+  h2{font:800 20px 'Bricolage Grotesque',sans-serif;margin:34px 0 12px}
+  .lead{color:var(--text-2);margin:0 0 10px;font-size:15px;max-width:880px;line-height:1.5}
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}
+  .panel{border-radius:22px;padding:30px;display:flex;align-items:center;gap:16px;min-height:150px}
+  .light{background:var(--surface);border:1px solid var(--border)} .cream{background:var(--bg);border:1px solid var(--border)}
+  .darkbg{background:#0F1A16} .emerald{background:#1F6F54}
+  .cap{font-size:12.5px;color:var(--muted);margin-top:8px}
+  .word{font:800 34px 'Bricolage Grotesque',sans-serif;letter-spacing:-.025em;color:var(--text)} .word i{font-style:normal;color:var(--primary)}
+  .darkbg .word{color:#E8F2EC} .darkbg .word i{color:#5FCB9F}
+  .emerald .word{color:#FFFFFF} .emerald .word i{color:#DDF0E6}
+  .glyph{font:800 44px 'Bricolage Grotesque',sans-serif;letter-spacing:-2px;line-height:1}
+  .phone{display:flex;gap:26px;align-items:flex-end;padding:26px 30px;border-radius:22px;background:linear-gradient(135deg,#2B3A33,#4B5D54)}
+  .phone.lightw{background:linear-gradient(135deg,#E9EEF2,#CBD6DF)}
+  .app{display:flex;flex-direction:column;align-items:center;gap:7px;color:#fff;font-size:11.5px}
+  .lightw .app{color:#1A1A1A}
+  .app svg{border-radius:14px}
+  .rules{background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:22px 26px;font-size:14px;line-height:1.7;color:var(--text-2)}
+  .rules b{color:var(--text)}
   .mono{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;letter-spacing:-2px}
-  .tag{font-size:11px;color:#A9C2B6;text-transform:uppercase;letter-spacing:.08em}
   @media(max-width:900px){.grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute">
   <defs>
-    <!-- Base común: fondo verde bosque + borde menta oscuro (4.5:1 contra el banner oscuro) -->
-    <g id="base"><rect width="100" height="100" fill="#13261E"/><rect x="2" y="2" width="96" height="96" rx="22" fill="none" stroke="#3E8E6E" stroke-width="4"/></g>
-
-    <!-- E0 · D1 con borde -->
-    <symbol id="E0" viewBox="0 0 100 100"><use href="#base"/>
+    <!-- Ícono de app: sin borde; el sistema operativo recorta la forma -->
+    <symbol id="icon" viewBox="0 0 100 100"><rect width="100" height="100" fill="#13261E"/>
       <text x="50" y="69" text-anchor="middle" class="mono" font-size="56"><tspan fill="#7FC8A9">J</tspan><tspan fill="#FFFFFF">H</tspan></text></symbol>
-
-    <!-- E1 · Flecha de crecimiento (coral, sube hacia la derecha) -->
-    <symbol id="E1" viewBox="0 0 100 100"><use href="#base"/>
-      <text x="47" y="73" text-anchor="middle" class="mono" font-size="54"><tspan fill="#7FC8A9">J</tspan><tspan fill="#FFFFFF">H</tspan></text>
-      <path d="M70 29L85 14M74 14H85V25" fill="none" stroke="#E07A5F" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
-
-    <!-- E2 · Asa de maletín (coral) sobre las letras -->
-    <symbol id="E2" viewBox="0 0 100 100"><use href="#base"/>
-      <path d="M38 31v-5a6 6 0 0 1 6-6h12a6 6 0 0 1 6 6v5" fill="none" stroke="#E07A5F" stroke-width="5.5" stroke-linecap="round"/>
-      <text x="50" y="79" text-anchor="middle" class="mono" font-size="50"><tspan fill="#7FC8A9">J</tspan><tspan fill="#FFFFFF">H</tspan></text></symbol>
-
-    <!-- E3 · Escalera de carrera: línea coral que sube en escalones bajo las letras -->
-    <symbol id="E3" viewBox="0 0 100 100"><use href="#base"/>
-      <text x="50" y="62" text-anchor="middle" class="mono" font-size="50"><tspan fill="#7FC8A9">J</tspan><tspan fill="#FFFFFF">H</tspan></text>
-      <path d="M22 84H40V78H58V72H78" fill="none" stroke="#E07A5F" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   </defs>
 </svg>
 
 <div class="wrap">
-  <h1>JobHunter · Logotipo v6</h1>
-  <p class="lead">Sobre D1. <b>Recuadro que se perdía en fondos oscuros:</b> se suma un borde menta oscuro (#3E8E6E, contraste 4.5:1 contra el banner #0F1A16). <b>Detalle de empleo/crecimiento:</b> tres variantes en coral, el acento cálido de la marca. Cada una se muestra en claro, sobre el banner oscuro y en la pantalla del celular.</p>
+  <h1>JobHunter · Logotipo oficial</h1>
+  <p class="lead">Base: <b>D1</b> (J menta + H blanca sobre verde bosque). Sin borde: como todas las apps, el ícono no lleva reborde. En fondos oscuros de la interfaz el logo va <b>sin recuadro</b>, así nunca "se pierde".</p>
+
+  <h2>1 · Ícono de app</h2>
   <div class="grid">
-    <div class="card">
-      <div class="head"><b>E0</b><span>D1 con borde</span></div>
-      <p class="idea">La D1 que te gustó, sin agregados: solo el borde para que el recuadro se vea en fondos oscuros.</p>
-      <div class="row"><svg class="icon"><use href="#E0"/></svg><div class="lockup"><svg><use href="#E0"/></svg><span class="word">Job<i>Hunter</i></span></div></div>
-      <div class="banner"><svg><use href="#E0"/></svg><span class="word">Job<i>Hunter</i></span><div class="sizes"><span class="tag">banner</span><svg width="32" height="32"><use href="#E0"/></svg><svg width="16" height="16"><use href="#E0"/></svg></div></div>
-      <div class="phone"><div class="app"><svg width="60" height="60"><use href="#E0"/></svg>JobHunter</div></div>
+    <div class="phone"><div class="app"><svg width="64" height="64"><use href="#icon"/></svg>JobHunter</div><div class="app"><svg width="40" height="40" style="border-radius:9px"><use href="#icon"/></svg>40</div><div class="app"><svg width="16" height="16" style="border-radius:4px"><use href="#icon"/></svg>16</div></div>
+    <div class="phone lightw"><div class="app"><svg width="64" height="64"><use href="#icon"/></svg>JobHunter</div><div class="app"><svg width="40" height="40" style="border-radius:9px"><use href="#icon"/></svg>40</div><div class="app"><svg width="16" height="16" style="border-radius:4px"><use href="#icon"/></svg>16</div></div>
+  </div>
+  <p class="cap">Fondo de pantalla oscuro y claro: el ícono se distingue igual porque el sistema le da su forma y separación.</p>
+
+  <h2>2 · Logo en la interfaz</h2>
+  <div class="grid">
+    <div>
+      <div class="panel light"><svg width="52" height="52" style="border-radius:13px"><use href="#icon"/></svg><span class="word">Job<i>Hunter</i></span></div>
+      <p class="cap">Fondo claro · <b>principal</b>: ícono con recuadro + nombre.</p>
     </div>
-    <div class="card">
-      <div class="head"><b>E1</b><span>Flecha de crecimiento</span></div>
-      <p class="idea">Una flecha coral chica que sube: progreso profesional. Lectura inmediata, sin tapar la JH.</p>
-      <div class="row"><svg class="icon"><use href="#E1"/></svg><div class="lockup"><svg><use href="#E1"/></svg><span class="word">Job<i>Hunter</i></span></div></div>
-      <div class="banner"><svg><use href="#E1"/></svg><span class="word">Job<i>Hunter</i></span><div class="sizes"><span class="tag">banner</span><svg width="32" height="32"><use href="#E1"/></svg><svg width="16" height="16"><use href="#E1"/></svg></div></div>
-      <div class="phone"><div class="app"><svg width="60" height="60"><use href="#E1"/></svg>JobHunter</div></div>
+    <div>
+      <div class="panel darkbg"><span class="glyph"><span style="color:#7FC8A9">J</span><span style="color:#FFFFFF">H</span></span><span class="word">Job<i>Hunter</i></span></div>
+      <p class="cap">Fondo oscuro: <b>sin recuadro</b>, la JH directa sobre el fondo (menta 9.1:1, blanco 17:1).</p>
     </div>
-    <div class="card">
-      <div class="head"><b>E2</b><span>Asa de maletín</span></div>
-      <p class="idea">Un asa coral sobre las letras: la JH se vuelve un maletín. Dice "empleo" al instante.</p>
-      <div class="row"><svg class="icon"><use href="#E2"/></svg><div class="lockup"><svg><use href="#E2"/></svg><span class="word">Job<i>Hunter</i></span></div></div>
-      <div class="banner"><svg><use href="#E2"/></svg><span class="word">Job<i>Hunter</i></span><div class="sizes"><span class="tag">banner</span><svg width="32" height="32"><use href="#E2"/></svg><svg width="16" height="16"><use href="#E2"/></svg></div></div>
-      <div class="phone"><div class="app"><svg width="60" height="60"><use href="#E2"/></svg>JobHunter</div></div>
+    <div>
+      <div class="panel cream"><span class="glyph"><span style="color:#1F6F54">J</span><span style="color:#13261E">H</span></span><span class="word">Job<i>Hunter</i></span></div>
+      <p class="cap">Fondo claro · alternativa sin recuadro (J esmeralda + H bosque), para encabezados livianos.</p>
     </div>
-    <div class="card">
-      <div class="head"><b>E3</b><span>Escalera de carrera</span></div>
-      <p class="idea">Una línea coral que sube en escalones debajo de las letras: cada búsqueda, un paso más en tu carrera.</p>
-      <div class="row"><svg class="icon"><use href="#E3"/></svg><div class="lockup"><svg><use href="#E3"/></svg><span class="word">Job<i>Hunter</i></span></div></div>
-      <div class="banner"><svg><use href="#E3"/></svg><span class="word">Job<i>Hunter</i></span><div class="sizes"><span class="tag">banner</span><svg width="32" height="32"><use href="#E3"/></svg><svg width="16" height="16"><use href="#E3"/></svg></div></div>
-      <div class="phone"><div class="app"><svg width="60" height="60"><use href="#E3"/></svg>JobHunter</div></div>
+    <div>
+      <div class="panel emerald"><span class="glyph"><span style="color:#DDF0E6">J</span><span style="color:#FFFFFF">H</span></span><span class="word">Job<i>Hunter</i></span></div>
+      <p class="cap">Sobre esmeralda (ej. botones grandes o piezas de marketing): JH y nombre en claros.</p>
     </div>
+  </div>
+
+  <h2>3 · Reglas</h2>
+  <div class="rules">
+    <b>Ícono de app y favicon:</b> recuadro verde bosque, sin borde ni sombra. <br>
+    <b>En la interfaz:</b> sobre fondos claros, ícono con recuadro o JH sin recuadro; sobre fondos oscuros o de color, <b>siempre JH sin recuadro</b>. <br>
+    <b>Colores de la JH:</b> J = menta (oscuro) / esmeralda (claro); H = blanca (oscuro) / verde bosque (claro). <br>
+    <b>No:</b> bordes, sombras, degradados, rotar, deformar, ni poner el recuadro verde bosque sobre fondos casi negros.
   </div>
 </div>
 </body>
