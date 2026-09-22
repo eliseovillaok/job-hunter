@@ -99,6 +99,7 @@ Ambas gratuitas (Google Fonts). No mezclar una tercera familia.
 
 - **Radios:** tarjetas 22 px · bloques grandes (hero, franja) 28 px · botones, chips y campos: píldora (999 px) · isotipo 10–16 px.
 - **Espaciado:** base de 4 px; separación entre secciones 48–56 px; padding de tarjetas 22–26 px.
+- **Uso del ancho (evitar el sobrescroll):** no apilar todo en una columna. Campos, datos o textos relacionados van lado a lado (2–3 columnas) cuando el ancho lo permite; en móvil se apilan. Sin compactar: se mantienen los espaciados y tamaños de arriba, lo que se ahorra son renglones, no aire.
 - **Sombras:** mínimas. Tarjetas planas con borde `border`; sombra suave solo en hover.
 - **Botones:** primario (fondo esmeralda, texto blanco) · secundario (borde esmeralda, fondo superficie) · terciario (texto). Uno solo primario por grupo.
 - **Chips:** filtros y atributos (modalidad, nivel). Activo = superficie destacada + texto primario.
@@ -135,7 +136,7 @@ Ambas gratuitas (Google Fonts). No mezclar una tercera familia.
 | "Tiempo restante estimado: 1 min 10 s" | "Faltan unos 70 segundos" |
 | "Los resultados aparecerán en cuanto termine la búsqueda." | "Te los mostramos apenas terminemos." |
 | "Pégala en este campo." | "Pégala aquí. ¡Listo!" |
-| "alrededor de 3 minutos", "3 min aprox." | "unos 3 minutos", "~3 min" |
+| "alrededor de 3 minutos", "~3 min" | "unos 3 minutos" |
 | "Selecciona…" | "Toca…", "Dale a…" |
 
 | Sí | No |
