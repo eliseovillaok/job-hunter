@@ -1,3 +1,4 @@
 # Herramientas de desarrollo — no se instalan en Streamlit Cloud
 pre-commit>=4.0
 pytest>=8.0
+fonttools>=4.50   # generar el logo en trazos vectoriales (docs/brand/logo)

@@ -43,6 +43,20 @@ Tipografía del monograma: Bricolage Grotesque 800 (en los archivos finales, con
 | **Logo sobre fondo claro** | Ícono con recuadro + "JobHunter", o JH sin recuadro (J esmeralda `#1F6F54` + H bosque `#13261E`) | Encabezado de la app, documentos |
 | **Logo sobre fondo oscuro o de color** | **Siempre JH sin recuadro**: J menta + H blanca (sobre esmeralda: J menta clara `#DDF0E6` + H blanca) | Banners oscuros, modo oscuro, piezas de marketing |
 
+**Archivos oficiales** en [logo/](logo/) (trazos vectoriales, no dependen de fuentes). Vista previa: [logo/preview.html](logo/preview.html).
+
+| Archivo | Uso |
+|---|---|
+| `icon.svg` · `icon-1024.png` · `icon-512.png` | Ícono de app cuadrado (las tiendas aplican su máscara) |
+| `icon-rounded.svg` · `favicon-32.png` · `favicon-16.png` · `apple-touch-icon.png` | Web: favicon y acceso directo |
+| `lockup-light.svg` | Ícono + nombre, fondo claro (principal) |
+| `lockup-light-glyph.svg` | JH sin recuadro + nombre, fondo claro liviano |
+| `lockup-dark.svg` | JH sin recuadro + nombre, fondo oscuro |
+| `glyph-on-light.svg` · `glyph-on-dark.svg` · `glyph-on-emerald.svg` · `glyph-mono.svg` | Solo la JH, según el fondo; mono usa `currentColor` |
+
+Se regeneran con `python scripts/build_logo.py <BricolageGrotesque.ttf>` (fuente OFL, no se versiona; ver el script).
+**No editar los SVG a mano**: cambiar el script y regenerar.
+
 Reglas:
 - **Nunca** poner el recuadro verde bosque sobre fondos casi negros: ahí se usa la JH sin recuadro.
 - Área de respeto: la mitad del alto del isotipo alrededor de todo el logo.

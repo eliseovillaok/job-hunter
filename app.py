@@ -34,8 +34,8 @@ IS_CLOUD = _is_cloud()
 
 # ─── Página ───────────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="Job Hunter AI",
-    page_icon="💼",
+    page_title="JobHunter",
+    page_icon=str(Path(__file__).parent / "docs" / "brand" / "logo" / "favicon-32.png"),
     layout="wide",
     initial_sidebar_state="collapsed",
 )
