@@ -23,7 +23,7 @@ import candidate as cand
 import demo
 import matching
 import normalize
-from web import portals, wizard
+from web import portals, settings, wizard
 from web import session as sessions
 from web.common import BRAND, LEVELS, ROOT, prefs, render, translator
 # Reexportados para los tests y plantillas existentes.
@@ -40,7 +40,7 @@ app.include_router(wizard.router)
 
 CSP = ("default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; "
        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; "
-       "img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'")
+       "img-src 'self' data:; connect-src 'self'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'")
 
 
 @app.middleware("http")
@@ -51,7 +51,7 @@ async def session_and_headers(request: Request, call_next):
     request.state.session_expired = is_new and sessions.COOKIE in request.cookies
     response = await call_next(request)
     if is_new and not request.url.path.startswith(("/static", "/brand")):
-        response.set_cookie(sessions.COOKIE, sid, httponly=True, samesite="lax", secure=request.url.scheme == "https",
+        response.set_cookie(sessions.COOKIE, sid, httponly=True, samesite="lax", secure=settings.HTTPS_ONLY_COOKIES or request.url.scheme == "https",
                             max_age=sessions.TTL_SECONDS)
     # Navegación con hx-boost: tras un redirect (POST → 303 → GET) la barra de direcciones debe mostrar
     # la página final. Los cambios de idioma/tema no agregan una entrada al historial.

@@ -94,6 +94,7 @@ document.addEventListener("click", (e) => {
     const show = panel.hidden;
     slide(panel, show);
     toggle.setAttribute("aria-expanded", String(show));
+    rememberOpen(toggle.dataset.toggle, show);
     return;
   }
 
@@ -105,8 +106,10 @@ document.addEventListener("click", (e) => {
     const body = [...details.children].filter((c) => c !== summary);
     if (!details.open) {
       details.open = true;
+      rememberOpen(details.id || summary.textContent.trim(), true);
       body.forEach((b) => { b.hidden = true; slide(b, true); });
     } else {
+      rememberOpen(details.id || summary.textContent.trim(), false);
       body.forEach((b) => slide(b, false));
       setTimeout(() => { details.open = false; body.forEach((b) => { b.hidden = false; }); }, 230);
     }
@@ -359,6 +362,31 @@ addEventListener("scroll", () => {
 }, { passive: true });
 
 // ─── Al cargar y después de cada navegación de HTMX ─────────────────────────
+// Lo que el usuario abrió sigue abierto al cambiar de idioma o volver a la pantalla (por pestaña).
+const OPEN_KEY = "jh-open";
+function openState() {
+  try { return JSON.parse(sessionStorage.getItem(OPEN_KEY)) || {}; } catch { return {}; }
+}
+function rememberOpen(id, open) {
+  if (!id) return;
+  try {
+    const state = openState();
+    if (open) state[id] = 1; else delete state[id];
+    sessionStorage.setItem(OPEN_KEY, JSON.stringify(state));
+  } catch { /* modo privado: no es crítico */ }
+}
+function restoreOpen(root) {
+  const state = openState();
+  Object.keys(state).forEach((id) => {
+    const panel = root.querySelector?.(`#${CSS.escape(id)}`) || document.getElementById(id);
+    if (!panel) return;
+    if (panel.tagName === "DETAILS") { panel.open = true; return; }
+    panel.hidden = false;
+    const toggle = document.querySelector(`[data-toggle="${CSS.escape(id)}"]`);
+    if (toggle) toggle.setAttribute("aria-expanded", "true");
+  });
+}
+
 function init(root = document) {
   // ?lang= y ?theme= ya quedaron guardados en cookies: se quitan de la URL para que recargar no los pise.
   const url = new URL(location.href);
@@ -371,6 +399,7 @@ function init(root = document) {
   if (page?.dataset.lang) document.documentElement.lang = page.dataset.lang;
   const top = document.querySelector("[data-to-top]");
   if (top) { top.hidden = false; top.classList.toggle("show", scrollY > 480); }
+  restoreOpen(root);
   root.querySelectorAll("[data-group]").forEach(syncGroup);
   root.querySelectorAll("[data-enables]").forEach(syncEnables);
   // Entrada desde otra página con #sección: desplazamiento suave hasta ella.

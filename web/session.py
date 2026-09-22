@@ -17,11 +17,11 @@ from typing import Optional
 import ai_engine
 import matching
 from candidate import CandidateProfile
-from web import portals
+from web import portals, settings
 
 COOKIE = "jh_sid"
-TTL_SECONDS = 3 * 60 * 60
-MAX_SESSIONS = 500          # tope de memoria: al pasarlo se descarta la sesión más vieja
+TTL_SECONDS = settings.SESSION_TTL_SECONDS
+MAX_SESSIONS = settings.MAX_SESSIONS
 
 
 @dataclass

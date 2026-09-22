@@ -63,7 +63,7 @@ def test_card_escapes_external_content_and_drops_unsafe_links(client, monkeypatc
 
 def test_security_headers(client):
     r = client.get("/")
-    assert "frame-ancestors 'none'" in r.headers["content-security-policy"]
+    assert "frame-ancestors 'self'" in r.headers["content-security-policy"]
     assert r.headers["x-content-type-options"] == "nosniff"
 
 

@@ -454,6 +454,64 @@ MIT — libre para usar, modificar y distribuir.
 
 ---
 
+## 🖥️ Interfaz web nueva (`web/`) — para desarrolladores
+
+La interfaz se está migrando de Streamlit a **FastAPI + Jinja2 + HTMX**, para tener control total del
+diseño y poder desplegar en cualquier servidor de Python. El núcleo (CV, portales, matching, IA) es el
+mismo para ambas. Mientras dure la migración, la app de Streamlit sigue disponible.
+
+| Interfaz | Comando | Estado |
+|---|---|---|
+| Streamlit (actual) | `streamlit run app.py` | En producción |
+| Web nueva (`web/`) | `uvicorn web.main:app --port 8600` | Landing, resultados y asistente listos |
+
+```powershell
+# Desarrollo, con recarga automática y datos ficticios (sin gastar cuota de Gemini)
+$env:JOB_HUNTER_DEMO="1"; python -m uvicorn web.main:app --reload --port 8600
+```
+
+**Estructura**
+
+| Archivo | Rol |
+|---|---|
+| `web/main.py` | Rutas de landing y resultados, middleware de sesión y cabeceras de seguridad |
+| `web/wizard.py` | Asistente de 4 pasos (CV → acceso a la IA → perfil → búsqueda) |
+| `web/session.py` | Estado por usuario en memoria; cookie aleatoria `httponly` |
+| `web/settings.py` | Configuración por variables de entorno (ver tabla abajo) |
+| `web/portals.py` | Portales disponibles, agrupados por región |
+| `web/common.py` | Plantillas, idioma/tema y helpers de marca |
+| `web/templates/` · `web/static/` | HTML, CSS y JavaScript (colores desde `docs/brand/tokens.json`) |
+
+**Configuración (variables de entorno)**
+
+| Variable | Por defecto | Para qué sirve |
+|---|---|---|
+| `JOB_HUNTER_DEMO` | — | `1` = datos ficticios y sin IA |
+| `JH_SESSION_TTL` | `10800` | Segundos de inactividad antes de borrar la sesión (CV y clave) |
+| `JH_MAX_SESSIONS` | `500` | Sesiones simultáneas en memoria |
+| `JH_MAX_CV_MB` | `10` | Tamaño máximo del CV |
+| `JH_HTTPS` | — | `1` detrás de un proxy TLS: cookie de sesión solo por HTTPS |
+| `GEMINI_RPM` | `15` | Llamadas por minuto a Gemini (subir solo con una clave paga) |
+
+**Despliegue**
+
+Sirve cualquier hosting que corra Python (Render, Railway, Fly.io, un VPS). Requisitos:
+
+```bash
+pip install -r requirements.txt
+uvicorn web.main:app --host 0.0.0.0 --port $PORT
+```
+
+- **Un solo proceso (sin `--workers`).** Las sesiones viven en la memoria del proceso: con varios
+  workers, un usuario perdería su sesión al caer en otro. Para escalar a varios habrá que mover las
+  sesiones a un almacén compartido; hoy no hace falta.
+- Detrás de un proxy TLS, definir `JH_HTTPS=1`.
+- Con servidor propio también funcionan los portales con inicio de sesión (Playwright), que en
+  Streamlit Cloud están deshabilitados.
+- No hay base de datos: nada se guarda en disco. Reiniciar el proceso cierra las sesiones abiertas.
+
+---
+
 ## 💬 Soporte
 
 ¿Preguntas? ¿Sugerencias?

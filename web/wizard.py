@@ -20,13 +20,13 @@ import candidate as cand
 import demo
 import normalize
 from candidate import CandidateProfile
-from web import portals
+from web import portals, settings
 from web.common import LEVELS, render, sess, t_for
 from web.session import CVFile, Session
 
 router = APIRouter()
 
-MAX_CV_BYTES = 10 * 1024 * 1024
+MAX_CV_BYTES = settings.MAX_CV_BYTES
 CV_TYPES = {
     ".pdf": ("application/pdf", b"%PDF"),
     ".docx": ("application/vnd.openxmlformats-officedocument.wordprocessingml.document", b"PK\x03\x04"),
@@ -281,7 +281,7 @@ async def upload_cv(request: Request, cv: UploadFile = File(...), origin: str = 
     if ext not in CV_TYPES:
         error = t("wz_err_type")
     elif len(data) > MAX_CV_BYTES:
-        error = t("wz_err_size")
+        error = t("wz_err_size", mb=MAX_CV_BYTES // (1024 * 1024))
     elif not data.strip():
         error = t("wz_err_empty")
     elif not data.startswith(CV_TYPES[ext][1]):
@@ -337,7 +337,8 @@ def check_key(request: Request, key: str = Form(""), model: str = Form(ai_engine
     s = sess(request)
     key = key.strip()
     result = verify_key(key, model if model in ai_engine.AVAILABLE_MODELS else ai_engine.DEFAULT_MODEL) if key else False
-    if result is not False:
+    # Se guarda también cuando Google la rechaza: así cambiar de idioma o recargar no obliga a volver a pegarla.
+    if key:
         s.api_key, s.key_ok = key, result
     return render(request, "_wz_key_status.html", key_state=result, typed=bool(key), s=s,
                   needs_analysis=bool(s.cv) and s.analyzed_cv_id != s.cv.id)

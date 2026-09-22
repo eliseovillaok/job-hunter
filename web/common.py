@@ -14,6 +14,7 @@ from fastapi.templating import Jinja2Templates
 
 from i18n import TRANSLATIONS
 from web import session as sessions
+from web import settings
 
 ROOT = Path(__file__).resolve().parent
 BRAND = ROOT.parent / "docs" / "brand"
@@ -109,7 +110,8 @@ def render(request: Request, name: str, status_code: int = 200, **ctx) -> HTMLRe
     response = templates.TemplateResponse(request, name, {
         "t": translator(lang), "lang": lang, "theme": theme, "css_tokens": css_tokens(),
         "logo_light": logo_svg("lockup-light"), "logo_dark": logo_svg("lockup-dark"),
-        "avatar_color": avatar_color, "affinity": affinity, "safe_url": safe_url, "dom_id": dom_id, **ctx,
+        "avatar_color": avatar_color, "affinity": affinity, "safe_url": safe_url, "dom_id": dom_id,
+        "max_cv_mb": settings.MAX_CV_BYTES // (1024 * 1024), **ctx,
     }, status_code=status_code)
     for key, value in (("lang", request.query_params.get("lang")), ("theme", request.query_params.get("theme"))):
         if value in (LANGS if key == "lang" else THEMES):

@@ -19,9 +19,13 @@
       <label for="k">{{ t('step1_key_label') }} {{ tip(t('wz2_key_help')) }}</label>
       {% if s.api_key %}
       {# Clave ya guardada en la sesión: se muestra como estado, nunca el valor completo. #}
-      <div class="key-saved{{ ' unverified' if s.key_ok is none }}">
-        <span class="check" aria-hidden="true">{{ '✓' if s.key_ok else '!' }}</span>
-        <div class="meta"><b>{{ t('wz2_key_connected') if s.key_ok else t('wz2_key_unverified_short') }}</b><span>{{ masked_key }}</span></div>
+      {% set state = 'ok' if s.key_ok else ('unverified' if s.key_ok is none else 'bad') %}
+      <div class="key-saved {{ state }}">
+        <span class="check" aria-hidden="true">{{ '✓' if state == 'ok' else '!' }}</span>
+        <div class="meta">
+          <b>{{ {'ok': t('wz2_key_connected'), 'unverified': t('wz2_key_unverified_short'), 'bad': t('wz2_key_rejected')}[state] }}</b>
+          <span>{{ masked_key }}</span>
+        </div>
         <button class="link-btn" type="submit" formaction="/asistente/clave/cambiar" formnovalidate>{{ t('wz_change') }}</button>
       </div>
       {% else %}

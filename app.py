@@ -193,7 +193,7 @@ def _render_nav() -> None:
 
 
 _render_nav()
-st.markdown(theme.uploader_css(_t("up_button"), _t("up_hint")), unsafe_allow_html=True)
+st.markdown(theme.uploader_css(_t("up_button"), _t("up_hint", mb=10)), unsafe_allow_html=True)
 
 # El CSS del modo oscuro cuelga de html[data-theme]. El iframe se vuelve a
 # ejecutar solo cuando cambia su contenido, o sea, cuando cambia el tema.
