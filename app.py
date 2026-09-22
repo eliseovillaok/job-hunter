@@ -1191,6 +1191,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "eval_limit_help":     "Se evalúan las más parecidas a tu perfil. Más ofertas = más tiempo y más cuota de Gemini.",
         "wf_preparing":        "Quitando duplicados, aplicando tus filtros y eligiendo las {n} ofertas más parecidas a tu perfil…",
         "wf_evaluating":       "Evaluando con IA: {done}/{total}",
+        "wf_rechecking":       "Revisando en detalle las mejores: {done}/{total}",
         "wf_quota_stop":       "Se agotó la cuota de Gemini: algunas ofertas quedaron sin evaluar.",
         "wf_all_filtered":     "Ninguna oferta pasó tus filtros. Probá ampliar modalidad, idioma o ubicación.",
         "wf_emb_failed":       "No se pudo usar el pre-ranking semántico: se evaluaron las primeras {n} ofertas.",
@@ -1417,6 +1418,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "eval_limit_help":     "The ones most similar to your profile are evaluated. More listings = more time and more Gemini quota.",
         "wf_preparing":        "Removing duplicates, applying your filters and picking the {n} listings most similar to your profile…",
         "wf_evaluating":       "Evaluating with AI: {done}/{total}",
+        "wf_rechecking":       "Reviewing the best ones in detail: {done}/{total}",
         "wf_quota_stop":       "Gemini quota exhausted: some listings were not evaluated.",
         "wf_all_filtered":     "No listing passed your filters. Try widening work mode, language or location.",
         "wf_emb_failed":       "Semantic pre-ranking was unavailable: the first {n} listings were evaluated.",
@@ -2485,7 +2487,7 @@ if st.session_state.run_search:
             elapsed = time.monotonic() - scoring_started
             remaining = (elapsed / done) * (total - done) if done else 0
             eta = _t("wf_eta", time=format_duration(remaining)) if done < total else ""
-            ai_status.info(_t("wf_evaluating", done=done, total=total))
+            ai_status.info(_t("wf_rechecking" if stage == "recheck" else "wf_evaluating", done=done, total=total))
             progress_ai.progress(done / total, text=_t("wf_ai_prog", done=done, total=total, eta=eta))
 
         result = matching.match_jobs(

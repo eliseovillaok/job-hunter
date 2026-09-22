@@ -96,6 +96,7 @@ PROFILE = CandidateProfile(summary="Contador ficticio", target_roles=["Contador"
 
 
 def test_evaluate_maps_results_and_marks_missing_as_unevaluated():
+    # Lote de 3 (camino de lotes): J2 falta y J3 viene incompleta.
     jobs = [make_job(jid=f"id{i}", title=f"Job {i}") for i in range(3)]
 
     def fake(prompt, schema, **kw):
@@ -103,7 +104,7 @@ def test_evaluate_maps_results_and_marks_missing_as_unevaluated():
         bad = _item("J3"); del bad["role"]
         return {"results": [_item("J1", 70), bad]}
 
-    results, stop = matching.evaluate(jobs, PROFILE, api_key="k", model="m", generate=fake)
+    results, stop = matching.evaluate(jobs, PROFILE, api_key="k", model="m", batch_size=3, generate=fake)
     assert stop is None
     assert [(r.job.id, r.evaluated) for r in results] == [("id0", True), ("id1", False), ("id2", False)]
     assert results[0].score == 70
@@ -127,10 +128,95 @@ def test_evaluate_stops_on_terminal_errors_and_keeps_all_jobs(exc, reason):
         calls.append(1)
         raise exc
 
-    results, stop = matching.evaluate(jobs, PROFILE, api_key="k", model="m", batch_size=5, generate=fake)
+    results, stop = matching.evaluate(jobs, PROFILE, api_key="k", model="m", batch_size=5,
+                                      concurrency=1, generate=fake)
     assert stop == reason
     assert len(calls) == 1                      # no sigue llamando
     assert len(results) == 7 and not any(r.evaluated for r in results)
+
+
+def test_evaluate_parallel_keeps_input_order_and_reports_progress():
+    import time as _t
+    jobs = [make_job(jid=f"id{i}", title=f"Job {i}") for i in range(8)]
+
+    def fake(prompt, schema, **kw):
+        # Latencias distintas: terminan fuera de orden, el resultado debe respetar el de entrada.
+        n = int(prompt.split("Title: Job ")[1].split("\n")[0])
+        _t.sleep(0.01 * (8 - n))
+        return {"results": [_item("J1", 50 + 5 * n)]}
+
+    progress = []
+    results, stop = matching.evaluate(jobs, PROFILE, api_key="k", model="m", concurrency=4, generate=fake,
+                                      on_progress=lambda s, d, t: progress.append(d))
+    assert stop is None
+    assert [r.job.id for r in results] == [f"id{i}" for i in range(8)]
+    assert [r.score for r in results] == [50 + 5 * i for i in range(8)]
+    assert progress == list(range(1, 9))
+
+
+def _fake_llm(batch_scores: dict, single_scores: dict, calls: list):
+    """LLM falso: en lote devuelve `batch_scores`, de a una devuelve `single_scores` (por título)."""
+    def fake(prompt, schema, **kw):
+        titles = [line.split("Title: ", 1)[1] for line in prompt.splitlines() if line.startswith("Title: ")]
+        calls.append(len(titles))
+        table = single_scores if len(titles) == 1 else batch_scores
+        return {"results": [_item(f"J{i + 1}", table[t]) for i, t in enumerate(titles)]}
+    return fake
+
+
+def test_hybrid_rechecks_top_and_fixes_batch_contamination():
+    titles = ["A", "B", "Trampa", "C", "D", "E", "F"]
+    jobs = [make_job(jid=t, title=t) for t in titles]
+    # En lote, "Trampa" sale alta (contaminada); de a una, su valor real es 0.
+    batch = {"A": 90, "B": 80, "Trampa": 85, "C": 60, "D": 55, "E": 50, "F": 50}
+    single = {**batch, "Trampa": 0, "A": 95}
+    calls = []
+    results, stop = matching.evaluate_hybrid(jobs, PROFILE, api_key="k", model="m", screen_batch=5,
+                                             recheck_top=3, concurrency=1, generate=_fake_llm(batch, single, calls))
+    assert stop is None
+    assert calls == [5, 2, 1, 1, 1]             # 2 lotes de screening + 3 re-chequeos individuales
+    assert [r.job.id for r in results][:2] == ["A", "B"]
+    assert next(r for r in results if r.job.id == "Trampa").score == 0
+    assert next(r for r in results if r.job.id == "A").score == 95
+
+
+def test_hybrid_keeps_screening_result_if_recheck_fails():
+    jobs = [make_job(jid=t, title=t) for t in ["A", "B"]]
+    state = {"n": 0}
+
+    def fake(prompt, schema, **kw):
+        state["n"] += 1
+        if state["n"] == 1:  # screening OK
+            return {"results": [_item("J1", 70), _item("J2", 60)]}
+        return {"results": []}  # re-chequeo sin respuesta válida
+
+    results, _ = matching.evaluate_hybrid(jobs, PROFILE, api_key="k", model="m", screen_batch=5,
+                                          recheck_top=2, concurrency=1, generate=fake)
+    assert [(r.job.id, r.score, r.evaluated) for r in results] == [("A", 70, True), ("B", 60, True)]
+
+
+def test_hybrid_skips_recheck_after_terminal_error():
+    jobs = [make_job(jid=str(i), title=str(i)) for i in range(3)]
+    calls = []
+
+    def fake(*a, **k):
+        calls.append(1)
+        raise QuotaExceeded("quota")
+
+    results, stop = matching.evaluate_hybrid(jobs, PROFILE, api_key="k", model="m", concurrency=1, generate=fake)
+    assert stop == "quota" and len(calls) == 1 and not any(r.evaluated for r in results)
+
+
+def test_rate_limiter_spaces_calls_per_key():
+    import time as _t
+    from ai_engine import _RateLimiter
+    lim = _RateLimiter()
+    start = _t.monotonic()
+    for _ in range(3):
+        lim.wait("key-a", rpm=3000)   # intervalo de 20 ms
+    lim.wait("key-b", rpm=3000)       # otra key: no espera por la primera
+    elapsed = _t.monotonic() - start
+    assert 0.035 <= elapsed < 0.5
 
 
 def test_batch_prompt_uses_short_keys_and_marks_jobs_as_data():

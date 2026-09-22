@@ -95,8 +95,13 @@ def evaluate_profile(p: dict, jobs: list[JobPosting], args, api_key: str, genera
         candidates, failed = matching.pre_rank(jobs, profile, api_key=api_key, top_n=args.top_n)
         if failed:
             print("  ! embeddings no disponibles: sin pre-ranking")
-    scored, stop = matching.evaluate(candidates, profile, api_key=api_key, model=args.model,
-                                     lang=args.lang, generate=generate)
+    if args.mode == "hybrid":
+        scored, stop = matching.evaluate_hybrid(candidates, profile, api_key=api_key, model=args.model,
+                                                lang=args.lang, generate=generate)
+    else:
+        scored, stop = matching.evaluate(candidates, profile, api_key=api_key, model=args.model, lang=args.lang,
+                                         batch_size=1 if args.mode == "single" else matching.SCREEN_BATCH,
+                                         generate=generate)
     return scored, stop, candidates
 
 
@@ -109,6 +114,8 @@ def main() -> int:
     ap.add_argument("--top-n", type=int, default=12)
     ap.add_argument("--delay", type=float, default=2.0, help="Segundos entre llamadas (rate limit)")
     ap.add_argument("--repeat-check", action="store_true", help="Re-evalúa el primer perfil y mide la variación")
+    ap.add_argument("--mode", choices=["hybrid", "single", "batch"], default="hybrid",
+                    help="hybrid (producción), single (todo de a una) o batch (todo en lotes)")
     args = ap.parse_args()
 
     load_env()
@@ -188,7 +195,7 @@ def write_report(rows, details, repeat, args, elapsed: float) -> Path:
     lines = [
         f"# Eval del matching — {datetime.now():%Y-%m-%d %H:%M}",
         "",
-        f"Modelo `{args.model}` · idioma `{args.lang}` · pre-ranking {'sí (top ' + str(args.top_n) + ')' if args.pre_rank else 'no'} · {elapsed/60:.1f} min",
+        f"Modelo `{args.model}` · modo `{args.mode}` · idioma `{args.lang}` · pre-ranking {'sí (top ' + str(args.top_n) + ')' if args.pre_rank else 'no'} · {elapsed/60:.1f} min",
         "",
         "## Resumen",
         f"- NDCG@{K} medio: **{_mean(ndcgs):.2f}** (mínimo {min(ndcgs):.2f})",

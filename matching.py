@@ -5,7 +5,7 @@ Pipeline (ver docs/scoring.md):
   1. normalize.enrich + dedupe          (sin IA)
   2. apply_hard_filters                 (sin IA, según preferencias del usuario)
   3. pre_rank con embeddings            (barato: elige las N más parecidas al perfil)
-  4. evaluate en lotes con el LLM       (puntúa cada factor con evidencia)
+  4. evaluate_hybrid con el LLM         (lotes para descartar + re-chequeo individual del top; factores con evidencia)
   5. compute_score                      (el CÓDIGO calcula el total con pesos fijos)
 """
 
@@ -14,6 +14,8 @@ from __future__ import annotations
 import logging
 import math
 import re
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from typing import Callable, Optional
 
@@ -36,7 +38,15 @@ WEIGHTS = {
 FACTORS = list(WEIGHTS)
 MODALITIES = ("remote", "hybrid", "onsite")
 DEFAULT_TOP_N = 40
-BATCH_SIZE = 5
+# Evaluación híbrida (docs/scoring.md → "Evaluación híbrida"):
+#   1. Screening en lotes de SCREEN_BATCH: barato en cuota, pero en lote la IA mezcla
+#      información entre ofertas (en el eval, la misma oferta sacaba 64 en lote y 0 sola).
+#   2. Las RECHECK_TOP mejores se re-evalúan de a una: el ranking que ve el usuario es exacto.
+# Con una key paga se puede subir RECHECK_TOP hasta top_n (todo individual).
+BATCH_SIZE = 1
+SCREEN_BATCH = 5
+RECHECK_TOP = 10
+CONCURRENCY = 4
 DESCRIPTION_CHARS = 1500
 
 ProgressFn = Callable[[str, int, int], None]  # (etapa, hechos, total)
@@ -158,9 +168,9 @@ BATCH_SCHEMA = {
 _RUBRIC = """Score each factor from 0 to 100 using ONLY what is explicitly stated in the candidate profile and in the job posting.
 
 FACTORS:
-- skills: how many of the job's CORE requirements (skills, knowledge, tools, certifications, licenses) the profile explicitly shows. 100 = all core requirements evidenced; 50 = about half, or only secondary ones; 0 = none.
+- skills: how many of the job's CORE requirements (skills, knowledge, tools, certifications, licenses) the profile explicitly shows. 100 = all core requirements evidenced; 50 = about half, or only secondary ones; 0 = none. Generic transferable skills (leadership, team management, communication, teamwork, organization) do NOT count as core requirements when the job belongs to a different field than the profile.
 - seniority: fit between the level/years the job asks for and the level/years the profile evidences. 100 = same level; 60 = one level apart, or the job states no level and the profile plausibly fits; 20 = two or more levels apart (e.g. job asks Senior, profile shows Junior). If the job states a level but the profile's seniority is not specified: 50 and say so.
-- role: how close the job's function and field are to the roles and experience in the profile. 100 = same role; 50 = adjacent role in the same field; 0 = unrelated field.
+- role: how close the job's professional FIELD and function are to the roles and experience in the profile. 100 = same role; 50 = adjacent role in the same field; 0-20 = different field. Hierarchy does not define the field: a management position in another field (e.g. head of nursing vs. warehouse supervisor) is a different field.
 - language: whether the candidate can work in the language(s) the job requires. 100 = profile explicitly covers it; 50 = unknown or partial (e.g. intermediate where fluent is required); 0 = a required language is absent from the profile.
 - location: compatibility of the job's location, modality and work-authorization requirements with the profile's location. 100 = compatible or remote without restrictions; 50 = not enough information; 0 = clearly incompatible.
 
@@ -246,50 +256,107 @@ def _unevaluated(job: JobPosting) -> ScoredJob:
                      summary="", evaluated=False)
 
 
-def evaluate(jobs: list[JobPosting], profile: CandidateProfile, *, api_key: str, model: str, lang: str = "es",
-             batch_size: int = BATCH_SIZE, on_progress: Optional[ProgressFn] = None,
-             generate=ai_engine.generate_json) -> tuple[list[ScoredJob], Optional[str]]:
-    """Evalúa en lotes. Devuelve (resultados, stop_reason). Las no evaluadas quedan marcadas."""
-    results: list[ScoredJob] = []
-    stop_reason = None
-    for start in range(0, len(jobs), batch_size):
-        batch = jobs[start:start + batch_size]
-        if stop_reason:
-            results.extend(_unevaluated(j) for j in batch)
-            continue
-        by_id = {}
-        try:
-            data = generate(build_batch_prompt(batch, profile, lang), BATCH_SCHEMA, api_key=api_key, model=model)
-            for item in (data or {}).get("results", []) if isinstance(data, dict) else []:
-                if isinstance(item, dict) and item.get("job_id"):
-                    by_id[str(item["job_id"])] = item
-        except AuthError:
-            stop_reason = "auth"
-        except QuotaExceeded:
-            stop_reason = "quota"
-        except Exception as e:
-            log.error(f"Error evaluando lote: {e}")
+def _evaluate_batch(batch: list[JobPosting], profile: CandidateProfile, *, api_key: str, model: str,
+                    lang: str, generate) -> tuple[list[ScoredJob], Optional[str]]:
+    by_id, stop_reason = {}, None
+    try:
+        data = generate(build_batch_prompt(batch, profile, lang), BATCH_SCHEMA, api_key=api_key, model=model)
+        for item in (data or {}).get("results", []) if isinstance(data, dict) else []:
+            if isinstance(item, dict) and item.get("job_id"):
+                by_id[str(item["job_id"])] = item
+    except AuthError:
+        stop_reason = "auth"
+    except QuotaExceeded:
+        stop_reason = "quota"
+    except Exception as e:
+        log.error(f"Error evaluando: {e}")
 
-        for i, job in enumerate(batch):
-            item = by_id.get(batch_key(i))
-            parsed = parse_result(item) if item else None
-            if parsed is None:
-                results.append(_unevaluated(job))
-                continue
-            factors, item = parsed
-            results.append(ScoredJob(
-                job=job,
-                score=compute_score(factors),
-                match_reasons=clean_list(item.get("match_reasons")),
-                missing_skills=clean_list(item.get("missing_skills")),
-                cover_letter=None,
-                summary=(item.get("summary") or "").strip(),
-                evaluated=True,
-                factors=factors,
-            ))
-        if on_progress:
-            on_progress("evaluate", min(start + batch_size, len(jobs)), len(jobs))
+    results = []
+    for i, job in enumerate(batch):
+        item = by_id.get(batch_key(i))
+        parsed = parse_result(item) if item else None
+        if parsed is None:
+            results.append(_unevaluated(job))
+            continue
+        factors, item = parsed
+        results.append(ScoredJob(
+            job=job,
+            score=compute_score(factors),
+            match_reasons=clean_list(item.get("match_reasons")),
+            missing_skills=clean_list(item.get("missing_skills")),
+            cover_letter=None,
+            summary=(item.get("summary") or "").strip(),
+            evaluated=True,
+            factors=factors,
+        ))
     return results, stop_reason
+
+
+def evaluate(jobs: list[JobPosting], profile: CandidateProfile, *, api_key: str, model: str, lang: str = "es",
+             batch_size: int = BATCH_SIZE, concurrency: int = CONCURRENCY,
+             on_progress: Optional[ProgressFn] = None,
+             generate=ai_engine.generate_json) -> tuple[list[ScoredJob], Optional[str]]:
+    """Evalúa en paralelo. Devuelve (resultados en el orden de entrada, stop_reason).
+
+    Ante cuota agotada o key inválida deja de lanzar llamadas nuevas; lo pendiente queda "no evaluado".
+    `on_progress` se llama desde el hilo que invoca (Streamlit no admite UI desde otros hilos).
+    """
+    batches = [jobs[i:i + batch_size] for i in range(0, len(jobs), batch_size)]
+    per_batch: list[Optional[list[ScoredJob]]] = [None] * len(batches)
+    stop = threading.Event()
+    stop_reason: Optional[str] = None
+
+    def task(idx: int, batch: list[JobPosting]):
+        if stop.is_set():
+            return idx, [_unevaluated(j) for j in batch], None
+        out, reason = _evaluate_batch(batch, profile, api_key=api_key, model=model, lang=lang, generate=generate)
+        if reason:
+            stop.set()
+        return idx, out, reason
+
+    done = 0
+    with ThreadPoolExecutor(max_workers=max(1, concurrency)) as pool:
+        futures = [pool.submit(task, i, b) for i, b in enumerate(batches)]
+        for fut in as_completed(futures):
+            idx, out, reason = fut.result()
+            per_batch[idx] = out
+            stop_reason = stop_reason or reason
+            done += len(out)
+            if on_progress:
+                on_progress("evaluate", done, len(jobs))
+    return [sj for batch in per_batch for sj in batch], stop_reason
+
+
+def evaluate_hybrid(jobs: list[JobPosting], profile: CandidateProfile, *, api_key: str, model: str,
+                    lang: str = "es", screen_batch: int = SCREEN_BATCH, recheck_top: int = RECHECK_TOP,
+                    concurrency: int = CONCURRENCY, on_progress: Optional[ProgressFn] = None,
+                    generate=ai_engine.generate_json) -> tuple[list[ScoredJob], Optional[str]]:
+    """Screening en lotes + re-evaluación individual de las `recheck_top` mejores.
+
+    ~18 llamadas para 40 ofertas (vs 40 de a una), con el top evaluado igual que de a una.
+    Devuelve los resultados ordenados por score.
+    """
+    def progress(stage):
+        return (lambda _s, done, total: on_progress(stage, done, total)) if on_progress else None
+
+    screened, stop = evaluate(jobs, profile, api_key=api_key, model=model, lang=lang,
+                              batch_size=screen_batch, concurrency=concurrency,
+                              on_progress=progress("screen"), generate=generate)
+    screened.sort(key=ai_engine.rank_key)
+    if stop or recheck_top <= 0 or screen_batch <= 1:
+        return screened, stop
+
+    top = [sj for sj in screened if sj.evaluated][:recheck_top]
+    if not top:
+        return screened, stop
+    rechecked, stop = evaluate([sj.job for sj in top], profile, api_key=api_key, model=model, lang=lang,
+                               batch_size=1, concurrency=concurrency,
+                               on_progress=progress("recheck"), generate=generate)
+    # Si la re-evaluación falla para una oferta, se conserva el resultado del screening.
+    by_id = {sj.job.id: sj for sj in rechecked if sj.evaluated}
+    merged = [by_id.get(sj.job.id, sj) for sj in screened]
+    merged.sort(key=ai_engine.rank_key)
+    return merged, stop
 
 
 # =============================================================================
@@ -315,8 +382,6 @@ def match_jobs(jobs: list[JobPosting], profile: CandidateProfile, prefs: SearchP
         result.scored = [_unevaluated(j) for j in filtered[:top_n]]
         return result
 
-    scored, result.stop_reason = evaluate(candidates, profile, api_key=api_key, model=model, lang=lang,
-                                          on_progress=on_progress)
-    scored.sort(key=ai_engine.rank_key)
-    result.scored = scored
+    result.scored, result.stop_reason = evaluate_hybrid(candidates, profile, api_key=api_key, model=model,
+                                                        lang=lang, on_progress=on_progress)
     return result

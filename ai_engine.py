@@ -8,9 +8,12 @@ sesión puede vivir en variables de módulo.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
+import os
 import re
+import threading
 import time
 from dataclasses import dataclass
 from typing import Any, Optional
@@ -39,6 +42,9 @@ REQUEST_DELAY = 4.0
 MAX_RETRIES = 3
 # Sin timeout, una llamada lenta del free tier puede colgar la búsqueda por minutos.
 HTTP_TIMEOUT_MS = 60_000
+# Ritmo máximo por API key. El free tier de Gemini limita por minuto (429) y por día
+# (500 llamadas/modelo). Con una key paga se sube con la variable GEMINI_RPM.
+REQUESTS_PER_MINUTE = int(os.environ.get("GEMINI_RPM", "15"))
 # Temperatura 0 + seed fijo: la misma oferta con el mismo perfil debe dar el mismo resultado.
 DETERMINISTIC = {"temperature": 0.0, "seed": 42}
 
@@ -88,12 +94,36 @@ def _client(api_key: str) -> genai.Client:
 _TRANSIENT = ("503", "UNAVAILABLE", "500", "INTERNAL", "DEADLINE_EXCEEDED", "timed out", "Timeout", "ReadTimeout")
 
 
-def _call_with_retry(fn):
+class _RateLimiter:
+    """Espacia las llamadas de una misma key (compartido entre hilos y sesiones del proceso)."""
+
+    def __init__(self):
+        self._lock = threading.Lock()
+        self._next: dict[str, float] = {}
+
+    def wait(self, api_key: str, rpm: int) -> None:
+        if rpm <= 0:
+            return
+        key = hashlib.sha256(api_key.encode()).hexdigest()  # nunca guardamos la key en claro
+        with self._lock:
+            now = time.monotonic()
+            slot = max(now, self._next.get(key, 0.0))
+            self._next[key] = slot + 60.0 / rpm
+        if slot > now:
+            time.sleep(slot - now)
+
+
+_LIMITER = _RateLimiter()
+
+
+def _call_with_retry(fn, api_key: str = ""):
     """Ejecuta una llamada a Gemini reintentando ante rate limit (429).
 
     Traduce los errores terminales a QuotaExceeded / AuthError.
     """
     for attempt in range(MAX_RETRIES):
+        if api_key:
+            _LIMITER.wait(api_key, REQUESTS_PER_MINUTE)
         try:
             return fn()
         except Exception as e:
@@ -124,7 +154,7 @@ def _call_with_retry(fn):
 
 def generate_text(contents: Any, *, api_key: str, model: str) -> str:
     client = _client(api_key)
-    resp = _call_with_retry(lambda: client.models.generate_content(model=model, contents=contents))
+    resp = _call_with_retry(lambda: client.models.generate_content(model=model, contents=contents), api_key)
     return (resp.text or "").strip()
 
 
@@ -136,7 +166,8 @@ def generate_json(contents: Any, schema: dict, *, api_key: str, model: str) -> A
         response_json_schema=schema,
         **DETERMINISTIC,
     )
-    resp = _call_with_retry(lambda: client.models.generate_content(model=model, contents=contents, config=config))
+    resp = _call_with_retry(lambda: client.models.generate_content(model=model, contents=contents, config=config),
+                            api_key)
     return parse_json(resp.text or "")
 
 
