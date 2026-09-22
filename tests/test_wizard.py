@@ -209,3 +209,68 @@ def test_check_key_rejects_malformed_keys_without_network(monkeypatch):
     monkeypatch.undo()
     monkeypatch.setattr(ai_engine, "_client", lambda key: pytest.fail("no debe llamar a la API"))
     assert ai_engine.check_key("sk-no-es-de-google") is False
+
+
+# ─── Solidez: borradores, sesión vencida, clave guardada ─────────────────────
+def test_draft_survives_language_switch(client, monkeypatch):
+    through_step2(client, monkeypatch)
+    r = client.post("/asistente/borrador/3", data={"summary": "Resumen a medio escribir", "roles": ["Contadora"]})
+    assert r.status_code == 204
+    html = client.get("/asistente/3?lang=en").text
+    assert "Resumen a medio escribir" in html
+
+
+def test_draft_does_not_validate_or_skip_steps(client):
+    upload(client)
+    # Sin clave todavía: el borrador del paso 4 se ignora y el paso 4 sigue bloqueado.
+    assert client.post("/asistente/borrador/4", data={"terms": ["x"]}).status_code == 204
+    assert client.get("/asistente/4", follow_redirects=False).headers["location"] == "/asistente/2"
+
+
+def test_manual_profile_is_written_in_step_1_and_still_needs_a_key(client):
+    r = client.post("/asistente/manual", follow_redirects=False)
+    assert r.headers["location"] == "/asistente/1?escribir=1"
+    assert client.post("/asistente/manual", data={"notes": "  "}).status_code == 400
+    r = client.post("/asistente/manual", data={"notes": "Electricista matriculado, 5 años"}, follow_redirects=False)
+    assert r.headers["location"] == "/asistente/2"
+    assert client.get("/asistente/3", follow_redirects=False).headers["location"] == "/asistente/2"
+    client.post("/asistente/ia", data={"key": KEY})
+    assert "Electricista matriculado" in client.get("/asistente/3").text
+
+
+def test_new_cv_invalidates_previous_profile(client, monkeypatch):
+    through_step2(client, monkeypatch)
+    upload(client, data=b"Otro CV distinto")
+    s = next(iter(sessions._store.values()))
+    assert s.profile is None and s.terms == []
+    assert client.get("/asistente/3", follow_redirects=False).headers["location"] == "/asistente/2"
+
+
+def test_expired_session_explains_instead_of_silently_resetting(client):
+    client.cookies.set(sessions.COOKIE, "sesion-que-ya-no-existe")
+    r = client.post("/asistente/perfil", data={"summary": "x"}, follow_redirects=False)
+    assert r.headers["location"] == "/asistente/1?sesion=vencida"
+    assert "venció" in client.get("/asistente/1?sesion=vencida").text
+
+
+def test_saved_key_is_masked_and_can_be_changed(client, monkeypatch):
+    through_step2(client, monkeypatch)
+    html = client.get("/asistente/2").text
+    assert KEY not in html and f"{KEY[:4]}…{KEY[-4:]}" in html
+    client.post("/asistente/clave/cambiar")
+    assert client.get("/asistente/3", follow_redirects=False).headers["location"] == "/asistente/2"
+
+
+def test_boosted_navigation_pushes_final_url_but_not_language_switches(client):
+    boosted = {"HX-Request": "true", "HX-Boosted": "true"}
+    assert client.get("/asistente/1", headers=boosted).headers.get("HX-Push-Url") == "/asistente/1"
+    assert "HX-Push-Url" not in client.get("/asistente/1?lang=en", headers=boosted).headers
+
+
+def test_step_4_requires_confirming_the_profile(client, monkeypatch):
+    through_step2(client, monkeypatch)
+    assert client.get("/asistente/4", follow_redirects=False).headers["location"] == "/asistente/3"
+    client.post("/asistente/borrador/3", data={"summary": "x", "roles": ["Contadora"]})   # un borrador no confirma
+    assert client.get("/asistente/4", follow_redirects=False).status_code == 303
+    client.post("/asistente/perfil", data={"summary": "x", "roles": ["Contadora"]})
+    assert client.get("/asistente/4", follow_redirects=False).status_code == 200

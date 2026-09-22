@@ -13,7 +13,7 @@ import re
 from pathlib import Path
 
 from fastapi import APIRouter, File, Form, Request, UploadFile
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
 import ai_engine
 import candidate as cand
@@ -137,8 +137,11 @@ def rail(s: Session, t) -> list[dict]:
 
 def page(request: Request, step: int, status_code: int = 200, **ctx) -> HTMLResponse:
     s, t = sess(request), t_for(request)
+    notice = t("wz_session_expired") if (getattr(request.state, "session_expired", False)
+                                         or request.query_params.get("sesion") == "vencida") else None
+    masked = f"{s.api_key[:4]}…{s.api_key[-4:]}" if len(s.api_key) > 12 else ""
     return render(request, "wizard.html", status_code=status_code, step=step, max_step=s.max_step(),
-                  rail=rail(s, t), s=s, **ctx)
+                  rail=rail(s, t), s=s, notice=notice, masked_key=masked, **ctx)
 
 
 def go(step: int, **query) -> RedirectResponse:
@@ -184,6 +187,90 @@ def step_context(request: Request, step: int) -> dict:
     return {}
 
 
+# ─── Sesión vencida ──────────────────────────────────────────────────────────
+def expired(request: Request):
+    """Si la sesión venció (o el servidor se reinició), volver al paso 1 explicando por qué."""
+    if not getattr(request.state, "session_expired", False):
+        return None
+    if request.headers.get("HX-Request"):
+        return Response(status_code=204, headers={"HX-Redirect": "/asistente/1?sesion=vencida"})
+    return go(1, sesion="vencida")
+
+
+# ─── Formularios → sesión (lo usan el envío y el guardado automático) ────────
+def apply_ai_form(s: Session, form) -> None:
+    model = str(form.get("model", s.model))
+    s.model = model if model in ai_engine.AVAILABLE_MODELS else ai_engine.DEFAULT_MODEL
+    s.send_email = bool(form.get("send_email"))
+    s.email_sender = str(form.get("email_sender", "")).strip()[:200]
+    s.email_recipient = str(form.get("email_recipient", "")).strip()[:200]
+    password = str(form.get("email_password", "")).strip()
+    if password:
+        s.email_password = password[:40]
+
+
+def apply_profile_form(s: Session, form, t) -> None:
+    p = s.profile or CandidateProfile()
+    p.notes = str(form.get("notes", ""))[:MAX_TEXT].strip()
+    if is_structured(p) or "summary" in form:
+        p.summary = str(form.get("summary", ""))[:MAX_TEXT].strip()
+        p.target_roles = clean_list(form.getlist("roles"))
+        level = str(form.get("seniority", cand.UNKNOWN))
+        p.seniority = level if level in cand.SENIORITY_LEVELS else cand.UNKNOWN
+        years = str(form.get("years", "")).replace(",", ".").strip()
+        try:
+            p.years_experience = max(0.0, min(60.0, float(years))) if years else None
+        except ValueError:
+            p.years_experience = None
+        p.location = " ".join(str(form.get("location", "")).split())[:120] or cand.UNKNOWN
+        p.languages = [parse_lang_label(x) for x in clean_list(form.getlist("langs"))]
+        evidence = {sk.name.lower(): sk.evidence for sk in p.skills}
+        p.skills = [cand.Skill(name=n, evidence=evidence.get(n.lower(), t("prof_added_by_user")))
+                    for n in clean_list(form.getlist("skills"), limit=80)]
+    s.profile = p
+
+
+def apply_search_form(s: Session, form) -> None:
+    available = {p.key for p in portals.available()}
+    s.terms = clean_list(form.getlist("terms"), limit=MAX_TERMS, max_len=60)
+    s.modalities = [m for m in form.getlist("modality") if m in ("remote", "hybrid", "onsite")]
+    s.locations = " ".join(str(form.get("locations", "")).split())[:200]
+    s.job_languages = [c for c in form.getlist("job_lang") if c in JOB_LANGUAGES]
+    s.portals = [k for k in form.getlist("portal") if k in available]
+
+    def bounded(name: str, lo: int, hi: int, default: int) -> int:
+        try:
+            return max(lo, min(hi, int(str(form.get(name, default)))))
+        except ValueError:
+            return default
+
+    s.min_score = bounded("min_score", 30, 90, s.min_score)
+    s.eval_limit = bounded("eval_limit", 10, 200, s.eval_limit)
+
+
+@router.post("/asistente/borrador/{step}")
+async def save_draft(request: Request, step: int):
+    """Guardado automático mientras se edita (sin validar): cambiar de idioma, recargar o volver
+    atrás nunca pierde lo escrito."""
+    if (r := expired(request)) is not None:
+        return r
+    s = sess(request)
+    if step > s.max_step() or step not in (1, 2, 3, 4):
+        return Response(status_code=204)
+    form = await request.form()
+    if step == 1:
+        if s.manual_profile and "notes" in form:
+            s.profile = s.profile or CandidateProfile()
+            s.profile.notes = str(form.get("notes", ""))[:MAX_TEXT].strip()
+    elif step == 2:
+        apply_ai_form(s, form)
+    elif step == 3:
+        apply_profile_form(s, form, t_for(request))
+    else:
+        apply_search_form(s, form)
+    return Response(status_code=204)
+
+
 # ─── Paso 1: CV ──────────────────────────────────────────────────────────────
 @router.post("/asistente/cv")
 async def upload_cv(request: Request, cv: UploadFile = File(...), origin: str = Form("")):
@@ -201,24 +288,43 @@ async def upload_cv(request: Request, cv: UploadFile = File(...), origin: str = 
         error = t("wz_err_type")   # la extensión no coincide con el contenido
     if error:
         return page(request, 1, status_code=400, error=error)
-    s.cv = CVFile(name=Path(cv.filename).name[:120], mime=CV_TYPES[ext][0], data=data,
-                  id=hashlib.sha256(data).hexdigest()[:16])
+    cv_id = hashlib.sha256(data).hexdigest()[:16]
+    if cv_id != s.analyzed_cv_id:
+        # Otro CV: el perfil y los términos anteriores ya no corresponden.
+        s.profile, s.terms, s.job_languages, s.search_ready = None, [], [], False
+        s.profile_confirmed = False
+    s.cv = CVFile(name=Path(cv.filename).name[:120], mime=CV_TYPES[ext][0], data=data, id=cv_id)
     s.manual_profile = False
     return go(2) if origin == "landing" else go(1, listo=1)
 
 
 @router.post("/asistente/cv/quitar")
 def remove_cv(request: Request):
+    if (r := expired(request)) is not None:
+        return r
     sess(request).cv = None
     return go(1)
 
 
 @router.post("/asistente/manual")
-def manual_profile(request: Request):
-    s = sess(request)
-    s.cv, s.manual_profile = None, True
-    if is_structured(s.profile):
-        s.profile = None       # el perfil anterior venía de otro CV
+async def manual_profile(request: Request):
+    """Perfil escrito a mano, en el mismo paso 1. Sin texto (viene de la landing): abre el editor."""
+    if (r := expired(request)) is not None:
+        return r
+    s, t = sess(request), t_for(request)
+    form = await request.form()
+    notes = str(form.get("notes", ""))[:MAX_TEXT].strip()
+    if s.cv or is_structured(s.profile):
+        # El perfil anterior venía de un CV: se empieza de cero.
+        s.profile, s.terms, s.job_languages, s.analyzed_cv_id = None, [], [], ""
+    s.cv, s.manual_profile, s.search_ready = None, True, False
+    if "notes" not in form:
+        return go(1, escribir=1)
+    if not notes:
+        return page(request, 1, status_code=400, error=t("wz_err_manual_empty"))
+    s.profile = s.profile or CandidateProfile()
+    s.profile.notes = notes
+    s.profile_confirmed = False
     return go(2)
 
 
@@ -226,10 +332,10 @@ def manual_profile(request: Request):
 @router.post("/asistente/clave", response_class=HTMLResponse)
 def check_key(request: Request, key: str = Form(""), model: str = Form(ai_engine.DEFAULT_MODEL)):
     """Fragmento HTMX: estado de la clave + botón principal (fuera de banda)."""
+    if (r := expired(request)) is not None:
+        return r
     s = sess(request)
     key = key.strip()
-    if not key and s.api_key:
-        key = s.api_key
     result = verify_key(key, model if model in ai_engine.AVAILABLE_MODELS else ai_engine.DEFAULT_MODEL) if key else False
     if result is not False:
         s.api_key, s.key_ok = key, result
@@ -237,19 +343,25 @@ def check_key(request: Request, key: str = Form(""), model: str = Form(ai_engine
                   needs_analysis=bool(s.cv) and s.analyzed_cv_id != s.cv.id)
 
 
+@router.post("/asistente/clave/cambiar")
+def change_key(request: Request):
+    if (r := expired(request)) is not None:
+        return r
+    s = sess(request)
+    s.api_key, s.key_ok = "", None
+    return go(2)
+
+
 @router.post("/asistente/ia")
-def save_ai(request: Request, key: str = Form(""), model: str = Form(ai_engine.DEFAULT_MODEL),
-            send_email: str = Form(""), email_sender: str = Form(""), email_recipient: str = Form(""),
-            email_password: str = Form("")):
+async def save_ai(request: Request):
+    if (r := expired(request)) is not None:
+        return r
     s, t = sess(request), t_for(request)
     if s.max_step() < 2:
         return go(1)
-    key = key.strip() or s.api_key
-    s.model = model if model in ai_engine.AVAILABLE_MODELS else ai_engine.DEFAULT_MODEL
-    s.send_email = bool(send_email)
-    s.email_sender, s.email_recipient = email_sender.strip()[:200], email_recipient.strip()[:200]
-    if email_password.strip():
-        s.email_password = email_password.strip()
+    form = await request.form()
+    apply_ai_form(s, form)
+    key = str(form.get("key", "")).strip() or s.api_key
 
     errors = []
     if not key:
@@ -276,13 +388,14 @@ def save_ai(request: Request, key: str = Form(""), model: str = Form(ai_engine.D
         try:
             profile = analyze_cv(s)
         except ai_engine.AuthError:
-            s.key_ok = False
+            s.api_key, s.key_ok = "", False
             return page(request, 2, status_code=400, errors=[t("wz_err_key")], **step_context(request, 2))
         except ai_engine.QuotaExceeded:
             return page(request, 2, status_code=429, errors=[t("wz_err_quota")], **step_context(request, 2))
         except Exception:  # noqa: BLE001 — nunca mostrar la excepción cruda al usuario
             return page(request, 2, status_code=502, errors=[t("wz_err_analyze")], **step_context(request, 2))
         s.profile = profile
+        s.profile_confirmed = False
         s.analyzed_cv_id = s.cv.id
         s.terms = profile.all_search_terms()
         s.job_languages = job_lang_codes(profile)
@@ -294,55 +407,27 @@ def save_ai(request: Request, key: str = Form(""), model: str = Form(ai_engine.D
 # ─── Paso 3: perfil ──────────────────────────────────────────────────────────
 @router.post("/asistente/perfil")
 async def save_profile(request: Request):
+    if (r := expired(request)) is not None:
+        return r
     s, t = sess(request), t_for(request)
     if s.max_step() < 3:
         return go(s.max_step())
-    form = await request.form()
-    p = s.profile or CandidateProfile()
-    p.notes = str(form.get("notes", ""))[:MAX_TEXT].strip()
-    if is_structured(p):
-        p.summary = str(form.get("summary", ""))[:MAX_TEXT].strip()
-        p.target_roles = clean_list(form.getlist("roles"))
-        level = str(form.get("seniority", cand.UNKNOWN))
-        p.seniority = level if level in cand.SENIORITY_LEVELS else cand.UNKNOWN
-        years = str(form.get("years", "")).replace(",", ".").strip()
-        try:
-            p.years_experience = max(0.0, min(60.0, float(years))) if years else None
-        except ValueError:
-            p.years_experience = None
-        p.location = " ".join(str(form.get("location", "")).split())[:120] or cand.UNKNOWN
-        p.languages = [parse_lang_label(x) for x in clean_list(form.getlist("langs"))]
-        evidence = {sk.name.lower(): sk.evidence for sk in p.skills}
-        p.skills = [cand.Skill(name=n, evidence=evidence.get(n.lower(), t("prof_added_by_user")))
-                    for n in clean_list(form.getlist("skills"), limit=80)]
-    s.profile = p
-    if p.is_empty():
+    apply_profile_form(s, await request.form(), t)
+    if s.profile.is_empty():
         return page(request, 3, status_code=400, errors=[t("step4_warning")], **step_context(request, 3))
+    s.profile_confirmed = True
     return go(4)
 
 
 # ─── Paso 4: búsqueda ────────────────────────────────────────────────────────
 @router.post("/asistente/busqueda")
 async def save_search(request: Request):
+    if (r := expired(request)) is not None:
+        return r
     s, t = sess(request), t_for(request)
     if s.max_step() < 4:
         return go(s.max_step())
-    form = await request.form()
-    available = {p.key for p in portals.available()}
-    s.terms = clean_list(form.getlist("terms"), limit=MAX_TERMS, max_len=60)
-    s.modalities = [m for m in form.getlist("modality") if m in ("remote", "hybrid", "onsite")]
-    s.locations = " ".join(str(form.get("locations", "")).split())[:200]
-    s.job_languages = [c for c in form.getlist("job_lang") if c in JOB_LANGUAGES]
-    s.portals = [k for k in form.getlist("portal") if k in available]
-
-    def bounded(name: str, lo: int, hi: int, default: int) -> int:
-        try:
-            return max(lo, min(hi, int(str(form.get(name, default)))))
-        except ValueError:
-            return default
-
-    s.min_score = bounded("min_score", 30, 90, s.min_score)
-    s.eval_limit = bounded("eval_limit", 10, 200, s.eval_limit)
+    apply_search_form(s, await request.form())
     errors = []
     if not s.terms:
         errors.append(t("val_no_kw"))

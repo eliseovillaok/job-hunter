@@ -1,6 +1,7 @@
 {% from "_macros.html" import tip, chip_editor with context %}
 {# Paso 3 · Tu perfil. Interpretación de la IA separada de la fuente (CLAUDE.md): cada dato muestra de dónde sale. #}
 <form class="card" action="/asistente/perfil" method="post">
+<div class="autosave" hx-post="/asistente/borrador/3" hx-trigger="change, input delay:800ms" hx-include="closest form" hx-swap="none">
   <div class="card-h"><div>
     <div class="eyebrow">{{ t('wz_step_of', n=3) }}</div>
     {% if structured %}
@@ -77,7 +78,8 @@
   {% endif %}
 
   <div class="foot">
-    <a class="btn btn-g" href="/asistente/2">{{ t('btn_back') }}</a>
+    <a class="btn btn-g" href="/asistente/2" data-back>{{ t('btn_back') }}</a>
     <div class="r"><button class="btn btn-p" type="submit">{{ t('btn_continue') }}</button></div>
   </div>
+</div>
 </form>

@@ -59,6 +59,7 @@ Se regeneran con `python scripts/build_logo.py <BricolageGrotesque.ttf>` (fuente
 
 Reglas:
 - **Nunca** poner el recuadro verde bosque sobre fondos casi negros: ahí se usa la JH sin recuadro.
+- En los lockups, la JH sin recuadro tiene **el mismo tamaño y posición** que dentro del recuadro: al cambiar de tema solo desaparece el fondo, las letras no crecen ni el nombre se mueve.
 - Área de respeto: la mitad del alto del isotipo alrededor de todo el logo.
 - Tamaño mínimo: ícono 16 px (favicon); ícono + nombre, 100 px de ancho.
 - No: bordes, sombras, degradados, rotar, deformar, cambiar colores fuera de los tokens, poner el logo sobre fotos sin fondo.
@@ -113,6 +114,20 @@ Ambas gratuitas (Google Fonts). No mezclar una tercera familia.
   | 40–59 | Afinidad parcial | Partial match | Atenuado |
   | 0–39 | Afinidad baja | Low match | Atenuado |
 
+### Movimiento e interacción
+
+El producto se siente fluido y predecible. Estas reglas aplican a toda pantalla nueva, sin que haga falta pedirlas:
+
+- **Nunca recargar la página entera** dentro de la app: navegación, idioma y formularios reemplazan el contenido con una transición (sin parpadeo). El cambio de tema es un fundido.
+- **Duraciones:** 150–320 ms. Entradas con `cubic-bezier(.2,.7,.2,1)`; salidas más cortas que las entradas. Nada de rebotes largos.
+- **Todo lo que se abre o cierra se anima** (paneles, grupos, opciones avanzadas, tooltips): altura + opacidad. Nada aparece o desaparece de golpe.
+- **Scroll suave** en enlaces internos y botón circular **Volver arriba** (abajo a la derecha) cuando la página es larga.
+- **Cada acción tiene respuesta inmediata:** hover, foco visible, presión (escala .97), estados "subiendo…", "verificando…", "analizando…", y el botón no se puede presionar dos veces.
+- **Guiar sin sobrecargar:** un solo botón principal por pantalla; se habilita (con un pulso breve) cuando lo necesario está completo y un texto al lado dice qué falta. Las aclaraciones secundarias van en tooltips ⓘ (hover, teclado o toque), no en renglones fijos.
+- **Sin scroll innecesario:** una pantalla corta debe entrar entera en una laptop (1366×657 útiles).
+- **Estado consistente:** lo que se ve es lo que guardó el servidor. Lo escrito se guarda solo mientras se edita (cambiar de idioma, recargar o volver atrás no pierde nada) y los datos secretos se muestran enmascarados (`AIza…a1b2`).
+- **Accesibilidad:** con `prefers-reduced-motion` se desactivan las animaciones.
+
 ## 7. Iconografía e ilustración
 
 - Íconos de línea, trazo 2 px (6 en ilustraciones grandes), extremos redondeados, un color.
@@ -166,6 +181,7 @@ un dato del CV o de la oferta y qué es una estimación.
 - [ ] Colores solo de `tokens.json`; contraste verificado en claro y oscuro.
 - [ ] Tipografías y pesos de la sección 5.
 - [ ] Componentes reutilizados (botón, chip, tarjeta, anillo) antes que crear nuevos.
+- [ ] Movimiento e interacción (§6): transiciones, estados de carga, tooltips, sin recargas ni scroll innecesario, estado consistente.
 - [ ] Texto en español neutro (tú, sin voseo ni regionalismos) y su versión en inglés.
 - [ ] Vocabulario del producto (afinidad, oferta, perfil).
 - [ ] Sin datos inventados (usuarios, métricas, testimonios).

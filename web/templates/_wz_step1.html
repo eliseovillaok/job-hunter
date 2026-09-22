@@ -1,9 +1,14 @@
-{# Paso 1 · Tu CV: un solo estado a la vez (zona de carga, o ficha del archivo). #}
-<div class="card">
+{% from "_macros.html" import tip with context %}
+{# Paso 1 · Tu CV. Un solo estado a la vez: zona de carga, ficha del archivo o editor del perfil escrito a mano. #}
+{% set writing = s.manual_profile and not s.cv %}
+{% set open_editor = writing or request.query_params.get('escribir') %}
+<div class="card" data-step1>
   <div class="card-h"><div>
     <div class="eyebrow">{{ t('wz_step_of', n=1) }}</div>
-    <h3>{{ t('how1_title') }}</h3>
-    <p>{{ t('how1_desc') }}</p>
+    <h3 data-mode-title="upload" {{ 'hidden' if open_editor }}>{{ t('how1_title') }}</h3>
+    <h3 data-mode-title="write" {{ '' if open_editor else 'hidden' }}>{{ t('wz3_manual_title') }}</h3>
+    <p data-mode-title="upload" {{ 'hidden' if open_editor }}>{{ t('how1_desc') }}</p>
+    <p data-mode-title="write" {{ '' if open_editor else 'hidden' }}>{{ t('wz3_manual_desc') }}</p>
   </div></div>
 
   {% if error %}<p class="field-err" role="alert">{{ error }}</p>{% endif %}
@@ -15,33 +20,47 @@
     <form action="/asistente/cv/quitar" method="post"><button class="link-btn" type="submit">{{ t('wz_change') }}</button></form>
     <div class="check" aria-hidden="true">✓</div>
   </div>
-  {% else %}
-  <form class="dz" action="/asistente/cv" method="post" enctype="multipart/form-data" data-dropzone>
-    <input type="hidden" name="origin" value="wizard">
-    <input type="file" name="cv" id="cv-file" accept=".pdf,.docx,.txt" data-autosubmit hidden>
-    <div class="ic" aria-hidden="true"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M12 18v-6M9 15l3-3 3 3"/></svg></div>
-    <h4>{{ t('wz_drop_title') }}</h4>
-    <p>{{ t('web_drop_formats') }}</p>
-    <label class="btn btn-p" for="cv-file" tabindex="0" data-busy="{{ t('wz_uploading') }}">{{ t('wz_choose_file') }}</label>
-  </form>
-
-  <div class="or">{{ t('wz_or') }}</div>
-  <div class="write">
-    <div class="ic" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></div>
-    <div><b>{{ t('wz_no_cv_title') }}</b><p>{{ t('wz_no_cv_desc') }}</p></div>
-    <form action="/asistente/manual" method="post"><button class="btn btn-o btn-sm" type="submit">{{ t('web_write_profile') }}</button></form>
-  </div>
-  {% endif %}
-
   <div class="foot">
     <span></span>
-    <div class="r">
-      {% if s.cv or s.manual_profile %}
-      <a class="btn btn-p{{ ' ready' if request.query_params.get('listo') }}" href="/asistente/2">{{ t('btn_continue') }}</a>
-      {% else %}
-      <span class="next-hint">{{ t('wz_hint1') }}</span>
-      <button class="btn btn-p" type="button" disabled>{{ t('btn_continue') }}</button>
-      {% endif %}
+    <div class="r"><a class="btn btn-p{{ ' ready' if request.query_params.get('listo') }}" href="/asistente/2">{{ t('btn_continue') }}</a></div>
+  </div>
+
+  {% else %}
+  <div data-mode="upload" {{ 'hidden' if open_editor }}>
+    <form class="dz" action="/asistente/cv" method="post" enctype="multipart/form-data" data-dropzone>
+      <input type="hidden" name="origin" value="wizard">
+      <input type="file" name="cv" id="cv-file" accept=".pdf,.docx,.txt" data-autosubmit hidden>
+      <div class="ic" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M12 18v-6M9 15l3-3 3 3"/></svg></div>
+      <div class="dz-idle">
+        <h4>{{ t('wz_drop_title') }}</h4>
+        <p>{{ t('web_drop_formats') }}</p>
+        <label class="btn btn-p" for="cv-file" tabindex="0">{{ t('wz_choose_file') }}</label>
+      </div>
+      <div class="dz-busy" aria-live="polite"><span class="spin"></span> {{ t('wz_uploading') }} <b data-file-name></b></div>
+    </form>
+    <p class="alt-row">{{ t('web_no_cv') }} <button class="link-btn" type="button" data-mode-switch="write">{{ t('web_write_profile') }}</button></p>
+    <div class="foot">
+      <span></span>
+      <div class="r"><span class="next-hint">{{ t('wz_hint1') }}</span><button class="btn btn-p" type="button" disabled>{{ t('btn_continue') }}</button></div>
     </div>
   </div>
+
+  <form data-mode="write" action="/asistente/manual" method="post" {{ '' if open_editor else 'hidden' }}>
+    <div hx-post="/asistente/borrador/1" hx-trigger="input delay:800ms" hx-include="closest form" hx-swap="none">
+      <div class="field">
+        <label for="f-manual">{{ t('wz3_manual_label') }} {{ tip(t('wz1_manual_help')) }}</label>
+        <textarea id="f-manual" class="input" name="notes" rows="7" maxlength="4000" placeholder="{{ t('step4_ph') }}"
+                  data-enables="s1-write-next" {{ 'autofocus' if open_editor }}>{{ s.profile.notes if writing and s.profile else '' }}</textarea>
+      </div>
+    </div>
+    <p class="alt-row">{{ t('wz1_prefer_cv') }} <button class="link-btn" type="button" data-mode-switch="upload">{{ t('wz1_upload_instead') }}</button></p>
+    <div class="foot">
+      <span></span>
+      <div class="r">
+        <span class="next-hint" data-enabled-hint="s1-write-next">{{ t('wz1_hint_write') }}</span>
+        <button class="btn btn-p" type="submit" id="s1-write-next" {{ '' if writing and s.profile and s.profile.notes else 'disabled' }}>{{ t('btn_continue') }}</button>
+      </div>
+    </div>
+  </form>
+  {% endif %}
 </div>

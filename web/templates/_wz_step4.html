@@ -1,6 +1,7 @@
 {% from "_macros.html" import tip, chip_editor with context %}
 {# Paso 4 · Tu búsqueda. El resumen al pie se actualiza en vivo (app.js) y tiene el botón principal. #}
 <form class="card" action="/asistente/busqueda" method="post" data-search-form data-rpm="{{ rpm }}">
+<div class="autosave" hx-post="/asistente/borrador/4" hx-trigger="change, input delay:800ms" hx-include="closest form" hx-swap="none">
   <div class="card-h"><div>
     <div class="eyebrow">{{ t('wz_step_of', n=4) }}</div>
     <h3>{{ t('wz4_title') }}</h3>
@@ -75,5 +76,6 @@
       <button class="btn" type="submit" data-busy="{{ t('wz4_starting') }}">{{ t('wz4_search') }}</button>
     </div>
   </div>
-  <div class="summary-back"><a class="btn btn-g" href="/asistente/3">{{ t('btn_back') }}</a></div>
+  <div class="summary-back"><a class="btn btn-g" href="/asistente/3" data-back>{{ t('btn_back') }}</a></div>
+</div>
 </form>

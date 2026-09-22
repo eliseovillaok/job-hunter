@@ -14,7 +14,7 @@
     <div class="why"><div class="na">{{ t('not_evaluated_hint') }}</div></div>
     {% endif %}
     <div class="acts">
-      {% if url %}<a class="btn btn-p" href="{{ url }}" target="_blank" rel="noopener noreferrer">{{ t('btn_view') }}</a>{% endif %}
+      {% if url %}<a class="btn btn-p" href="{{ url }}" target="_blank" rel="noopener noreferrer" hx-boost="false">{{ t('btn_view') }}</a>{% endif %}
       {% if sj.evaluated %}<button class="btn btn-o" type="button" hx-post="/carta/{{ job.id|urlencode }}" hx-target="#letter-{{ did }}" hx-swap="innerHTML">{{ t('btn_letter') }}</button>{% endif %}
       {% if sj.factors %}<button class="btn btn-g" type="button" data-toggle="why-{{ did }}" aria-expanded="false" aria-controls="why-{{ did }}">{{ t('btn_why') }} <span class="caret" aria-hidden="true">▾</span></button>{% endif %}
     </div>

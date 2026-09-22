@@ -40,7 +40,7 @@
 
   <div>
     <div id="job-list">{% include "_list.html" %}</div>
-    <a class="btn btn-o export" href="/resultados/export.json">{{ t('res_export') }}</a>
+    <a class="btn btn-o export" href="/resultados/export.json" hx-boost="false" download>{{ t('res_export') }}</a>
   </div>
 </section>
 {% endblock %}

@@ -47,10 +47,18 @@ CSP = ("default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; "
 async def session_and_headers(request: Request, call_next):
     sid, sess, is_new = sessions.get(request.cookies.get(sessions.COOKIE))
     request.state.session = sess
+    # Traía una cookie de sesión que ya no existe: venció o el servidor se reinició.
+    request.state.session_expired = is_new and sessions.COOKIE in request.cookies
     response = await call_next(request)
     if is_new and not request.url.path.startswith(("/static", "/brand")):
         response.set_cookie(sessions.COOKIE, sid, httponly=True, samesite="lax", secure=request.url.scheme == "https",
                             max_age=sessions.TTL_SECONDS)
+    # Navegación con hx-boost: tras un redirect (POST → 303 → GET) la barra de direcciones debe mostrar
+    # la página final. Los cambios de idioma/tema no agregan una entrada al historial.
+    q = request.query_params
+    if (request.headers.get("HX-Boosted") and request.method == "GET" and response.status_code == 200
+            and "lang" not in q and "theme" not in q):
+        response.headers["HX-Push-Url"] = request.url.path + (f"?{request.url.query}" if request.url.query else "")
     response.headers.setdefault("Content-Security-Policy", CSP)
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")

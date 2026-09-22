@@ -1,6 +1,7 @@
 {% from "_macros.html" import tip with context %}
 {# Paso 2 · Acceso a la IA. La clave se verifica mientras se escribe; el botón se habilita cuando es válida. #}
-<form class="card" action="/asistente/ia" method="post" data-busy-form>
+<form class="card" action="/asistente/ia" method="post">
+<div class="autosave" hx-post="/asistente/borrador/2" hx-trigger="change, input delay:800ms" hx-include="closest form" hx-swap="none">
   <div class="card-h"><div>
     <div class="eyebrow">{{ t('wz_step_of', n=2) }}</div>
     <h3>{{ t('wz2_title') }}</h3>
@@ -16,16 +17,24 @@
   <div class="keyrow">
     <div class="field">
       <label for="k">{{ t('step1_key_label') }} {{ tip(t('wz2_key_help')) }}</label>
+      {% if s.api_key %}
+      {# Clave ya guardada en la sesión: se muestra como estado, nunca el valor completo. #}
+      <div class="key-saved{{ ' unverified' if s.key_ok is none }}">
+        <span class="check" aria-hidden="true">{{ '✓' if s.key_ok else '!' }}</span>
+        <div class="meta"><b>{{ t('wz2_key_connected') if s.key_ok else t('wz2_key_unverified_short') }}</b><span>{{ masked_key }}</span></div>
+        <button class="link-btn" type="submit" formaction="/asistente/clave/cambiar" formnovalidate>{{ t('wz_change') }}</button>
+      </div>
+      {% else %}
       <div class="input-wrap">
-        <input id="k" class="input{{ '' if s.api_key else ' now' }}" type="password" name="key" autocomplete="off" spellcheck="false"
-               placeholder="{{ t('wz2_key_saved') if s.api_key else t('wz2_key_ph') }}" {{ '' if s.api_key else 'autofocus' }}
-               hx-post="/asistente/clave" hx-trigger="input changed delay:700ms, paste delay:100ms" hx-target="#key-status"
-               hx-include="[name=model]" hx-sync="this:replace">
+        <input id="k" class="input now" type="password" name="key" autocomplete="off" spellcheck="false"
+               placeholder="{{ t('wz2_key_ph') }}" autofocus
+               hx-post="/asistente/clave" hx-trigger="input changed delay:600ms, paste delay:100ms" hx-target="#key-status"
+               hx-include="[name=model]" hx-sync="this:replace" hx-indicator="#key-checking">
         <button class="in-btn" type="button" data-reveal="k" data-show="{{ t('wz_show') }}" data-hide="{{ t('wz_hide') }}">{{ t('wz_show') }}</button>
       </div>
-      <div id="key-status" aria-live="polite">
-        {% if s.api_key %}{% set key_state = s.key_ok %}{% set typed = true %}{% include "_wz_key_status.html" %}{% endif %}
-      </div>
+      <div class="checking" id="key-checking" aria-hidden="true"><span class="spin"></span>{{ t('wz2_checking') }}</div>
+      <div id="key-status" aria-live="polite"></div>
+      {% endif %}
     </div>
     <div class="field">
       <label for="model">{{ t('step1_model_label') }} {{ tip(t('wz2_model_help')) }}</label>
@@ -51,9 +60,10 @@
   </div>
 
   <div class="foot">
-    <a class="btn btn-g" href="/asistente/1">{{ t('btn_back') }}</a>
+    <a class="btn btn-g" href="/asistente/1" data-back>{{ t('btn_back') }}</a>
     <div class="r" id="s2-actions">
       {% set key_state = s.key_ok if s.api_key else False %}{% include "_wz_s2_next.html" %}
     </div>
   </div>
+</div>
 </form>

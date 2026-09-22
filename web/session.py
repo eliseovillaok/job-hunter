@@ -48,6 +48,7 @@ class Session:
     analyzed_cv_id: str = ""
     # Paso 3
     profile: Optional[CandidateProfile] = None
+    profile_confirmed: bool = False   # el usuario revisó el perfil y continuó
     # Paso 4
     terms: list[str] = field(default_factory=list)
     modalities: list[str] = field(default_factory=list)
@@ -63,9 +64,10 @@ class Session:
     def max_step(self) -> int:
         if not (self.cv or self.manual_profile):
             return 1
-        if self.profile is None:
+        # Sin clave conectada no se pasa del paso 2, aunque el perfil ya esté escrito a mano.
+        if self.profile is None or not self.api_key or self.key_ok is False:
             return 2
-        if self.profile.is_empty():
+        if self.profile.is_empty() or not self.profile_confirmed:
             return 3
         return 4
 
