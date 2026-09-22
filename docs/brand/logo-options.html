@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>JobHunter · Logotipo v2</title>
+<title>JobHunter · Logotipo v3 (iteración sobre A)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{--bg:#F4F8F5;--surface:#FFFFFF;--border:#DCE8E1;--text:#13261E;--text-2:#3E5A4E;--muted:#58736A;--primary:#1F6F54}
@@ -26,101 +26,92 @@
   .dark .word{color:#E8F2EC;font-size:24px} .dark .word i{color:#5FCB9F} .dark svg{width:36px;height:36px;border-radius:9px}
   .phone{display:flex;gap:18px;align-items:flex-end;padding:16px 24px 20px;border-top:1px solid var(--border);background:linear-gradient(135deg,#2B3A33,#4B5D54)}
   .app{display:flex;flex-direction:column;align-items:center;gap:6px;color:#fff;font-size:11px}
-  .app svg{border-radius:14px}
-  .small svg{border-radius:7px}
+  .app svg{border-radius:14px} .small svg{border-radius:7px}
+  .inv{display:flex;align-items:center;gap:10px;margin-left:auto;background:#fff;border-radius:14px;padding:8px 12px;color:var(--text-2);font-size:11px}
+  .inv svg{border-radius:12px;border:1px solid var(--border)}
   @media(max-width:900px){.grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
-<!-- Isotipos (100×100). Fondo con radio para usar como ícono de app; se recorta con border-radius en el uso. -->
 <svg width="0" height="0" style="position:absolute">
   <defs>
-    <!-- A · JH ligadura: la J comparte el asta con la H -->
-    <symbol id="A" viewBox="0 0 100 100">
+    <!-- Letras base de la ligadura (asta compartida en x=43) -->
+    <g id="J"><path d="M43 25V60c0 12-8 17-17 17-6 0-10-3-12-7" stroke-width="12" fill="none" stroke-linecap="round" stroke-linejoin="round"/></g>
+    <g id="Hstem"><path d="M72 25V77" stroke-width="12" fill="none" stroke-linecap="round"/></g>
+
+    <!-- A1 · Original -->
+    <symbol id="A1" viewBox="0 0 100 100">
       <rect width="100" height="100" fill="#1F6F54"/>
-      <path d="M43 25V60c0 12-8 17-17 17-6 0-10-3-12-7" stroke="#FFFFFF" stroke-width="12" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M43 49H72M72 25V77" stroke="#FFFFFF" stroke-width="12" fill="none" stroke-linecap="round"/>
+      <g stroke="#FFFFFF"><use href="#J"/><use href="#Hstem"/><path d="M43 49H72" stroke-width="12" stroke-linecap="round"/></g>
     </symbol>
-    <!-- B · JH que apunta al norte: el asta derecha de la H termina en una flecha -->
-    <symbol id="B" viewBox="0 0 100 100">
-      <rect width="100" height="100" fill="#13261E"/>
-      <path d="M40 30V60c0 12-8 17-17 17-6 0-10-3-12-7" stroke="#FFFFFF" stroke-width="11" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M40 52H70M70 36V77" stroke="#FFFFFF" stroke-width="11" fill="none" stroke-linecap="round"/>
-      <path d="M70 12L82 34H58z" fill="#E07A5F"/>
-    </symbol>
-    <!-- C · Brújula al norte -->
-    <symbol id="C" viewBox="0 0 100 100">
+    <!-- A2 · Itálica: misma forma inclinada 10° hacia adelante -->
+    <symbol id="A2" viewBox="0 0 100 100">
       <rect width="100" height="100" fill="#1F6F54"/>
-      <circle cx="50" cy="52" r="31" fill="none" stroke="#7FC8A9" stroke-width="5"/>
-      <path d="M50 14l11 38H39z" fill="#E07A5F"/>
-      <path d="M50 90L39 52h22z" fill="#FFFFFF"/>
-      <circle cx="50" cy="52" r="5" fill="#1F6F54"/>
+      <g stroke="#FFFFFF" transform="translate(9 0) skewX(-10)"><use href="#J"/><use href="#Hstem"/><path d="M43 49H72" stroke-width="12" stroke-linecap="round"/></g>
     </symbol>
-    <!-- D · La J como aguja: la J termina arriba en una punta que apunta al norte -->
-    <symbol id="D" viewBox="0 0 100 100">
+    <!-- A3 · Travesaño ascendente -->
+    <symbol id="A3" viewBox="0 0 100 100">
       <rect width="100" height="100" fill="#1F6F54"/>
-      <circle cx="50" cy="50" r="36" fill="none" stroke="#DDF0E6" stroke-opacity=".35" stroke-width="4"/>
-      <path d="M58 40V60c0 11-7 16-15 16-6 0-10-3-12-7" stroke="#FFFFFF" stroke-width="12" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M58 11L71 36H45z" fill="#E07A5F"/>
+      <g stroke="#FFFFFF"><use href="#J"/><use href="#Hstem"/><path d="M43 56L72 42" stroke-width="12" stroke-linecap="round"/></g>
     </symbol>
+    <!-- A4 · Travesaño coral -->
+    <symbol id="A4" viewBox="0 0 100 100">
+      <rect width="100" height="100" fill="#1F6F54"/>
+      <g stroke="#FFFFFF"><use href="#J"/><use href="#Hstem"/></g>
+      <path d="M49 49H66" stroke="#E07A5F" stroke-width="12" stroke-linecap="butt"/>
+    </symbol>
+
+    <!-- Versiones invertidas (fondo blanco) para usos sobre color o impresos -->
+    <symbol id="A1i" viewBox="0 0 100 100"><rect width="100" height="100" fill="#FFFFFF"/><g stroke="#1F6F54"><use href="#J"/><use href="#Hstem"/><path d="M43 49H72" stroke-width="12" stroke-linecap="round"/></g></symbol>
+    <symbol id="A2i" viewBox="0 0 100 100"><rect width="100" height="100" fill="#FFFFFF"/><g stroke="#1F6F54" transform="translate(9 0) skewX(-10)"><use href="#J"/><use href="#Hstem"/><path d="M43 49H72" stroke-width="12" stroke-linecap="round"/></g></symbol>
+    <symbol id="A3i" viewBox="0 0 100 100"><rect width="100" height="100" fill="#FFFFFF"/><g stroke="#1F6F54"><use href="#J"/><use href="#Hstem"/><path d="M43 56L72 42" stroke-width="12" stroke-linecap="round"/></g></symbol>
+    <symbol id="A4i" viewBox="0 0 100 100"><rect width="100" height="100" fill="#FFFFFF"/><g stroke="#1F6F54"><use href="#J"/><use href="#Hstem"/></g><path d="M49 49H66" stroke="#A8472E" stroke-width="12" stroke-linecap="butt"/></symbol>
   </defs>
 </svg>
 
 <div class="wrap">
-  <h1>JobHunter · Logotipo v2</h1>
-  <p class="lead">Aprendido de la competencia: los íconos que se reconocen son <b>una sola forma gruesa sobre un color sólido</b> (InfoJobs, Computrabajo, Jobs.ie, Reed) o un <b>símbolo de dirección</b> (Bumeran, OCC). Casi todos son azules: el esmeralda nos distingue. Las cuatro opciones están dibujadas como ícono de app y probadas a tamaño real de pantalla de inicio (60 px) y de favicon.</p>
+  <h1>JobHunter · Logotipo v3</h1>
+  <p class="lead">Iteración sobre la opción A (JH ligadura). Misma estructura, cuatro personalidades. Cada una en ícono de app, logotipo en claro y oscuro, tamaño real (60 / 32 / 16 px) y versión invertida.</p>
   <div class="grid">
 
     <div class="card">
-      <div class="head"><b>A</b><span>JH ligadura</span></div>
-      <p class="idea">La J y la H comparten el asta: una sola forma, propia y legible. Sobria y profesional, en la línea de InfoJobs o Computrabajo, pero en esmeralda.</p>
-      <div class="row">
-        <svg class="icon"><use href="#A"/></svg>
-        <div class="lock">
-          <div class="lockup"><svg><use href="#A"/></svg><span class="word">Job<i>Hunter</i></span></div>
-          <div class="lockup dark"><svg><use href="#A"/></svg><span class="word">Job<i>Hunter</i></span></div>
-        </div>
-      </div>
-      <div class="phone"><div class="app"><svg width="60" height="60"><use href="#A"/></svg>JobHunter</div><div class="app small"><svg width="32" height="32"><use href="#A"/></svg>32</div><div class="app small"><svg width="16" height="16"><use href="#A"/></svg>16</div></div>
+      <div class="head"><b>A1</b><span>Original</span></div>
+      <p class="idea">La ligadura tal cual: J y H comparten el asta. Sobria, estable y muy legible.</p>
+      <div class="row"><svg class="icon"><use href="#A1"/></svg>
+        <div class="lock"><div class="lockup"><svg><use href="#A1"/></svg><span class="word">Job<i>Hunter</i></span></div>
+        <div class="lockup dark"><svg><use href="#A1"/></svg><span class="word">Job<i>Hunter</i></span></div></div></div>
+      <div class="phone"><div class="app"><svg width="60" height="60"><use href="#A1"/></svg>JobHunter</div><div class="app small"><svg width="32" height="32"><use href="#A1"/></svg>32</div><div class="app small"><svg width="16" height="16"><use href="#A1"/></svg>16</div>
+        <div class="inv"><svg width="44" height="44"><use href="#A1i"/></svg>Invertida</div></div>
     </div>
 
     <div class="card">
-      <div class="head"><b>B</b><span>JH con norte</span></div>
-      <p class="idea">La misma ligadura, pero la H termina en una flecha coral que apunta arriba: tu próximo paso profesional. Combina el monograma con la idea de brújula.</p>
-      <div class="row">
-        <svg class="icon"><use href="#B"/></svg>
-        <div class="lock">
-          <div class="lockup"><svg><use href="#B"/></svg><span class="word">Job<i>Hunter</i></span></div>
-          <div class="lockup dark"><svg><use href="#B"/></svg><span class="word">Job<i>Hunter</i></span></div>
-        </div>
-      </div>
-      <div class="phone"><div class="app"><svg width="60" height="60"><use href="#B"/></svg>JobHunter</div><div class="app small"><svg width="32" height="32"><use href="#B"/></svg>32</div><div class="app small"><svg width="16" height="16"><use href="#B"/></svg>16</div></div>
+      <div class="head"><b>A2</b><span>Itálica</span></div>
+      <p class="idea">La misma forma inclinada 10° hacia adelante: movimiento, avance, impulso. Más dinámica sin perder solidez.</p>
+      <div class="row"><svg class="icon"><use href="#A2"/></svg>
+        <div class="lock"><div class="lockup"><svg><use href="#A2"/></svg><span class="word">Job<i>Hunter</i></span></div>
+        <div class="lockup dark"><svg><use href="#A2"/></svg><span class="word">Job<i>Hunter</i></span></div></div></div>
+      <div class="phone"><div class="app"><svg width="60" height="60"><use href="#A2"/></svg>JobHunter</div><div class="app small"><svg width="32" height="32"><use href="#A2"/></svg>32</div><div class="app small"><svg width="16" height="16"><use href="#A2"/></svg>16</div>
+        <div class="inv"><svg width="44" height="44"><use href="#A2i"/></svg>Invertida</div></div>
     </div>
 
     <div class="card">
-      <div class="head"><b>C</b><span>Brújula al norte</span></div>
-      <p class="idea">Una brújula limpia: aguja coral hacia el norte dentro de un anillo menta. Orientación y dirección; reconocible sin necesidad de letras.</p>
-      <div class="row">
-        <svg class="icon"><use href="#C"/></svg>
-        <div class="lock">
-          <div class="lockup"><svg><use href="#C"/></svg><span class="word">Job<i>Hunter</i></span></div>
-          <div class="lockup dark"><svg><use href="#C"/></svg><span class="word">Job<i>Hunter</i></span></div>
-        </div>
-      </div>
-      <div class="phone"><div class="app"><svg width="60" height="60"><use href="#C"/></svg>JobHunter</div><div class="app small"><svg width="32" height="32"><use href="#C"/></svg>32</div><div class="app small"><svg width="16" height="16"><use href="#C"/></svg>16</div></div>
+      <div class="head"><b>A3</b><span>Travesaño ascendente</span></div>
+      <p class="idea">El travesaño de la H sube en diagonal: una señal sutil de crecimiento integrada en la letra, sin flechas.</p>
+      <div class="row"><svg class="icon"><use href="#A3"/></svg>
+        <div class="lock"><div class="lockup"><svg><use href="#A3"/></svg><span class="word">Job<i>Hunter</i></span></div>
+        <div class="lockup dark"><svg><use href="#A3"/></svg><span class="word">Job<i>Hunter</i></span></div></div></div>
+      <div class="phone"><div class="app"><svg width="60" height="60"><use href="#A3"/></svg>JobHunter</div><div class="app small"><svg width="32" height="32"><use href="#A3"/></svg>32</div><div class="app small"><svg width="16" height="16"><use href="#A3"/></svg>16</div>
+        <div class="inv"><svg width="44" height="44"><use href="#A3i"/></svg>Invertida</div></div>
     </div>
 
     <div class="card">
-      <div class="head"><b>D</b><span>J aguja</span></div>
-      <p class="idea">La J de Job se convierte en la aguja de una brújula: termina arriba en una punta que apunta al norte. Una letra (como Jobs.ie o Reed) con significado propio.</p>
-      <div class="row">
-        <svg class="icon"><use href="#D"/></svg>
-        <div class="lock">
-          <div class="lockup"><svg><use href="#D"/></svg><span class="word">Job<i>Hunter</i></span></div>
-          <div class="lockup dark"><svg><use href="#D"/></svg><span class="word">Job<i>Hunter</i></span></div>
-        </div>
-      </div>
-      <div class="phone"><div class="app"><svg width="60" height="60"><use href="#D"/></svg>JobHunter</div><div class="app small"><svg width="32" height="32"><use href="#D"/></svg>32</div><div class="app small"><svg width="16" height="16"><use href="#D"/></svg>16</div></div>
+      <div class="head"><b>A4</b><span>Travesaño coral</span></div>
+      <p class="idea">El travesaño en coral: el acento cálido de la marca vive dentro del monograma y conecta J y H. El más distintivo de los cuatro.</p>
+      <div class="row"><svg class="icon"><use href="#A4"/></svg>
+        <div class="lock"><div class="lockup"><svg><use href="#A4"/></svg><span class="word">Job<i>Hunter</i></span></div>
+        <div class="lockup dark"><svg><use href="#A4"/></svg><span class="word">Job<i>Hunter</i></span></div></div></div>
+      <div class="phone"><div class="app"><svg width="60" height="60"><use href="#A4"/></svg>JobHunter</div><div class="app small"><svg width="32" height="32"><use href="#A4"/></svg>32</div><div class="app small"><svg width="16" height="16"><use href="#A4"/></svg>16</div>
+        <div class="inv"><svg width="44" height="44"><use href="#A4i"/></svg>Invertida</div></div>
     </div>
 
   </div>
