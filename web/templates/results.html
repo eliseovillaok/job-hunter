@@ -12,7 +12,7 @@
 </div>
 
 <section class="results">
-  <form class="filters" id="filters" hx-get="/resultados/lista" hx-target="#job-list" hx-swap="innerHTML"
+  <form class="filters" id="filters" hx-get="/resultados/lista" hx-target="#job-list" hx-swap="innerHTML transition:false" hx-disinherit="*"
         hx-trigger="change, input from:#f-min delay:300ms" hx-push-url="/resultados">
     <h4>{{ t('flt_modality') }}</h4>
     <div class="chips">

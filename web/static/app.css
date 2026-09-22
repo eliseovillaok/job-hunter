@@ -212,7 +212,7 @@ select.input { appearance: auto; }
 
 /* Tooltip (ⓘ): hover, foco con teclado o toque */
 .tt { position: relative; display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; color: var(--text-muted);
-  cursor: help; flex: none; text-transform: none; letter-spacing: 0; }
+  cursor: pointer; flex: none; text-transform: none; letter-spacing: 0; }
 .tt:hover, .tt:focus-visible { color: var(--primary); outline: none; background: var(--surface-2); }
 .tt-b { display: block; opacity: 0; visibility: hidden; pointer-events: none; position: absolute; bottom: calc(100% + 8px); left: 50%;
   transform: translate(calc(-50% + var(--tt-shift, 0px)), 4px); width: max-content; max-width: 260px;
@@ -333,7 +333,7 @@ form.alt { display: flex; gap: 6px; align-items: baseline; flex-wrap: wrap; }
 .spin { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--surface-2); border-top-color: var(--primary); animation: spin .8s linear infinite; flex: none; display: inline-block; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .checking { display: none; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted); margin-top: 8px; }
-.checking.htmx-request { display: flex; }
+.checking.htmx-request { display: flex; animation: fade-plain .2s ease .25s both; }
 .checking.htmx-request + #key-status { display: none; }
 .key-saved { display: flex; align-items: center; gap: 12px; border: 1.5px solid var(--primary); border-radius: 14px; padding: 9px 14px; background: var(--surface); }
 .key-saved .check { width: 24px; height: 24px; border-radius: 50%; background: var(--primary); color: var(--on-primary); display: grid; place-items: center;
@@ -357,23 +357,24 @@ html { scroll-behavior: smooth; }
 @keyframes chip-in { from { opacity: 0; transform: scale(.85); } }
 @keyframes fade-in { from { opacity: 0; transform: translateY(6px); } }
 @keyframes page-in { from { opacity: 0; transform: translateY(10px); } }
+@keyframes fade-plain { from { opacity: 0; } }
 @keyframes page-out { to { opacity: 0; } }
-@keyframes from-right { from { opacity: 0; transform: translateX(22px); } }
-@keyframes from-left { from { opacity: 0; transform: translateX(-22px); } }
+@keyframes from-right { from { opacity: 0; transform: translateX(14px); } }
+@keyframes from-left { from { opacity: 0; transform: translateX(-14px); } }
 
 /* Navegación sin recarga (hx-boost + View Transitions): la barra se queda quieta; el contenido entra suave. */
-::view-transition-old(root) { animation: page-out .14s ease both; }
-::view-transition-new(root) { animation: page-in .3s cubic-bezier(.2, .7, .2, 1) both; }
+::view-transition-old(root) { animation: page-out .12s ease both; }
+::view-transition-new(root) { animation: fade-plain .18s ease both; }
 .rail { view-transition-name: rail; }
 .wz > div:last-child { view-transition-name: wz-card; }
 ::view-transition-old(wz-card) { animation: page-out .12s ease both; }
-::view-transition-new(wz-card) { animation: from-right .32s cubic-bezier(.2, .7, .2, 1) both; }
+::view-transition-new(wz-card) { animation: from-right .26s cubic-bezier(.2, .7, .2, 1) both; }
 html[data-nav="back"]::view-transition-new(wz-card) { animation-name: from-left; }
 /* Cambio de tema: fundido simple. */
 html.theme-vt::view-transition-old(root) { animation: page-out .25s ease both; }
 html.theme-vt::view-transition-new(root) { animation: fade-in .25s ease both; }
 /* Navegadores sin View Transitions: animación de entrada del contenido. */
-html.no-vt .page { animation: page-in .3s cubic-bezier(.2, .7, .2, 1) both; }
+html.no-vt .page { animation: fade-plain .18s ease both; }
 
 /* Volver arriba */
 .to-top { position: fixed; right: 24px; bottom: 24px; z-index: 30; width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center;

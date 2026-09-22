@@ -46,7 +46,7 @@
   </div>
 
   <form data-mode="write" action="/asistente/manual" method="post" {{ '' if open_editor else 'hidden' }}>
-    <div hx-post="/asistente/borrador/1" hx-trigger="input delay:800ms" hx-include="closest form" hx-swap="none">
+    <div hx-post="/asistente/borrador/1" hx-trigger="input delay:800ms" hx-include="closest form" hx-swap="none" hx-disinherit="*">
       <div class="field">
         <label for="f-manual">{{ t('wz3_manual_label') }} {{ tip(t('wz1_manual_help')) }}</label>
         <textarea id="f-manual" class="input" name="notes" rows="7" maxlength="4000" placeholder="{{ t('step4_ph') }}"

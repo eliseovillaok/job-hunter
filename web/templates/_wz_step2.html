@@ -1,7 +1,7 @@
 {% from "_macros.html" import tip with context %}
 {# Paso 2 · Acceso a la IA. La clave se verifica mientras se escribe; el botón se habilita cuando es válida. #}
 <form class="card" action="/asistente/ia" method="post">
-<div class="autosave" hx-post="/asistente/borrador/2" hx-trigger="change, input delay:800ms" hx-include="closest form" hx-swap="none">
+<div class="autosave" hx-post="/asistente/borrador/2" hx-trigger="change, input delay:800ms" hx-include="closest form" hx-swap="none" hx-disinherit="*">
   <div class="card-h"><div>
     <div class="eyebrow">{{ t('wz_step_of', n=2) }}</div>
     <h3>{{ t('wz2_title') }}</h3>
@@ -28,7 +28,7 @@
       <div class="input-wrap">
         <input id="k" class="input now" type="password" name="key" autocomplete="off" spellcheck="false"
                placeholder="{{ t('wz2_key_ph') }}" autofocus
-               hx-post="/asistente/clave" hx-trigger="input changed delay:600ms, paste delay:100ms" hx-target="#key-status"
+               hx-post="/asistente/clave" hx-trigger="input changed delay:600ms, paste delay:100ms" hx-target="#key-status" hx-swap="innerHTML transition:false"
                hx-include="[name=model]" hx-sync="this:replace" hx-indicator="#key-checking">
         <button class="in-btn" type="button" data-reveal="k" data-show="{{ t('wz_show') }}" data-hide="{{ t('wz_hide') }}">{{ t('wz_show') }}</button>
       </div>

@@ -200,13 +200,24 @@ document.addEventListener("change", (e) => {
 });
 
 function submitUpload(form, file) {
-  form.classList.add("busy");
   const name = form.querySelector("[data-file-name]");
   if (name && file) name.textContent = file.name;
-  const label = form.querySelector("label.btn");
-  if (label && form.classList.contains("drop")) label.textContent = label.dataset.busy || label.textContent;
+  // El aviso "Subiendo…" solo si tarda: si el paso siguiente llega enseguida, no se ve un destello.
+  delayedBusy(() => {
+    form.classList.add("busy");
+    const label = form.querySelector("label.btn");
+    if (label && form.classList.contains("drop") && label.dataset.busy) label.textContent = label.dataset.busy;
+  });
   form.requestSubmit();   // pasa por HTMX (sin recarga) con la transición al paso siguiente
 }
+
+// Los estados de espera aparecen recién si la acción tarda; si no, se pasa directo.
+let busyTimer = null;
+function delayedBusy(fn) {
+  clearTimeout(busyTimer);
+  busyTimer = setTimeout(fn, 220);
+}
+document.addEventListener("htmx:beforeSwap", () => clearTimeout(busyTimer));
 
 document.addEventListener("dragover", (e) => {
   const zone = e.target.closest("[data-dropzone]");
@@ -231,10 +242,10 @@ document.addEventListener("submit", (e) => {
   if (form.dataset.sending) { e.preventDefault(); return; }
   form.dataset.sending = "1";
   const btn = e.submitter;
-  if (btn) setTimeout(() => {
-    btn.disabled = true;
-    if (btn.dataset.busy) btn.innerHTML = `<span class="spin"></span> ${btn.dataset.busy}`;
-  }, 0);
+  if (btn) {
+    setTimeout(() => { btn.disabled = true; }, 0);   // evita el doble envío desde el primer instante
+    if (btn.dataset.busy) delayedBusy(() => { btn.innerHTML = `<span class="spin"></span> ${btn.dataset.busy}`; });
+  }
 }, true);
 // Si el servidor devuelve la misma página (error de validación), el formulario vuelve a estar disponible.
 document.addEventListener("htmx:afterRequest", (e) => {
