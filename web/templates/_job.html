@@ -1,0 +1,41 @@
+{% set did = dom_id(sj.job) %}{% set job = sj.job %}{% set aff = affinity(sj.score, sj.evaluated) %}{% set url = safe_url(job.url) %}
+<article class="job">
+  <div class="avatar" style="background:{{ avatar_color(job.company) }}">{{ (job.company or job.title or '?')|trim|first|upper }}</div>
+  <div class="job-body">
+    <h3>{{ job.title }}</h3>
+    <div class="meta">{{ [job.company, job.location, job.source]|select|join(' · ') }}</div>
+    <div class="pills">{% for c in chips(job, t) %}<span>{{ c }}</span>{% endfor %}</div>
+    {% if sj.evaluated %}
+    <div class="why">
+      <div class="ok">{% for r in sj.match_reasons[:3] %}✓ {{ r }}<br>{% else %}<span class="na">{{ t('no_reasons') }}</span>{% endfor %}</div>
+      <div class="no">{% for m in sj.missing_skills[:3] %}• {{ m }}<br>{% else %}<span class="na">{{ t('no_missing') }}</span>{% endfor %}</div>
+    </div>
+    {% else %}
+    <div class="why"><div class="na">{{ t('not_evaluated_hint') }}</div></div>
+    {% endif %}
+    <div class="acts">
+      {% if url %}<a class="btn btn-p" href="{{ url }}" target="_blank" rel="noopener noreferrer">{{ t('btn_view') }}</a>{% endif %}
+      {% if sj.evaluated %}<button class="btn btn-o" type="button" hx-post="/carta/{{ job.id|urlencode }}" hx-target="#letter-{{ did }}" hx-swap="innerHTML">{{ t('btn_letter') }}</button>{% endif %}
+      {% if sj.factors %}<button class="btn btn-g" type="button" data-toggle="why-{{ did }}" aria-expanded="false" aria-controls="why-{{ did }}">{{ t('btn_why') }} <span class="caret" aria-hidden="true">▾</span></button>{% endif %}
+    </div>
+    <div id="letter-{{ did }}" aria-live="polite"></div>
+    {% if sj.factors %}
+    <div class="factors" id="why-{{ did }}" hidden>
+      {% if sj.summary %}<p class="ai-note">{{ t('why_ai_summary', summary=sj.summary) }}</p>{% endif %}
+      {% for name in factors %}{% set fs = sj.factors[name] %}
+      <div class="factor">
+        <div class="factor-h"><b>{{ t('f_' ~ name) }}</b><span>{{ fs.score }}/100 · {{ t('f_weight', w=(weights[name] * 100)|round|int) }}</span></div>
+        <div class="bar"><i style="width:{{ fs.score }}%"></i></div>
+        {% if fs.evidence_job %}<p class="ev">{{ t('f_job') }} {{ fs.evidence_job }}</p>{% endif %}
+        {% if fs.evidence_cv %}<p class="ev">{{ t('f_cv') }} {{ fs.evidence_cv }}</p>{% endif %}
+      </div>
+      {% endfor %}
+      <p class="ai-note">{{ t('factors_note') }}</p>
+    </div>
+    {% endif %}
+  </div>
+  <div class="score">
+    <div class="ring ring-{{ aff[1] }}" style="--v:{{ sj.score if sj.evaluated else 0 }}"><div>{{ sj.score if sj.evaluated else '—' }}</div></div>
+    <small class="aff-{{ aff[1] }}">{{ t(aff[0]) }}</small>
+  </div>
+</article>

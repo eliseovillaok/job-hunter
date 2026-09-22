@@ -1,0 +1,16 @@
+{# Lista de ofertas. Se renderiza en la página y como fragmento HTMX al cambiar un filtro. #}
+{% if request.headers.get('HX-Request') %}<span id="lbl-rec" hx-swap-oob="true">{{ t('show_rec', n=n_rec) }}</span>{% endif %}
+{% if not jobs %}
+  <p class="empty">
+    {% if f.show == 'rec' and n_rec == 0 %}{{ t('no_recommended', score=f.min) if any_evaluated else t('none_evaluated') }}
+    {% else %}{{ t('res_empty_filter') }}{% endif %}
+  </p>
+{% endif %}
+{% for sj in jobs %}{% include "_job.html" %}{% endfor %}
+{% if pages > 1 %}
+<nav class="pager">
+  {% if page > 0 %}<button class="btn btn-g" type="button" hx-get="/resultados/lista?page={{ page - 1 }}" hx-include="#filters" hx-target="#job-list">{{ t('btn_prev') }}</button>{% endif %}
+  <span class="small">{{ t('page_of', page=page + 1, pages=pages) }}</span>
+  {% if page < pages - 1 %}<button class="btn btn-g" type="button" hx-get="/resultados/lista?page={{ page + 1 }}" hx-include="#filters" hx-target="#job-list">{{ t('btn_next') }}</button>{% endif %}
+</nav>
+{% endif %}

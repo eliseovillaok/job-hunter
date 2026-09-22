@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block nav_cta %}<a class="btn btn-p" href="{{ '/resultados' if has_results else '/empezar' }}">{{ t('nav_cta') }}</a>{% endblock %}
+{% block content %}
+{% if wizard_pending %}<p class="notice">{{ t('web_wizard_pending') }}</p>{% endif %}
+<section class="hero">
+  <div>
+    <span class="eyebrow">● {{ t('hero_eyebrow') }}</span>
+    <h1 class="h1">{{ t('hero_h1_a') }} <em>{{ t('hero_h1_em') }}</em> {{ t('hero_h1_b') }}</h1>
+    <p class="sub">{{ t('hero_sub', n=n_portals) }}</p>
+
+    {# Etapa 2: el CV se sube acá y abre el asistente en el paso 2. #}
+    <a class="drop" href="/empezar">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M12 18v-6M9 15l3-3 3 3"/></svg>
+      <span class="drop-txt"><b>{{ t('web_drop') }}</b> · {{ t('web_drop_formats') }}</span>
+      <span class="btn btn-p">{{ t('up_button') }}</span>
+    </a>
+    <p class="alt">{{ t('web_no_cv') }} <a href="/empezar">{{ t('web_write_profile') }}</a></p>
+
+    <div class="proof">
+      <div class="dots" aria-hidden="true">
+        <i style="background:#DDF0E6">🩺</i><i style="background:#FBE9E4">👩‍🍳</i><i style="background:#E8F3E3">⚡</i><i style="background:#EAF3EE">📚</i><i style="background:#DDF0E6">💻</i>
+      </div>
+      <p><b>{{ t('proof_title') }}</b><br>{{ t('proof_sub') }}</p>
+    </div>
+  </div>
+
+  <div class="mosaic" aria-hidden="true">
+    <div class="tile t1">
+      <svg width="96" height="96" viewBox="0 0 96 96" fill="none" stroke="#DDF0E6" stroke-width="6" stroke-linecap="round"><path d="M28 18v22a20 20 0 0 0 40 0V18"/><path d="M48 60v10a12 12 0 0 0 24 0v-6"/><circle cx="72" cy="58" r="7"/></svg>
+      <span class="lbl">{{ t('tile_health') }}</span>
+    </div>
+    <div class="tile t2">
+      <svg width="120" height="120" viewBox="0 0 120 120"><circle cx="60" cy="60" r="46" fill="#13261E"/><path d="M26 52l11-9 11 9 11-9 11 9 11-9 11 9M26 72l11-9 11 9 11-9 11 9 11-9 11 9" stroke="#7FC8A9" stroke-width="6" fill="none" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="tile t3">
+      <svg width="120" height="120" viewBox="0 0 120 120"><path d="M60 14l46 46-46 46-46-46z" fill="#FBE9E4"/><path d="M60 38l22 22-22 22-22-22z" fill="#A8472E"/></svg>
+    </div>
+    <div class="tile t4">
+      <svg width="96" height="96" viewBox="0 0 96 96" fill="none" stroke="#7FC8A9" stroke-width="6" stroke-linejoin="round"><path d="M52 10L24 54h22l-4 32 30-46H50z"/></svg>
+      <span class="lbl">{{ t('tile_trades') }}</span>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div>
+    <div class="shapes"><span style="background:#7FC8A9"></span><span style="background:#E07A5F;border-radius:50%"></span><span style="background:#1F6F54;border:2px solid #7FC8A9"></span></div>
+    <div class="intro">{{ t('band_intro') }}</div>
+  </div>
+  <div><div class="n">{{ n_portals }}</div><div class="l">{{ t('band_portals') }}</div></div>
+  <div><div class="n">5</div><div class="l">{{ t('band_factors') }}</div></div>
+  <div><div class="n">12</div><div class="l">{{ t('band_professions') }}</div></div>
+  <div><div class="n">ES·EN</div><div class="l">{{ t('band_languages') }}</div></div>
+</section>
+
+<span class="tag" id="como-funciona">{{ t('how_label') }}</span>
+<section class="steps">
+  {% for color in ['#1F6F54', '#E07A5F', '#13261E'] %}
+  <div class="step"><div class="num" style="background:{{ color }}">{{ loop.index }}</div>
+    <h3>{{ t('how%d_title' % loop.index) }}</h3><p>{{ t('how%d_desc' % loop.index) }}</p></div>
+  {% endfor %}
+</section>
+
+<footer class="footer" id="privacidad"><span>{{ t('footer_privacy') }}</span><span>© JobHunter</span></footer>
+{% endblock %}

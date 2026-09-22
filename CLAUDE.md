@@ -69,6 +69,7 @@ Los portales son dependencias poco confiables: HTML y APIs cambian, hay rate lim
 | Archivo | Rol |
 |---|---|
 | `app.py` (~1.1k líneas) | UI Streamlit: navegación, landing, asistente de 4 pasos (CV → acceso a la IA → perfil → búsqueda), orquestación de la búsqueda, resultados con filtros y desglose |
+| `web/` | **Nueva UI (en migración)**: FastAPI + Jinja2 + HTMX. `main.py` (rutas, idioma/tema por cookie, CSP), `templates/` (maqueta aprobada), `static/app.css` (colores solo vía variables de `tokens.json`). Etapa 1: landing + resultados demo |
 | `theme.py` | CSS de marca generado desde `docs/brand/tokens.json` (claro/oscuro) y SVG del logo |
 | `ui.py` | Fragmentos HTML puros de la UI (hero, tarjeta de oferta, anillo de afinidad, stepper); todo texto externo con `html.escape` |
 | `i18n.py` | `TRANSLATIONS` ES/EN (se usa vía `_t()` en `app.py`) |
@@ -96,7 +97,8 @@ py -3.12 -m venv venv; .\venv\Scripts\Activate.ps1
 pip install -r requirements.txt -r requirements-dev.txt
 python -m playwright install chromium      # portales con login (solo local)
 pre-commit install                         # gitleaks en cada commit
-streamlit run app.py                       # app principal
+streamlit run app.py                       # app actual (Streamlit)
+$env:JOB_HUNTER_DEMO="1"; uvicorn web.main:app --reload --port 8600   # app nueva (web/), con datos demo
 python main.py --dry-run                   # CLI
 python browser_login.py linkedin           # guarda sesión en ~/.job-hunter/browser_profiles
 ```
@@ -110,6 +112,9 @@ Eval con Gemini real (a mano, consume cuota): `python -m eval.run` — lee `GEMI
 - **Nuevo portal** = función en `scrapers.py` (o entrada en `PORTALS`) + `use_<portal>` en `_defaults` + rama en el pipeline + checkbox en el wizard + claves i18n + README.
 - Modelo Gemini por defecto: `_defaults["selected_model"]` en `app.py`. Mantener `ai_engine.DEFAULT_MODEL` alineado y no usar modelos deprecados.
 - Los comentarios explican el *por qué*, no el *qué*. Commits enfocados, sin tocar archivos ajenos a la tarea.
+
+## Migración de UI: Streamlit → FastAPI + HTMX (decidida 2026-09-22)
+Streamlit limita el diseño. La UI nueva vive en `web/` y reusa el núcleo (candidate, scrapers, matching, ai_engine), que no depende de Streamlit. Etapas: 1) landing + resultados demo ✅ · 2) asistente (CV, acceso a la IA, perfil, búsqueda) · 3) búsqueda real en segundo plano con progreso y sesión por usuario (nada de estado global) · 4) retirar `app.py`, `theme.py`, `ui.py`. Hasta la etapa 4 Streamlit sigue desplegado: no invertir en pulir su UI. HTML externo siempre con autoescape de Jinja (nunca `|safe` sobre datos externos) y enlaces de ofertas por `safe_url`.
 
 ## Deuda conocida (no empeorarla; atacarla solo con OK)
 - `app.py` todavía mezcla asistente, orquestación de la búsqueda y resultados.
