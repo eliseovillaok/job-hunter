@@ -207,16 +207,23 @@ def test_hybrid_skips_recheck_after_terminal_error():
     assert stop == "quota" and len(calls) == 1 and not any(r.evaluated for r in results)
 
 
-def test_rate_limiter_spaces_calls_per_key():
-    import time as _t
-    from ai_engine import _RateLimiter
-    lim = _RateLimiter()
-    start = _t.monotonic()
+def test_rate_limiter_spaces_calls_per_key(monkeypatch):
+    # Reloj simulado: los tiempos reales en Windows tienen ~15 ms de granularidad.
+    import ai_engine
+    clock = {"now": 100.0}
+    sleeps = []
+
+    def fake_sleep(s):
+        sleeps.append(round(s, 3))
+        clock["now"] += s
+
+    monkeypatch.setattr(ai_engine.time, "monotonic", lambda: clock["now"])
+    monkeypatch.setattr(ai_engine.time, "sleep", fake_sleep)
+    lim = ai_engine._RateLimiter()
     for _ in range(3):
-        lim.wait("key-a", rpm=3000)   # intervalo de 20 ms
-    lim.wait("key-b", rpm=3000)       # otra key: no espera por la primera
-    elapsed = _t.monotonic() - start
-    assert 0.035 <= elapsed < 0.5
+        lim.wait("key-a", rpm=60)      # 1 llamada por segundo
+    lim.wait("key-b", rpm=60)          # otra key: no espera por la primera
+    assert sleeps == [1.0, 1.0]
 
 
 def test_batch_prompt_uses_short_keys_and_marks_jobs_as_data():
