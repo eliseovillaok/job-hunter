@@ -128,6 +128,16 @@ Ambas gratuitas (Google Fonts). No mezclar una tercera familia.
 
 **Personalidad:** clara, honesta, cercana, profesional. Como alguien experto que te ayuda, no como un vendedor.
 
+**Registro: cercano, no coloquial.** Tuteo sí, charla informal no. Nada de muletillas ni expresiones de un país.
+
+| Sí | No |
+|---|---|
+| "Tiempo restante estimado: 1 min 10 s" | "Faltan unos 70 segundos" |
+| "Los resultados aparecerán en cuanto termine la búsqueda." | "Te los mostramos apenas terminemos." |
+| "Pégala en este campo." | "Pégala aquí. ¡Listo!" |
+| "alrededor de 3 minutos", "3 min aprox." | "unos 3 minutos", "~3 min" |
+| "Selecciona…" | "Toca…", "Dale a…" |
+
 | Sí | No |
 |---|---|
 | "Te mostramos por qué cada oferta coincide con tu experiencia." | "¡Nuestra IA mágica encuentra tu trabajo soñado!" |
