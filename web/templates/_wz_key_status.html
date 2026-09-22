@@ -1,0 +1,9 @@
+{# Fragmento HTMX: estado de la clave. Si viene por HTMX, reemplaza también el botón principal (fuera de banda). #}
+{% if not typed %}
+{% elif key_state is sameas true %}<div class="ok-msg">✓ {{ t('wz2_key_ok') }}</div>
+{% elif key_state is none %}<div class="warn-msg">{{ t('wz2_key_unverified') }}</div>
+{% else %}<div class="err-msg">{{ t('wz2_key_bad') }}</div>
+{% endif %}
+{% if request.headers.get('HX-Request') %}
+<div class="r" id="s2-actions" hx-swap-oob="true">{% set fresh = key_state is not sameas false %}{% include "_wz_s2_next.html" %}</div>
+{% endif %}

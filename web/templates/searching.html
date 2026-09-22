@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}{{ t('wz4_search') }} · JobHunter{% endblock %}
+{% block nav_links %}{% endblock %}
+{% block nav_cta %}{% endblock %}
+{% block content %}
+{# Etapa 3: acá va el progreso en vivo (fases y estado por portal, docs/design/mockup-wizard.html). #}
+<div class="run">
+  <div class="card">
+    <div class="eyebrow">{{ t('wz_stage3_eyebrow') }}</div>
+    <h3>{{ t('wz_stage3_title') }}</h3>
+    <p class="help">{{ t('wz_stage3_desc', terms=s.terms|length, portals=s.portals|length, n=s.eval_limit) }}</p>
+    <div class="foot">
+      <a class="btn btn-g" href="/asistente/4">{{ t('btn_back') }}</a>
+      <div class="r"><a class="btn btn-o" href="/">{{ t('wiz_close') }}</a></div>
+    </div>
+  </div>
+</div>
+{% endblock %}

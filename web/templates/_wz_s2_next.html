@@ -1,0 +1,8 @@
+{# Botón principal del paso 2: habilitado cuando la clave no fue rechazada. #}
+{% if key_state is sameas false %}
+<span class="next-hint">{{ t('wz_hint2') }}</span>
+<button class="btn btn-p" type="submit" disabled>{{ t('wz2_analyze') if needs_analysis else t('btn_continue') }}</button>
+{% else %}
+<span class="next-hint">{{ t('wz_hint2_ready') if needs_analysis else '' }}</span>
+<button class="btn btn-p{{ ' ready' if fresh }}" type="submit" data-busy="{{ t('wz2_analyzing') }}">{{ t('wz2_analyze') if needs_analysis else t('btn_continue') }}</button>
+{% endif %}

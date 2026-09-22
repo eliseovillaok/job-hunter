@@ -1,0 +1,79 @@
+{% from "_macros.html" import tip, chip_editor with context %}
+{# Paso 4 · Tu búsqueda. El resumen al pie se actualiza en vivo (app.js) y tiene el botón principal. #}
+<form class="card" action="/asistente/busqueda" method="post" data-search-form data-rpm="{{ rpm }}">
+  <div class="card-h"><div>
+    <div class="eyebrow">{{ t('wz_step_of', n=4) }}</div>
+    <h3>{{ t('wz4_title') }}</h3>
+    <p>{{ t('wz4_desc') }}</p>
+  </div></div>
+
+  <div class="field">
+    <div class="flabel">{{ t('wz4_terms') }} {{ tip(t('wz4_terms_help')) }}</div>
+    {{ chip_editor('terms', s.terms, t('wz4_term_add'), field_id='f-terms', tags=tagged) }}
+  </div>
+
+  <div class="sec">{{ t('wz4_filters') }} {{ tip(t('pref_caption')) }}</div>
+  <div class="grid3">
+    <div class="field">
+      <div class="flabel">{{ t('pref_modality') }} {{ tip(t('wz4_modality_help')) }}</div>
+      <div class="chips">
+        {% for m in ['remote', 'hybrid', 'onsite'] %}<label class="chip"><input type="checkbox" name="modality" value="{{ m }}" {{ 'checked' if m in s.modalities }}><span>{{ t('mod_' ~ m) }}</span></label>{% endfor %}
+      </div>
+    </div>
+    <div class="field">
+      <label for="f-locs">{{ t('wz4_locations') }} {{ tip(t('pref_locations_help')) }}</label>
+      <input id="f-locs" class="input" name="locations" value="{{ s.locations }}" placeholder="{{ t('pref_locations_ph') }}" maxlength="200">
+    </div>
+    <div class="field">
+      <div class="flabel">{{ t('pref_languages') }} {{ tip(t('pref_languages_help')) }}</div>
+      <div class="chips">
+        {% for c in job_langs %}<label class="chip"><input type="checkbox" name="job_lang" value="{{ c }}" {{ 'checked' if c in s.job_languages }}><span>{{ t('lang_' ~ c) }}</span></label>{% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">{{ t('wz4_portals') }}</div>
+  <div class="groups">
+    {% for g in groups %}
+    <div class="group{{ ' wide' if loop.first }}" data-group>
+      <div class="group-h">
+        <label class="cb-label"><input type="checkbox" data-group-toggle {{ 'checked' if g.n_on == g['items']|length }}><b>{{ t('wz4_group_' ~ g.key) }}</b></label>
+        {% if g.key == 'login' %}<span class="beta">{{ t('wz4_beta') }}</span>{% endif %}
+        <span class="count"><span data-group-count>{{ g.n_on }}</span> / {{ g['items']|length }}</span>
+        {% if not loop.first %}<button class="btn-link" type="button" data-toggle="grp-{{ g.key }}" aria-expanded="false" aria-controls="grp-{{ g.key }}">{{ t('wz4_see') }} <span class="caret" aria-hidden="true">▾</span></button>{% endif %}
+      </div>
+      <div class="chips" id="grp-{{ g.key }}" {{ '' if loop.first else 'hidden' }}>
+        {% for p in g['items'] %}<label class="chip"><input type="checkbox" name="portal" value="{{ p.key }}" {{ 'checked' if p.key in s.portals }}><span>{{ p.label }}</span></label>{% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <details class="how">
+    <summary>{{ t('wz4_advanced') }}</summary>
+    <div class="grid2">
+      <div class="field">
+        <div class="rl"><label for="f-minscore">{{ t('wz4_min_score') }} {{ tip(t('wz4_min_score_help')) }}</label><b data-out="f-minscore">{{ s.min_score }}</b></div>
+        <input id="f-minscore" class="range" type="range" name="min_score" min="30" max="90" step="5" value="{{ s.min_score }}" style="--v:{{ ((s.min_score - 30) / 60 * 100)|round|int }}" data-range-min="30" data-range-max="90">
+      </div>
+      <div class="field">
+        <div class="rl"><label for="f-eval">{{ t('eval_limit_label') }} {{ tip(t('eval_limit_help')) }}</label><b data-out="f-eval">{{ s.eval_limit }}</b></div>
+        <input id="f-eval" class="range" type="range" name="eval_limit" min="10" max="200" step="10" value="{{ s.eval_limit }}" style="--v:{{ ((s.eval_limit - 10) / 190 * 100)|round|int }}" data-range-min="10" data-range-max="200">
+      </div>
+    </div>
+  </details>
+
+  <div class="summary">
+    <dl>
+      <div><dt>{{ t('wz4_sum_profile') }}</dt><dd>{{ rail[2].sub }}</dd></div>
+      <div><dt>{{ t('wz4_sum_terms') }}</dt><dd><span data-sum="terms">{{ s.terms|length }}</span></dd></div>
+      <div><dt>{{ t('pref_modality') }}</dt><dd data-sum="modality" data-any="{{ t('pref_any') }}">{% for m in s.modalities %}{{ t('mod_' ~ m) }}{{ ', ' if not loop.last }}{% else %}{{ t('pref_any') }}{% endfor %}</dd></div>
+      <div><dt>{{ t('wz4_portals') }}</dt><dd><span data-sum="portals">{{ n_portals }}</span></dd></div>
+    </dl>
+    <div class="sum-r">
+      <div class="est"><b>~<span data-sum="minutes">{{ estimate }}</span> min</b><span data-sum="eval">{{ s.eval_limit }}</span> {{ t('wz4_sum_eval') }}</div>
+      <button class="btn" type="submit" data-busy="{{ t('wz4_starting') }}">{{ t('wz4_search') }}</button>
+    </div>
+  </div>
+  <div class="summary-back"><a class="btn btn-g" href="/asistente/3">{{ t('btn_back') }}</a></div>
+</form>

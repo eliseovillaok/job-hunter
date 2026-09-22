@@ -1,0 +1,59 @@
+{% from "_macros.html" import tip with context %}
+{# Paso 2 · Acceso a la IA. La clave se verifica mientras se escribe; el botón se habilita cuando es válida. #}
+<form class="card" action="/asistente/ia" method="post" data-busy-form>
+  <div class="card-h"><div>
+    <div class="eyebrow">{{ t('wz_step_of', n=2) }}</div>
+    <h3>{{ t('wz2_title') }}</h3>
+    <p>{{ t('wz2_desc') }}</p>
+  </div></div>
+
+  <div class="why-ai">
+    <div><b>{{ t('wz2_why1_t') }}</b>{{ t('wz2_why1_d') }}</div>
+    <div><b>{{ t('wz2_why2_t') }}</b>{{ t('wz2_why2_d') }}</div>
+    <div><b>{{ t('wz2_why3_t') }}</b>{{ t('wz2_why3_d') }}</div>
+  </div>
+
+  <div class="keyrow">
+    <div class="field">
+      <label for="k">{{ t('step1_key_label') }} {{ tip(t('wz2_key_help')) }}</label>
+      <div class="input-wrap">
+        <input id="k" class="input{{ '' if s.api_key else ' now' }}" type="password" name="key" autocomplete="off" spellcheck="false"
+               placeholder="{{ t('wz2_key_saved') if s.api_key else t('wz2_key_ph') }}" {{ '' if s.api_key else 'autofocus' }}
+               hx-post="/asistente/clave" hx-trigger="input changed delay:700ms, paste delay:100ms" hx-target="#key-status"
+               hx-include="[name=model]" hx-sync="this:replace">
+        <button class="in-btn" type="button" data-reveal="k" data-show="{{ t('wz_show') }}" data-hide="{{ t('wz_hide') }}">{{ t('wz_show') }}</button>
+      </div>
+      <div id="key-status" aria-live="polite">
+        {% if s.api_key %}{% set key_state = s.key_ok %}{% set typed = true %}{% include "_wz_key_status.html" %}{% endif %}
+      </div>
+    </div>
+    <div class="field">
+      <label for="model">{{ t('step1_model_label') }} {{ tip(t('wz2_model_help')) }}</label>
+      <select id="model" class="input" name="model">
+        {% for m in models %}<option value="{{ m }}" {{ 'selected' if m == s.model }}>{{ model_label(m) }}{{ ' · ' ~ t('wz2_recommended') if loop.first }}</option>{% endfor %}
+      </select>
+    </div>
+  </div>
+
+  <div class="opt">
+    <div class="opt-h">
+      <label for="send-email"><b>{{ t('wz2_email_title') }}</b></label> {{ tip(t('wz2_email_help')) }}
+      <span class="sp"></span>
+      <input class="switch" type="checkbox" id="send-email" name="send_email" value="1" {{ 'checked' if s.send_email }} data-reveals="email-body">
+    </div>
+    <div class="opt-body" id="email-body" {{ '' if s.send_email else 'hidden' }}>
+      <div class="grid3">
+        <div class="field"><label for="e1">{{ t('step1_gmail_label') }}</label><input id="e1" class="input" type="email" name="email_sender" value="{{ s.email_sender }}" placeholder="{{ t('ph_email_sender') }}" autocomplete="email"></div>
+        <div class="field"><label for="e2">{{ t('step1_recip_label') }}</label><input id="e2" class="input" type="email" name="email_recipient" value="{{ s.email_recipient }}" placeholder="{{ t('ph_email_recip') }}"></div>
+        <div class="field"><label for="e3">{{ t('wz2_app_pass') }} {{ tip(t('wz2_app_pass_help')) }}</label><input id="e3" class="input" type="password" name="email_password" autocomplete="off" placeholder="{{ t('wz2_key_saved') if s.email_password else 'abcd efgh ijkl mnop' }}"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <a class="btn btn-g" href="/asistente/1">{{ t('btn_back') }}</a>
+    <div class="r" id="s2-actions">
+      {% set key_state = s.key_ok if s.api_key else False %}{% include "_wz_s2_next.html" %}
+    </div>
+  </div>
+</form>

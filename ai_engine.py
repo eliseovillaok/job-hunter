@@ -91,6 +91,23 @@ def _client(api_key: str) -> genai.Client:
     return genai.Client(api_key=api_key, http_options=types.HttpOptions(timeout=HTTP_TIMEOUT_MS))
 
 
+def check_key(api_key: str, model: str = DEFAULT_MODEL) -> bool | None:
+    """Verifica la key pidiendo los metadatos del modelo (no genera texto ni gasta cuota de generación).
+
+    True = válida · False = rechazada por Google · None = no se pudo verificar (red, caída), no bloquear.
+    """
+    if not api_key or not api_key.startswith("AIza"):
+        return False
+    try:
+        _client(api_key).models.get(model=model)
+        return True
+    except Exception as e:  # noqa: BLE001 — cualquier otra falla es "no se pudo verificar"
+        if _is_auth_error(e):
+            return False
+        log.warning("No se pudo verificar la API key: %s", type(e).__name__)
+        return None
+
+
 _TRANSIENT = ("503", "UNAVAILABLE", "500", "INTERNAL", "DEADLINE_EXCEEDED", "timed out", "Timeout", "ReadTimeout")
 
 

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}{{ t('wiz_title') }} · JobHunter{% endblock %}
+{% block nav_links %}{% endblock %}
+{% block nav_cta %}<a class="btn btn-g" href="/">✕ {{ t('wiz_close') }}</a>{% endblock %}
+{% block content %}
+<div class="wz">
+  <aside class="rail">
+    <h2>{{ t('wiz_title') }}</h2>
+    <p>{{ t('wz_rail_intro') }}</p>
+    <ol class="wz-steps">
+      {% for r in rail %}{% set n = loop.index %}{% set done = n < max_step and n != step %}
+      <li class="{{ 'on' if n == step else ('done' if done else '') }}">
+        {% if n <= max_step and n != step %}<a class="dot" href="/asistente/{{ n }}" aria-label="{{ r.title }}">{{ '✓' if done else n }}</a>
+        {% else %}<div class="dot">{{ n }}</div>{% endif %}
+        <div><b>{{ r.title }}</b><small>{{ r.sub }}</small></div>
+      </li>
+      {% endfor %}
+    </ol>
+    <div class="privacy">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+      <span>{{ t('wz_privacy') }}</span>
+    </div>
+  </aside>
+
+  <div>
+    {% if errors %}<div class="alert" role="alert">{% for e in errors %}<p>{{ e }}</p>{% endfor %}</div>{% endif %}
+    {% include "_wz_step%d.html" % step %}
+  </div>
+</div>
+{% endblock %}

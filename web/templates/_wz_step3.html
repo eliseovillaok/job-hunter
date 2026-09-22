@@ -1,0 +1,83 @@
+{% from "_macros.html" import tip, chip_editor with context %}
+{# Paso 3 · Tu perfil. Interpretación de la IA separada de la fuente (CLAUDE.md): cada dato muestra de dónde sale. #}
+<form class="card" action="/asistente/perfil" method="post">
+  <div class="card-h"><div>
+    <div class="eyebrow">{{ t('wz_step_of', n=3) }}</div>
+    {% if structured %}
+    <h3>{{ t('wz3_title') }}</h3>
+    <p>{{ t('wz3_desc') }}</p>
+    {% else %}
+    <h3>{{ t('wz3_manual_title') }}</h3>
+    <p>{{ t('wz3_manual_desc') }}</p>
+    {% endif %}
+  </div></div>
+
+  {% if structured %}
+  <div class="ai-banner">
+    <div class="ic" aria-hidden="true">IA</div>
+    <div><b>{{ t('wz3_ai_title') }}</b> {{ t('wz3_ai_desc') }}
+      {% if review %}
+      <br><button class="review" type="button" data-goto="{{ review[0][1] }}">
+        <span class="dot-c" aria-hidden="true"></span>{{ t('wz3_review', n=review|length) }}: {{ review|map(attribute=0)|join(', ') }} <u>{{ t('wz3_review_go') }}</u>
+      </button>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="field">
+      <label for="f-summary">{{ t('prof_summary') }}</label>
+      <textarea id="f-summary" class="input" name="summary" rows="6" maxlength="4000">{{ p.summary }}</textarea>
+    </div>
+    <div>
+      <div class="field">
+        <div class="flabel">{{ t('wz3_roles') }} {{ tip(t('prof_roles_help')) }}</div>
+        {{ chip_editor('roles', p.target_roles, t('wz_add'), field_id='f-roles') }}
+      </div>
+      <div class="field" id="f-level">
+        <div class="flabel">{{ t('prof_seniority') }} {% if p.seniority_evidence %}{{ tip(t('wz_from_cv') ~ ' «' ~ p.seniority_evidence ~ '»') }}{% endif %}</div>
+        <div class="chips">
+          {% for v in levels %}<label class="chip"><input type="radio" name="seniority" value="{{ v }}" {{ 'checked' if p.seniority == v }}><span>{{ t('sen_' ~ v) }}</span></label>{% endfor %}
+          <label class="chip unknown-opt"><input type="radio" name="seniority" value="unknown" {{ 'checked' if p.seniority not in levels }}><span>{{ t('prof_unknown_short') }}</span></label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid3">
+    <div class="field">
+      <div class="flabel">{{ t('prof_languages') }} {{ tip(t('wz3_langs_help')) }}</div>
+      {{ chip_editor('langs', langs, t('wz3_lang_add'), field_id='f-langs', flagged=unknown_langs) }}
+    </div>
+    <div class="field">
+      <label for="f-location">{{ t('prof_location') }}</label>
+      <input id="f-location" class="input" name="location" value="{{ '' if p.location == 'unknown' else p.location }}" placeholder="{{ t('prof_unknown') }}" maxlength="120">
+    </div>
+    <div class="field">
+      <label for="f-years">{{ t('prof_years') }} {% if p.years_evidence %}{{ tip(t('wz_from_cv') ~ ' «' ~ p.years_evidence ~ '»') }}{% endif %}</label>
+      <input id="f-years" class="input" name="years" inputmode="decimal" value="{{ '' if p.years_experience is none else '%g'|format(p.years_experience) }}" placeholder="{{ t('prof_unknown') }}">
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="field">
+      <div class="flabel">{{ t('prof_skills') }} {{ tip(t('wz3_skills_help')) }}</div>
+      {{ chip_editor('skills', p.skills|map(attribute='name')|list, t('wz_add'), evidence=skill_evidence) }}
+    </div>
+    <div class="field">
+      <label for="f-notes">{{ t('wz3_notes') }} <span>{{ t('wz_optional') }}</span></label>
+      <textarea id="f-notes" class="input" name="notes" rows="4" maxlength="4000" placeholder="{{ t('wz3_notes_ph') }}">{{ p.notes }}</textarea>
+    </div>
+  </div>
+  {% else %}
+  <div class="field">
+    <label for="f-notes">{{ t('wz3_manual_label') }}</label>
+    <textarea id="f-notes" class="input" name="notes" rows="10" maxlength="4000" placeholder="{{ t('step4_ph') }}" autofocus>{{ p.notes }}</textarea>
+  </div>
+  {% endif %}
+
+  <div class="foot">
+    <a class="btn btn-g" href="/asistente/2">{{ t('btn_back') }}</a>
+    <div class="r"><button class="btn btn-p" type="submit">{{ t('btn_continue') }}</button></div>
+  </div>
+</form>

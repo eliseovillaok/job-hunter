@@ -2,7 +2,8 @@
 web/main.py — Interfaz web de JobHunter (FastAPI + Jinja2 + HTMX).
 
 Reemplaza de a poco a la UI de Streamlit (app.py), que sigue desplegada hasta tener paridad.
-Etapa 1: landing y resultados con los datos ficticios de demo.py (JOB_HUNTER_DEMO=1).
+Etapa 1: landing y resultados (datos de demo.py con JOB_HUNTER_DEMO=1).
+Etapa 2: asistente de 4 pasos (web/wizard.py).
 
 Local:  uvicorn web.main:app --reload --port 8600
 """
@@ -10,134 +11,49 @@ Local:  uvicorn web.main:app --reload --port 8600
 from __future__ import annotations
 
 import json
-import zlib
 from datetime import datetime
 from functools import lru_cache
-from pathlib import Path
-from urllib.parse import urlparse
 
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 
 import ai_engine
 import candidate as cand
 import demo
 import matching
 import normalize
-from i18n import TRANSLATIONS
+from web import portals, wizard
+from web import session as sessions
+from web.common import BRAND, LEVELS, ROOT, prefs, render, translator
+# Reexportados para los tests y plantillas existentes.
+from web.common import affinity, avatar_color, dom_id, safe_url  # noqa: F401
 
-ROOT = Path(__file__).resolve().parent
-BRAND = ROOT.parent / "docs" / "brand"
-
-LANGS = ("es", "en")
-THEMES = ("light", "dark")
-LEVELS = ("intern", "junior", "mid", "senior", "lead")
 PAGE_SIZE = 15
 DEFAULT_MIN_SCORE = 65
-# TODO(etapa 3): contar desde el registro real de portales (hoy vive en los _defaults de app.py).
-N_PORTALS = 19
+N_PORTALS = len(portals.available())
 
 app = FastAPI(title="JobHunter", docs_url=None, redoc_url=None, openapi_url=None)
 app.mount("/static", StaticFiles(directory=ROOT / "static"), name="static")
 app.mount("/brand", StaticFiles(directory=BRAND / "logo"), name="brand")
-templates = Jinja2Templates(directory=ROOT / "templates")
+app.include_router(wizard.router)
 
-# Todo lo externo (ofertas, salida del LLM) se escapa: Jinja2Templates autoescapa los .html.
 CSP = ("default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; "
        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; "
        "img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'")
 
 
 @app.middleware("http")
-async def security_headers(request: Request, call_next):
+async def session_and_headers(request: Request, call_next):
+    sid, sess, is_new = sessions.get(request.cookies.get(sessions.COOKIE))
+    request.state.session = sess
     response = await call_next(request)
+    if is_new and not request.url.path.startswith(("/static", "/brand")):
+        response.set_cookie(sessions.COOKIE, sid, httponly=True, samesite="lax", secure=request.url.scheme == "https",
+                            max_age=sessions.TTL_SECONDS)
     response.headers.setdefault("Content-Security-Policy", CSP)
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
-    return response
-
-
-# ─── Marca ───────────────────────────────────────────────────────────────────
-@lru_cache(maxsize=1)
-def css_tokens() -> str:
-    """Variables CSS desde docs/brand/tokens.json (única fuente de colores, BRAND.md §4)."""
-    tk = json.loads((BRAND / "tokens.json").read_text(encoding="utf-8"))
-
-    def block(t: dict) -> str:
-        return "".join(f"--{k}:{v};" for k, v in t.items())
-
-    light, dark = block(tk["light"]), block(tk["dark"])
-    return (f":root{{{light}--forest:{tk['light']['text']};}}"
-            f"@media (prefers-color-scheme: dark){{:root:not([data-theme=\"light\"]){{{dark}--forest:#16241E;}}}}"
-            f":root[data-theme=\"dark\"]{{{dark}--forest:#16241E;}}")
-
-
-@lru_cache(maxsize=None)
-def logo_svg(name: str) -> str:
-    return (BRAND / "logo" / f"{name}.svg").read_text(encoding="utf-8").strip()
-
-
-_AVATAR_COLORS = ["#1F6F54", "#A8472E", "#13261E", "#2B5C8A", "#185A44"]
-
-
-def avatar_color(company: str) -> str:
-    return _AVATAR_COLORS[zlib.crc32((company or "?").strip().lower().encode()) % len(_AVATAR_COLORS)]
-
-
-def affinity(score: int, evaluated: bool = True) -> tuple[str, str]:
-    """(clave de etiqueta, clase de color) según las bandas de docs/scoring.md."""
-    if not evaluated:
-        return "not_evaluated", "na"
-    if score >= 80:
-        return "aff_high", "high"
-    if score >= 60:
-        return "aff_good", "mid"
-    if score >= 40:
-        return "aff_partial", "low"
-    return "aff_low", "low"
-
-
-def dom_id(job) -> str:
-    """id HTML estable y seguro para una oferta (los ids de los portales traen cualquier carácter)."""
-    return f"j{zlib.crc32(f'{job.id}|{job.title}|{job.company}'.encode()):08x}"
-
-
-def safe_url(url: str | None) -> str | None:
-    """Solo enlaces http(s): una oferta no puede inyectar javascript: ni data: en un href."""
-    if url and urlparse(url).scheme in ("http", "https"):
-        return url
-    return None
-
-
-# ─── Idioma y tema (cookies; ?lang= y ?theme= los cambian) ──────────────────
-def prefs(request: Request) -> tuple[str, str | None]:
-    lang = request.query_params.get("lang") or request.cookies.get("lang") or "es"
-    theme = request.query_params.get("theme") or request.cookies.get("theme")
-    return (lang if lang in LANGS else "es"), (theme if theme in THEMES else None)
-
-
-def translator(lang: str):
-    table = TRANSLATIONS[lang]
-
-    def t(key: str, **kw) -> str:
-        text = table.get(key) or TRANSLATIONS["es"].get(key, key)
-        return text.format(**kw) if kw else text
-
-    return t
-
-
-def render(request: Request, name: str, **ctx) -> HTMLResponse:
-    lang, theme = prefs(request)
-    response = templates.TemplateResponse(request, name, {
-        "t": translator(lang), "lang": lang, "theme": theme, "css_tokens": css_tokens(),
-        "logo_light": logo_svg("lockup-light"), "logo_dark": logo_svg("lockup-dark"),
-        "avatar_color": avatar_color, "affinity": affinity, "safe_url": safe_url, "dom_id": dom_id, **ctx,
-    })
-    for key, value in (("lang", request.query_params.get("lang")), ("theme", request.query_params.get("theme"))):
-        if value in (LANGS if key == "lang" else THEMES):
-            response.set_cookie(key, value, max_age=31536000, samesite="lax")
     return response
 
 
@@ -211,11 +127,8 @@ def landing(request: Request):
 
 
 @app.get("/empezar")
-def start(request: Request):
-    # Etapa 2: acá va el asistente. Mientras tanto, en demo lleva directo a los resultados.
-    if current_results():
-        return RedirectResponse("/resultados", status_code=303)
-    return render(request, "landing.html", n_portals=N_PORTALS, has_results=False, wizard_pending=True)
+def start():
+    return RedirectResponse("/asistente", status_code=303)
 
 
 @app.get("/resultados", response_class=HTMLResponse)
