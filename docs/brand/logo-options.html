@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JobHunter · Logotipo v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#F4F8F5;--surface:#FFFFFF;--border:#DCE8E1;--text:#13261E;--text-2:#3E5A4E;--muted:#58736A;--primary:#1F6F54}
+  *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}
+  .wrap{max-width:1200px;margin:0 auto;padding:40px 28px 60px}
+  h1{font:800 34px 'Bricolage Grotesque',sans-serif;letter-spacing:-.02em;margin:0 0 6px}
+  .lead{color:var(--text-2);margin:0 0 28px;font-size:15px;max-width:820px;line-height:1.5}
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:22px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:24px;overflow:hidden}
+  .head{padding:20px 24px 4px;display:flex;align-items:baseline;gap:10px}
+  .head b{font:800 20px 'Bricolage Grotesque',sans-serif;color:var(--primary)} .head span{font-weight:700;font-size:16px}
+  .idea{padding:0 24px;color:var(--text-2);font-size:13.5px;line-height:1.5;min-height:40px}
+  .row{display:grid;grid-template-columns:auto 1fr;gap:26px;align-items:center;padding:20px 24px}
+  .icon{width:120px;height:120px;border-radius:27px;box-shadow:0 10px 26px rgba(19,38,30,.18)}
+  .lock{display:flex;flex-direction:column;gap:18px}
+  .lockup{display:flex;align-items:center;gap:12px}
+  .lockup svg{width:44px;height:44px;border-radius:11px}
+  .word{font:800 30px 'Bricolage Grotesque',sans-serif;letter-spacing:-.025em;color:var(--text)} .word i{font-style:normal;color:var(--primary)}
+  .dark{background:#0F1A16;border-radius:14px;padding:12px 16px}
+  .dark .word{color:#E8F2EC;font-size:24px} .dark .word i{color:#5FCB9F} .dark svg{width:36px;height:36px;border-radius:9px}
+  .phone{display:flex;gap:18px;align-items:flex-end;padding:16px 24px 20px;border-top:1px solid var(--border);background:linear-gradient(135deg,#2B3A33,#4B5D54)}
+  .app{display:flex;flex-direction:column;align-items:center;gap:6px;color:#fff;font-size:11px}
+  .app svg{border-radius:14px}
+  .small svg{border-radius:7px}
+  @media(max-width:900px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<!-- Isotipos (100×100). Fondo con radio para usar como ícono de app; se recorta con border-radius en el uso. -->
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <!-- A · JH ligadura: la J comparte el asta con la H -->
+    <symbol id="A" viewBox="0 0 100 100">
+      <rect width="100" height="100" fill="#1F6F54"/>
+      <path d="M43 25V60c0 12-8 17-17 17-6 0-10-3-12-7" stroke="#FFFFFF" stroke-width="12" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M43 49H72M72 25V77" stroke="#FFFFFF" stroke-width="12" fill="none" stroke-linecap="round"/>
+    </symbol>
+    <!-- B · JH que apunta al norte: el asta derecha de la H termina en una flecha -->
+    <symbol id="B" viewBox="0 0 100 100">
+      <rect width="100" height="100" fill="#13261E"/>
+      <path d="M40 30V60c0 12-8 17-17 17-6 0-10-3-12-7" stroke="#FFFFFF" stroke-width="11" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M40 52H70M70 36V77" stroke="#FFFFFF" stroke-width="11" fill="none" stroke-linecap="round"/>
+      <path d="M70 12L82 34H58z" fill="#E07A5F"/>
+    </symbol>
+    <!-- C · Brújula al norte -->
+    <symbol id="C" viewBox="0 0 100 100">
+      <rect width="100" height="100" fill="#1F6F54"/>
+      <circle cx="50" cy="52" r="31" fill="none" stroke="#7FC8A9" stroke-width="5"/>
+      <path d="M50 14l11 38H39z" fill="#E07A5F"/>
+      <path d="M50 90L39 52h22z" fill="#FFFFFF"/>
+      <circle cx="50" cy="52" r="5" fill="#1F6F54"/>
+    </symbol>
+    <!-- D · La J como aguja: la J termina arriba en una punta que apunta al norte -->
+    <symbol id="D" viewBox="0 0 100 100">
+      <rect width="100" height="100" fill="#1F6F54"/>
+      <circle cx="50" cy="50" r="36" fill="none" stroke="#DDF0E6" stroke-opacity=".35" stroke-width="4"/>
+      <path d="M58 40V60c0 11-7 16-15 16-6 0-10-3-12-7" stroke="#FFFFFF" stroke-width="12" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M58 11L71 36H45z" fill="#E07A5F"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="wrap">
+  <h1>JobHunter · Logotipo v2</h1>
+  <p class="lead">Aprendido de la competencia: los íconos que se reconocen son <b>una sola forma gruesa sobre un color sólido</b> (InfoJobs, Computrabajo, Jobs.ie, Reed) o un <b>símbolo de dirección</b> (Bumeran, OCC). Casi todos son azules: el esmeralda nos distingue. Las cuatro opciones están dibujadas como ícono de app y probadas a tamaño real de pantalla de inicio (60 px) y de favicon.</p>
+  <div class="grid">
+
+    <div class="card">
+      <div class="head"><b>A</b><span>JH ligadura</span></div>
+      <p class="idea">La J y la H comparten el asta: una sola forma, propia y legible. Sobria y profesional, en la línea de InfoJobs o Computrabajo, pero en esmeralda.</p>
+      <div class="row">
+        <svg class="icon"><use href="#A"/></svg>
+        <div class="lock">
+          <div class="lockup"><svg><use href="#A"/></svg><span class="word">Job<i>Hunter</i></span></div>
+          <div class="lockup dark"><svg><use href="#A"/></svg><span class="word">Job<i>Hunter</i></span></div>
+        </div>
+      </div>
+      <div class="phone"><div class="app"><svg width="60" height="60"><use href="#A"/></svg>JobHunter</div><div class="app small"><svg width="32" height="32"><use href="#A"/></svg>32</div><div class="app small"><svg width="16" height="16"><use href="#A"/></svg>16</div></div>
+    </div>
+
+    <div class="card">
+      <div class="head"><b>B</b><span>JH con norte</span></div>
+      <p class="idea">La misma ligadura, pero la H termina en una flecha coral que apunta arriba: tu próximo paso profesional. Combina el monograma con la idea de brújula.</p>
+      <div class="row">
+        <svg class="icon"><use href="#B"/></svg>
+        <div class="lock">
+          <div class="lockup"><svg><use href="#B"/></svg><span class="word">Job<i>Hunter</i></span></div>
+          <div class="lockup dark"><svg><use href="#B"/></svg><span class="word">Job<i>Hunter</i></span></div>
+        </div>
+      </div>
+      <div class="phone"><div class="app"><svg width="60" height="60"><use href="#B"/></svg>JobHunter</div><div class="app small"><svg width="32" height="32"><use href="#B"/></svg>32</div><div class="app small"><svg width="16" height="16"><use href="#B"/></svg>16</div></div>
+    </div>
+
+    <div class="card">
+      <div class="head"><b>C</b><span>Brújula al norte</span></div>
+      <p class="idea">Una brújula limpia: aguja coral hacia el norte dentro de un anillo menta. Orientación y dirección; reconocible sin necesidad de letras.</p>
+      <div class="row">
+        <svg class="icon"><use href="#C"/></svg>
+        <div class="lock">
+          <div class="lockup"><svg><use href="#C"/></svg><span class="word">Job<i>Hunter</i></span></div>
+          <div class="lockup dark"><svg><use href="#C"/></svg><span class="word">Job<i>Hunter</i></span></div>
+        </div>
+      </div>
+      <div class="phone"><div class="app"><svg width="60" height="60"><use href="#C"/></svg>JobHunter</div><div class="app small"><svg width="32" height="32"><use href="#C"/></svg>32</div><div class="app small"><svg width="16" height="16"><use href="#C"/></svg>16</div></div>
+    </div>
+
+    <div class="card">
+      <div class="head"><b>D</b><span>J aguja</span></div>
+      <p class="idea">La J de Job se convierte en la aguja de una brújula: termina arriba en una punta que apunta al norte. Una letra (como Jobs.ie o Reed) con significado propio.</p>
+      <div class="row">
+        <svg class="icon"><use href="#D"/></svg>
+        <div class="lock">
+          <div class="lockup"><svg><use href="#D"/></svg><span class="word">Job<i>Hunter</i></span></div>
+          <div class="lockup dark"><svg><use href="#D"/></svg><span class="word">Job<i>Hunter</i></span></div>
+        </div>
+      </div>
+      <div class="phone"><div class="app"><svg width="60" height="60"><use href="#D"/></svg>JobHunter</div><div class="app small"><svg width="32" height="32"><use href="#D"/></svg>32</div><div class="app small"><svg width="16" height="16"><use href="#D"/></svg>16</div></div>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>
