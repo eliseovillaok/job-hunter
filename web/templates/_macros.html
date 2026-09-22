@@ -1,22 +1,27 @@
-{# Componentes reutilizables. Importar con: {% from "_macros.html" import tip, chip_editor with context %} #}
+{# Componentes reutilizables. Importar con: {% from "_macros.html" import tip, chip_editor, field_error with context %} #}
 
 {% macro tip(text) -%}
 <span class="tt" tabindex="0" role="button" aria-label="{{ t('wz_more_info') }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg><span class="tt-b" role="tooltip">{{ text }}</span></span>
 {%- endmacro %}
 
-{# Lista editable de chips: cada chip es un checkbox marcado (desmarcar = quitar); el campo final agrega. #}
+{# Error junto al campo que falla. Ocupa su lugar siempre: mostrarlo no mueve el resto de la pantalla. #}
+{% macro field_error(errors, name) -%}
+<p class="field-err" data-err-for="{{ name }}" {{ '' if errors and errors.get(name) else 'hidden' }}>{{ (errors or {}).get(name, '') }}</p>
+{%- endmacro %}
+
+{# Lista de etiquetas: la × las quita de verdad; "+ Agregar" abre un campo para sumar una nueva. #}
 {% macro chip_editor(name, values, add_label, field_id='', evidence=None, tags=None, flagged=()) -%}
-<div class="chips" {% if field_id %}id="{{ field_id }}"{% endif %} data-chip-list>
+<div class="chips" {% if field_id %}id="{{ field_id }}"{% endif %} data-chip-list="{{ name }}">
   {% for v in values %}
-  <label class="chip on{% if evidence %} skill{% endif %}{% if v in flagged %} flag{% endif %}">
-    <input type="checkbox" name="{{ name }}" value="{{ v }}" checked>
+  <span class="chip{% if evidence %} skill{% endif %}{% if v in flagged %} flag{% endif %}">
+    <input type="hidden" name="{{ name }}" value="{{ v }}">
     {% if v in flagged %}<span class="dot-c" aria-hidden="true"></span>{% endif %}
     {% if tags and tags.get(v|lower) %}<small>{{ tags.get(v|lower)|upper }}</small>{% endif %}
-    <span>{{ v }}{% if v in flagged %} <span class="lvl">· {{ t('wz_level_unknown') }}</span>{% endif %}</span>
-    <span class="x" aria-hidden="true">×</span>
+    <span class="txt">{{ v }}{% if v in flagged %} <span class="lvl">· {{ t('wz_level_unknown') }}</span>{% endif %}</span>
+    <button class="x" type="button" aria-label="{{ t('wz_remove', item=v) }}">×</button>
     {% if evidence and evidence.get(v|lower) %}<span class="tt-b" role="tooltip">{{ t('wz_from_cv') }} «{{ evidence.get(v|lower) }}»</span>{% endif %}
-  </label>
+  </span>
   {% endfor %}
-  <input class="chip-add" type="text" data-add-name="{{ name }}" placeholder="+ {{ add_label }}" aria-label="{{ add_label }}" maxlength="80">
+  <button class="chip-add" type="button" data-add-to="{{ name }}" data-placeholder="{{ add_label }}">+ {{ add_label }}</button>
 </div>
 {%- endmacro %}

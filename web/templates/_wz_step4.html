@@ -1,5 +1,6 @@
-{% from "_macros.html" import tip, chip_editor with context %}
-{# Paso 4 · Tu búsqueda. El resumen al pie se actualiza en vivo (app.js) y tiene el botón principal. #}
+{% from "_macros.html" import tip, chip_editor, field_error with context %}
+{# Paso 4 · Tu búsqueda. A la vista solo los términos; el resto se abre si hace falta cambiarlo.
+   El resumen al pie se actualiza en vivo (app.js) y tiene el botón principal. #}
 <form class="card" action="/asistente/busqueda" method="post" data-search-form data-rpm="{{ rpm }}">
 <div class="autosave" hx-post="/asistente/borrador/4" hx-trigger="change, input delay:800ms" hx-include="closest form" hx-swap="none" hx-disinherit="*">
   <div class="card-h"><div>
@@ -11,58 +12,83 @@
   <div class="field">
     <div class="flabel">{{ t('wz4_terms') }} {{ tip(t('wz4_terms_help')) }}</div>
     {{ chip_editor('terms', s.terms, t('wz4_term_add'), field_id='f-terms', tags=tagged) }}
+    {{ field_error(errors, 'terms') }}
   </div>
 
-  <div class="sec">{{ t('wz4_filters') }} {{ tip(t('pref_caption')) }}</div>
-  <div class="grid3">
-    <div class="field">
-      <div class="flabel">{{ t('pref_modality') }} {{ tip(t('wz4_modality_help')) }}</div>
-      <div class="chips">
-        {% for m in ['remote', 'hybrid', 'onsite'] %}<label class="chip"><input type="checkbox" name="modality" value="{{ m }}" {{ 'checked' if m in s.modalities }}><span>{{ t('mod_' ~ m) }}</span></label>{% endfor %}
+  <div class="rows">
+    <div class="row" data-row id="row-where">
+      <div class="rl">{{ t('wz4_where') }}</div>
+      <div class="rv" data-where-preview data-any="{{ t('pref_any') }}">
+        {%- for m in s.modalities %}{{ t('mod_' ~ m) }}{{ ', ' if not loop.last }}{% else %}{{ t('pref_any') }}{% endfor %}
+        {%- if s.locations %} · {{ s.locations }}{% endif %}
+        {%- if s.job_languages %} · {% for c in s.job_languages %}{{ t('lang_' ~ c) }}{{ ', ' if not loop.last }}{% endfor %}{% endif -%}
+      </div>
+      <button class="link-btn" type="button" data-edit data-done="{{ t('wz_done') }}">{{ t('wz_edit') }}</button>
+      <div class="re" hidden>
+        <p class="help">{{ t('pref_caption') }}</p>
+        <div class="grid3">
+          <div class="field">
+            <div class="flabel">{{ t('pref_modality') }} {{ tip(t('wz4_modality_help')) }}</div>
+            <div class="chips">
+              {% for m in ['remote', 'hybrid', 'onsite'] %}<label class="chip"><input type="checkbox" name="modality" value="{{ m }}" {{ 'checked' if m in s.modalities }}><span>{{ t('mod_' ~ m) }}</span></label>{% endfor %}
+            </div>
+          </div>
+          <div class="field">
+            <label for="f-locs">{{ t('wz4_locations') }} {{ tip(t('pref_locations_help')) }}</label>
+            <input id="f-locs" class="input" name="locations" value="{{ s.locations }}" placeholder="{{ t('pref_locations_ph') }}" maxlength="200">
+          </div>
+          <div class="field">
+            <div class="flabel">{{ t('pref_languages') }} {{ tip(t('pref_languages_help')) }}</div>
+            <div class="chips">
+              {% for c in job_langs %}<label class="chip"><input type="checkbox" name="job_lang" value="{{ c }}" {{ 'checked' if c in s.job_languages }}><span>{{ t('lang_' ~ c) }}</span></label>{% endfor %}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
-    <div class="field">
-      <label for="f-locs">{{ t('wz4_locations') }} {{ tip(t('pref_locations_help')) }}</label>
-      <input id="f-locs" class="input" name="locations" value="{{ s.locations }}" placeholder="{{ t('pref_locations_ph') }}" maxlength="200">
+
+    <div class="row" data-row id="row-portals">
+      <div class="rl">{{ t('wz4_portals') }}</div>
+      <div class="rv" data-portals-preview data-tpl="{{ t('wz4_portals_n', n='{n}') }}">{{ t('wz4_portals_n', n=n_portals) }}</div>
+      <button class="link-btn" type="button" data-edit data-done="{{ t('wz_done') }}">{{ t('wz_edit') }}</button>
+      <div class="re" hidden>
+        {{ field_error(errors, 'portal') }}
+        <div class="groups">
+          {% for g in groups %}
+          <div class="group" data-group>
+            <div class="group-h">
+              <label class="cb-label"><input type="checkbox" data-group-toggle {{ 'checked' if g.n_on == g['items']|length }}><b>{{ t('wz4_group_' ~ g.key) }}</b></label>
+              {% if g.key == 'login' %}<span class="beta">{{ t('wz4_beta') }}</span>{% endif %}
+              <span class="count"><span data-group-count>{{ g.n_on }}</span> / {{ g['items']|length }}</span>
+              <button class="btn-link" type="button" data-toggle="grp-{{ g.key }}" aria-expanded="false" aria-controls="grp-{{ g.key }}">{{ t('wz4_see') }} <span class="caret" aria-hidden="true">▾</span></button>
+            </div>
+            <div class="chips" id="grp-{{ g.key }}" hidden>
+              {% for p in g['items'] %}<label class="chip"><input type="checkbox" name="portal" value="{{ p.key }}" {{ 'checked' if p.key in s.portals }}><span>{{ p.label }}</span></label>{% endfor %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
     </div>
-    <div class="field">
-      <div class="flabel">{{ t('pref_languages') }} {{ tip(t('pref_languages_help')) }}</div>
-      <div class="chips">
-        {% for c in job_langs %}<label class="chip"><input type="checkbox" name="job_lang" value="{{ c }}" {{ 'checked' if c in s.job_languages }}><span>{{ t('lang_' ~ c) }}</span></label>{% endfor %}
+
+    <div class="row" data-row id="row-advanced">
+      <div class="rl">{{ t('wz4_advanced') }} <span class="opt">{{ t('wz_optional') }}</span></div>
+      <div class="rv" data-adv-preview data-tpl="{{ t('wz4_adv_preview', score='{score}', n='{n}') }}">{{ t('wz4_adv_preview', score=s.min_score, n=s.eval_limit) }}</div>
+      <button class="link-btn" type="button" data-edit data-done="{{ t('wz_done') }}">{{ t('wz_edit') }}</button>
+      <div class="re" hidden>
+        <div class="grid2">
+          <div class="field">
+            <div class="rl-range"><label for="f-minscore">{{ t('wz4_min_score') }} {{ tip(t('wz4_min_score_help')) }}</label><b data-out="f-minscore">{{ s.min_score }}</b></div>
+            <input id="f-minscore" class="range" type="range" name="min_score" min="30" max="90" step="5" value="{{ s.min_score }}" style="--v:{{ ((s.min_score - 30) / 60 * 100)|round|int }}" data-range-min="30" data-range-max="90">
+          </div>
+          <div class="field">
+            <div class="rl-range"><label for="f-eval">{{ t('eval_limit_label') }} {{ tip(t('eval_limit_help')) }}</label><b data-out="f-eval">{{ s.eval_limit }}</b></div>
+            <input id="f-eval" class="range" type="range" name="eval_limit" min="10" max="200" step="10" value="{{ s.eval_limit }}" style="--v:{{ ((s.eval_limit - 10) / 190 * 100)|round|int }}" data-range-min="10" data-range-max="200">
+          </div>
+        </div>
       </div>
     </div>
   </div>
-
-  <div class="sec">{{ t('wz4_portals') }}</div>
-  <div class="groups">
-    {% for g in groups %}
-    <div class="group{{ ' wide' if loop.first }}" data-group>
-      <div class="group-h">
-        <label class="cb-label"><input type="checkbox" data-group-toggle {{ 'checked' if g.n_on == g['items']|length }}><b>{{ t('wz4_group_' ~ g.key) }}</b></label>
-        {% if g.key == 'login' %}<span class="beta">{{ t('wz4_beta') }}</span>{% endif %}
-        <span class="count"><span data-group-count>{{ g.n_on }}</span> / {{ g['items']|length }}</span>
-        {% if not loop.first %}<button class="btn-link" type="button" data-toggle="grp-{{ g.key }}" aria-expanded="false" aria-controls="grp-{{ g.key }}">{{ t('wz4_see') }} <span class="caret" aria-hidden="true">▾</span></button>{% endif %}
-      </div>
-      <div class="chips" id="grp-{{ g.key }}" {{ '' if loop.first else 'hidden' }}>
-        {% for p in g['items'] %}<label class="chip"><input type="checkbox" name="portal" value="{{ p.key }}" {{ 'checked' if p.key in s.portals }}><span>{{ p.label }}</span></label>{% endfor %}
-      </div>
-    </div>
-    {% endfor %}
-  </div>
-
-  <details class="how" id="wz4-avanzadas">
-    <summary>{{ t('wz4_advanced') }}</summary>
-    <div class="grid2">
-      <div class="field">
-        <div class="rl"><label for="f-minscore">{{ t('wz4_min_score') }} {{ tip(t('wz4_min_score_help')) }}</label><b data-out="f-minscore">{{ s.min_score }}</b></div>
-        <input id="f-minscore" class="range" type="range" name="min_score" min="30" max="90" step="5" value="{{ s.min_score }}" style="--v:{{ ((s.min_score - 30) / 60 * 100)|round|int }}" data-range-min="30" data-range-max="90">
-      </div>
-      <div class="field">
-        <div class="rl"><label for="f-eval">{{ t('eval_limit_label') }} {{ tip(t('eval_limit_help')) }}</label><b data-out="f-eval">{{ s.eval_limit }}</b></div>
-        <input id="f-eval" class="range" type="range" name="eval_limit" min="10" max="200" step="10" value="{{ s.eval_limit }}" style="--v:{{ ((s.eval_limit - 10) / 190 * 100)|round|int }}" data-range-min="10" data-range-max="200">
-      </div>
-    </div>
-  </details>
 
   <div class="summary">
     <dl>

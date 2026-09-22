@@ -131,8 +131,11 @@ def test_profile_page_escapes_cv_content_and_flags_missing_data(client, monkeypa
     through_step2(client, monkeypatch, profile(summary="<script>alert(1)</script>", location=cand.UNKNOWN))
     html = client.get("/asistente/3").text
     assert "<script>alert(1)</script>" not in html and "&lt;script&gt;" in html
+    # El aviso lleva al primer dato incompleto y las filas afectadas quedan marcadas.
     review = html.split('class="review"')[1].split("</button>")[0]
-    assert "ubicación" in review and "nivel de Inglés" in review and 'data-goto="f-' in html
+    assert "Datos para completar (3)" in review and 'data-goto="row-f-' in html
+    for row in ("row-f-years", "row-f-location", "row-f-langs"):
+        assert f'id="{row}"' in html
 
 
 def test_profile_form_keeps_evidence_and_marks_user_additions(client, monkeypatch):
@@ -274,3 +277,12 @@ def test_step_4_requires_confirming_the_profile(client, monkeypatch):
     assert client.get("/asistente/4", follow_redirects=False).status_code == 303
     client.post("/asistente/perfil", data={"summary": "x", "roles": ["Contadora"]})
     assert client.get("/asistente/4", follow_redirects=False).status_code == 200
+
+
+def test_failed_submit_keeps_the_step_url(client, monkeypatch):
+    through_step2(client, monkeypatch)
+    client.post("/asistente/perfil", data={"summary": "x", "roles": ["Contadora"]})
+    r = client.post("/asistente/busqueda", data={"portal": "remotive"},
+                    headers={"HX-Request": "true", "HX-Boosted": "true"})
+    assert r.status_code == 400 and r.headers.get("HX-Push-Url") == "false"
+    assert 'data-err-for="terms"' in r.text and "alert" not in r.text.split("<main")[1][:400]

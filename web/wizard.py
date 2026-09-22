@@ -364,7 +364,7 @@ async def save_ai(request: Request):
     apply_ai_form(s, form)
     key = str(form.get("key", "")).strip() or s.api_key
 
-    errors = []
+    errors = {}
     if not key:
         ok = False
     elif key != s.api_key or s.key_ok is None:
@@ -372,16 +372,16 @@ async def save_ai(request: Request):
     else:
         ok = s.key_ok
     if ok is False:
-        errors.append(t("wz_err_key"))
+        errors["key"] = t("wz_err_key")
     else:
         s.api_key, s.key_ok = key, ok
     if s.send_email:
         if "@" not in s.email_sender:
-            errors.append(t("val_email"))
+            errors["email_sender"] = t("val_email")
         if "@" not in s.email_recipient:
-            errors.append(t("val_recip"))
+            errors["email_recipient"] = t("val_recip")
         if len(s.email_password.replace(" ", "")) != 16:
-            errors.append(t("val_pass"))
+            errors["email_password"] = t("val_pass")
     if errors:
         return page(request, 2, status_code=400, errors=errors, **step_context(request, 2))
 
@@ -390,11 +390,11 @@ async def save_ai(request: Request):
             profile = analyze_cv(s)
         except ai_engine.AuthError:
             s.api_key, s.key_ok = "", False
-            return page(request, 2, status_code=400, errors=[t("wz_err_key")], **step_context(request, 2))
+            return page(request, 2, status_code=400, errors={"key": t("wz_err_key")}, **step_context(request, 2))
         except ai_engine.QuotaExceeded:
-            return page(request, 2, status_code=429, errors=[t("wz_err_quota")], **step_context(request, 2))
+            return page(request, 2, status_code=429, errors={"_": t("wz_err_quota")}, **step_context(request, 2))
         except Exception:  # noqa: BLE001 — nunca mostrar la excepción cruda al usuario
-            return page(request, 2, status_code=502, errors=[t("wz_err_analyze")], **step_context(request, 2))
+            return page(request, 2, status_code=502, errors={"_": t("wz_err_analyze")}, **step_context(request, 2))
         s.profile = profile
         s.profile_confirmed = False
         s.analyzed_cv_id = s.cv.id
@@ -415,7 +415,7 @@ async def save_profile(request: Request):
         return go(s.max_step())
     apply_profile_form(s, await request.form(), t)
     if s.profile.is_empty():
-        return page(request, 3, status_code=400, errors=[t("step4_warning")], **step_context(request, 3))
+        return page(request, 3, status_code=400, errors={"notes": t("step4_warning")}, **step_context(request, 3))
     s.profile_confirmed = True
     return go(4)
 
@@ -429,11 +429,11 @@ async def save_search(request: Request):
     if s.max_step() < 4:
         return go(s.max_step())
     apply_search_form(s, await request.form())
-    errors = []
+    errors = {}
     if not s.terms:
-        errors.append(t("val_no_kw"))
+        errors["terms"] = t("val_no_kw")
     if not s.portals:
-        errors.append(t("wz_err_portals"))
+        errors["portal"] = t("wz_err_portals")
     if errors:
         return page(request, 4, status_code=400, errors=errors, **step_context(request, 4))
     s.search_ready = True

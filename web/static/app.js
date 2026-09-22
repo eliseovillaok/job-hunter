@@ -7,6 +7,15 @@ document.documentElement.classList.toggle("no-vt", !hasVT);
 
 
 // ─── Abrir/cerrar con animación de altura ────────────────────────────────────
+// El estado final nunca depende de que la animación termine: si el navegador no la ejecuta
+// (pestaña en segundo plano, ahorro de energía), un temporizador deja igual el resultado.
+function animateThen(anim, ms, done) {
+  let ran = false;
+  const finish = () => { if (!ran) { ran = true; done(); } };
+  if (anim) anim.addEventListener("finish", finish);
+  setTimeout(finish, ms);
+}
+
 function slide(el, show) {
   if (show === !el.hidden) return;
   if (reduceMotion() || !el.animate) { el.hidden = !show; return; }
@@ -14,7 +23,7 @@ function slide(el, show) {
   const h = el.scrollHeight;
   const frames = [{ height: "0px", opacity: 0, overflow: "hidden" }, { height: `${h}px`, opacity: 1, overflow: "hidden" }];
   const anim = el.animate(show ? frames : frames.reverse(), { duration: 220, easing: "cubic-bezier(.2,.7,.2,1)" });
-  anim.onfinish = () => { if (!show) el.hidden = true; };
+  animateThen(anim, 260, () => { if (!show) el.hidden = true; });
 }
 
 // ─── Clics ───────────────────────────────────────────────────────────────────
@@ -86,6 +95,41 @@ document.addEventListener("click", (e) => {
     return;
   }
 
+  // Quitar una etiqueta.
+  const removeChip = e.target.closest("[data-chip-list] .x");
+  if (removeChip) {
+    const chip = removeChip.closest(".chip");
+    const list = chip.parentElement;
+    const drop = () => {
+      chip.remove();
+      list.dispatchEvent(new Event("change", { bubbles: true }));
+      refreshRow(list.closest("[data-row]"));
+    };
+    const fade = chip.animate && !reduceMotion()
+      ? chip.animate([{ opacity: 1, transform: "scale(1)" }, { opacity: 0, transform: "scale(.85)" }], { duration: 140, easing: "ease" })
+      : null;
+    animateThen(fade, 170, drop);
+    return;
+  }
+
+  // "+ Agregar" de una lista de etiquetas.
+  const addBtn = e.target.closest("[data-add-to]");
+  if (addBtn) { openChipInput(addBtn); return; }
+
+  // Filas "dato · valor · Editar": se abre solo la que se quiere cambiar.
+  const editBtn = e.target.closest("[data-edit]");
+  if (editBtn) {
+    const row = editBtn.closest("[data-row]");
+    const panel = row.querySelector(".re");
+    const open = panel.hidden;
+    slide(panel, open);
+    row.classList.toggle("open", open);
+    editBtn.textContent = open ? editBtn.dataset.done : editBtn.dataset.label;
+    if (open) setTimeout(() => panel.querySelector("input:not([type=hidden]), textarea, .chip-add")?.focus({ preventScroll: true }), 220);
+    else refreshRow(row);
+    return;
+  }
+
   // Abrir/cerrar un panel ("Por qué este puntaje", portales de un grupo).
   const toggle = e.target.closest("[data-toggle]");
   if (toggle) {
@@ -111,7 +155,7 @@ document.addEventListener("click", (e) => {
     } else {
       rememberOpen(details.id || summary.textContent.trim(), false);
       body.forEach((b) => slide(b, false));
-      setTimeout(() => { details.open = false; body.forEach((b) => { b.hidden = false; }); }, 230);
+      setTimeout(() => { details.open = false; body.forEach((b) => { b.hidden = false; }); }, 260);
     }
     return;
   }
@@ -134,6 +178,8 @@ document.addEventListener("click", (e) => {
     target.scrollIntoView({ behavior: reduceMotion() ? "auto" : "smooth", block: "center" });
     target.classList.add("attn");
     setTimeout(() => target.classList.remove("attn"), 2200);
+    const rowEdit = target.matches("[data-row]") ? target.querySelector("[data-edit]") : null;
+    if (rowEdit && target.querySelector(".re")?.hidden) rowEdit.click();
     const field = target.querySelector("input:not([type=checkbox]):not([type=radio]), textarea") ||
       (target.matches("input, textarea") ? target : null);
     if (field) setTimeout(() => field.focus({ preventScroll: true }), 400);
@@ -147,37 +193,53 @@ document.addEventListener("keydown", (e) => {
     e.preventDefault();
     document.getElementById(label.htmlFor)?.click();
   }
-  // Chips: Enter o coma agregan el texto como chip nuevo, sin enviar el formulario.
-  if (e.target.matches("[data-add-name]") && (e.key === "Enter" || e.key === ",")) {
-    e.preventDefault();
-    addChip(e.target);
-  }
   // Escape cierra el tooltip abierto.
   if (e.key === "Escape" && document.activeElement?.closest(".tt")) document.activeElement.blur();
 });
-document.addEventListener("focusout", (e) => {
-  if (e.target.matches?.("[data-add-name]")) addChip(e.target);
-});
-
 function addChip(input) {
-  const value = input.value.replace(/,/g, " ").trim().replace(/\s+/g, " ");
-  if (!value) return;
   const list = input.closest("[data-chip-list]");
-  const exists = [...list.querySelectorAll("input[type=checkbox]")].find((c) => c.value.toLowerCase() === value.toLowerCase());
-  if (exists) {
-    exists.checked = true;
-  } else {
-    const chip = document.createElement("label");
-    chip.className = "chip on added";
-    const box = Object.assign(document.createElement("input"), { type: "checkbox", name: input.dataset.addName, value, checked: true });
-    const text = Object.assign(document.createElement("span"), { textContent: value });
-    const x = Object.assign(document.createElement("span"), { className: "x", textContent: "×" });
-    x.setAttribute("aria-hidden", "true");
-    chip.append(box, text, x);
-    list.insertBefore(chip, input);
-  }
+  const value = input.value.replace(/,/g, " ").trim().replace(/\s+/g, " ");
+  const name = list.dataset.chipList;
   input.value = "";
+  if (!value) return;
+  const exists = [...list.querySelectorAll(`input[name="${name}"]`)]
+    .find((h) => h.value.toLowerCase() === value.toLowerCase());
+  if (exists) {                                    // ya está: se resalta en vez de duplicar
+    const chip = exists.closest(".chip");
+    chip.classList.remove("added"); void chip.offsetWidth; chip.classList.add("added");
+    return;
+  }
+  const chip = document.createElement("span");
+  chip.className = "chip added";
+  const hidden = Object.assign(document.createElement("input"), { type: "hidden", name, value });
+  const text = Object.assign(document.createElement("span"), { className: "txt", textContent: value });
+  const x = Object.assign(document.createElement("button"), { type: "button", className: "x", textContent: "×" });
+  x.setAttribute("aria-label", `Quitar ${value}`);
+  chip.append(hidden, text, x);
+  list.insertBefore(chip, input.closest(".chip-add-wrap") || input);
   list.dispatchEvent(new Event("change", { bubbles: true }));
+  refreshRow(list.closest("[data-row]"));
+}
+
+// "+ Agregar" abre un campo en el lugar; Enter agrega, Escape cancela.
+function openChipInput(btn) {
+  const list = btn.closest("[data-chip-list]");
+  const wrap = document.createElement("span");
+  wrap.className = "chip-add-wrap";
+  const input = Object.assign(document.createElement("input"), {
+    type: "text", className: "chip-add-field", placeholder: btn.dataset.placeholder, maxLength: 80,
+  });
+  input.setAttribute("aria-label", btn.dataset.placeholder);
+  wrap.append(input);
+  list.insertBefore(wrap, btn);
+  btn.hidden = true;
+  input.focus();
+  const close = () => { wrap.remove(); btn.hidden = false; };
+  input.addEventListener("keydown", (ev) => {
+    if (ev.key === "Enter" || ev.key === ",") { ev.preventDefault(); addChip(input); }
+    if (ev.key === "Escape") { ev.preventDefault(); close(); btn.focus(); }
+  });
+  input.addEventListener("blur", () => { addChip(input); setTimeout(close, 0); });
 }
 
 // ─── Tooltips: que nunca se corten contra el borde de la pantalla ────────────
@@ -273,6 +335,57 @@ document.addEventListener("htmx:confirm", (e) => {
     .finally(() => { dirty.removeAttribute("data-dirty"); e.detail.issueRequest(true); });
 });
 
+// ─── Resumen de cada fila, siempre al día ───────────────────────────────────
+function refreshRow(row) {
+  if (!row) return;
+  const preview = row.querySelector("[data-preview], [data-where-preview], [data-portals-preview], [data-adv-preview]");
+  if (!preview) return;
+  const txt = (el) => el.textContent.trim();
+  const fallback = preview.dataset.any || "—";
+
+  if (preview.hasAttribute("data-portals-preview")) {
+    const n = row.querySelectorAll("input[name=portal]:checked").length;
+    preview.textContent = (preview.dataset.tpl || "{n}").replace("{n}", n);
+    return;
+  }
+  if (preview.hasAttribute("data-adv-preview")) {
+    const score = row.querySelector("[name=min_score]")?.value ?? "";
+    const n = row.querySelector("[name=eval_limit]")?.value ?? "";
+    preview.textContent = (preview.dataset.tpl || "").replace("{score}", score).replace("{n}", n);
+    return;
+  }
+  if (preview.hasAttribute("data-where-preview")) {
+    const mods = [...row.querySelectorAll("input[name=modality]:checked")].map((b) => txt(b.nextElementSibling));
+    const langs = [...row.querySelectorAll("input[name=job_lang]:checked")].map((b) => txt(b.nextElementSibling));
+    const place = row.querySelector("[name=locations]")?.value.trim();
+    preview.textContent = [mods.length ? mods.join(", ") : fallback, place, langs.join(", ")].filter(Boolean).join(" · ");
+    return;
+  }
+  const chips = row.querySelector("[data-chip-list]");
+  if (chips) {
+    const names = [...chips.querySelectorAll(".chip .txt")].map((c) => txt(c).replace(/\s+·.*$/, ""));
+    preview.textContent = names.join(", ") || fallback;
+    return;
+  }
+  const radio = row.querySelector("input[type=radio]:checked");
+  if (radio) { preview.textContent = txt(radio.nextElementSibling); return; }
+  const field = row.querySelector("input:not([type=hidden]), textarea");
+  if (field) preview.textContent = field.value.trim() || fallback;
+}
+
+document.addEventListener("input", (e) => refreshRow(e.target.closest("[data-row]")));
+document.addEventListener("change", (e) => refreshRow(e.target.closest("[data-row]")));
+
+// ─── Errores: se borran en cuanto el usuario corrige el campo ───────────────
+document.addEventListener("input", (e) => {
+  const field = e.target.closest("[name]");
+  if (!field || !field.classList.contains("has-error")) return;
+  field.classList.remove("has-error");
+  field.removeAttribute("aria-invalid");
+  const msg = document.querySelector(`[data-err-for="${field.name}"]`);
+  if (msg) msg.hidden = true;
+});
+
 // ─── Controles con valor en vivo ────────────────────────────────────────────
 document.addEventListener("input", (e) => {
   const t = e.target;
@@ -319,6 +432,7 @@ document.addEventListener("change", (e) => {
     const boxes = [...group.querySelectorAll("input[name=portal]")];
     if (e.target.matches("[data-group-toggle]")) boxes.forEach((b) => { b.checked = e.target.checked; });
     syncGroup(group);
+    refreshRow(group.closest("[data-row]"));   // el resumen de la fila, después de aplicar el cambio
   }
   updateSummary(form);
 });
@@ -399,7 +513,10 @@ function init(root = document) {
   if (page?.dataset.lang) document.documentElement.lang = page.dataset.lang;
   const top = document.querySelector("[data-to-top]");
   if (top) { top.hidden = false; top.classList.toggle("show", scrollY > 480); }
+  const firstError = document.querySelector(".has-error");
+  if (firstError) firstError.focus({ preventScroll: false });
   restoreOpen(root);
+  root.querySelectorAll("[data-edit]").forEach((b) => { b.dataset.label = b.dataset.label || b.textContent.trim(); });
   root.querySelectorAll("[data-group]").forEach(syncGroup);
   root.querySelectorAll("[data-enables]").forEach(syncEnables);
   // Entrada desde otra página con #sección: desplazamiento suave hasta ella.

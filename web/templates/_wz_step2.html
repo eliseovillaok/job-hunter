@@ -1,4 +1,4 @@
-{% from "_macros.html" import tip with context %}
+{% from "_macros.html" import tip, field_error with context %}
 {# Paso 2 · Acceso a la IA. La clave se verifica mientras se escribe; el botón se habilita cuando es válida. #}
 <form class="card" action="/asistente/ia" method="post">
 <div class="autosave" hx-post="/asistente/borrador/2" hx-trigger="change, input delay:800ms" hx-include="closest form" hx-swap="none" hx-disinherit="*">
@@ -38,6 +38,7 @@
       </div>
       <div class="checking" id="key-checking" aria-hidden="true"><span class="spin"></span>{{ t('wz2_checking') }}</div>
       <div id="key-status" aria-live="polite"></div>
+      {{ field_error(errors, 'key') }}
       {% endif %}
     </div>
     <div class="field">
@@ -56,9 +57,9 @@
     </div>
     <div class="opt-body" id="email-body" {{ '' if s.send_email else 'hidden' }}>
       <div class="grid3">
-        <div class="field"><label for="e1">{{ t('step1_gmail_label') }}</label><input id="e1" class="input" type="email" name="email_sender" value="{{ s.email_sender }}" placeholder="{{ t('ph_email_sender') }}" autocomplete="email"></div>
-        <div class="field"><label for="e2">{{ t('step1_recip_label') }}</label><input id="e2" class="input" type="email" name="email_recipient" value="{{ s.email_recipient }}" placeholder="{{ t('ph_email_recip') }}"></div>
-        <div class="field"><label for="e3">{{ t('wz2_app_pass') }} {{ tip(t('wz2_app_pass_help')) }}</label><input id="e3" class="input" type="password" name="email_password" autocomplete="off" placeholder="{{ t('wz2_key_saved') if s.email_password else 'abcd efgh ijkl mnop' }}"></div>
+        <div class="field"><label for="e1">{{ t('step1_gmail_label') }}</label><input id="e1" class="input" type="email" name="email_sender" {{ 'class="input has-error" aria-invalid="true"'|safe if errors and errors.get('email_sender') }} value="{{ s.email_sender }}" placeholder="{{ t('ph_email_sender') }}" autocomplete="email">{{ field_error(errors, 'email_sender') }}</div>
+        <div class="field"><label for="e2">{{ t('step1_recip_label') }}</label><input id="e2" class="input" type="email" name="email_recipient" {{ 'class="input has-error" aria-invalid="true"'|safe if errors and errors.get('email_recipient') }} value="{{ s.email_recipient }}" placeholder="{{ t('ph_email_recip') }}">{{ field_error(errors, 'email_recipient') }}</div>
+        <div class="field"><label for="e3">{{ t('wz2_app_pass') }} {{ tip(t('wz2_app_pass_help')) }}</label><input id="e3" class="input" type="password" name="email_password" {{ 'class="input has-error" aria-invalid="true"'|safe if errors and errors.get('email_password') }} autocomplete="off" placeholder="{{ t('wz2_key_saved') if s.email_password else 'abcd efgh ijkl mnop' }}">{{ field_error(errors, 'email_password') }}</div>
       </div>
     </div>
   </div>
