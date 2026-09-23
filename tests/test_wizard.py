@@ -1,4 +1,6 @@
-"""Tests del asistente web (web/wizard.py). Sin red ni IA: check_key y extract_profile se reemplazan."""
+"""Tests del asistente web (web/wizard.py). Sin red ni IA: check_key, los portales y el matching se reemplazan."""
+
+import time
 
 import pytest
 from fastapi.testclient import TestClient
@@ -6,9 +8,12 @@ from fastapi.testclient import TestClient
 import ai_engine
 import candidate as cand
 import demo
+import matching
+import scrapers
 from candidate import CandidateProfile, Language, Skill
+from helpers import make_job
 from web import session as sessions
-from web import wizard
+from web import run, wizard
 from web.main import app
 
 KEY = "AIza-test-key-0000"
@@ -18,6 +23,11 @@ KEY = "AIza-test-key-0000"
 def no_demo_no_ai(monkeypatch):
     monkeypatch.setattr(demo, "enabled", lambda: False)
     monkeypatch.setattr(ai_engine, "check_key", lambda key, model=None: key.startswith("AIza"))
+    # Enviar el paso 4 lanza una búsqueda de verdad: acá los portales y el matching son de mentira.
+    monkeypatch.setattr(scrapers, "PORTAL_SCRAPERS",
+                        {"remotive": lambda keywords, max_results=0: [make_job()]})
+    monkeypatch.setattr(matching, "match_jobs",
+                        lambda jobs, *a, **k: matching.MatchResult(scored=[], total_found=len(jobs)))
     sessions.reset()
 
 
@@ -314,3 +324,83 @@ def test_rail_only_says_connected_when_there_is_a_key(client):
     assert "Gemini conectado" not in client.get("/asistente/2").text
     client.post("/asistente/ia", data={"key": KEY})
     assert "Gemini conectado" in client.get("/asistente/2").text
+
+
+# ─── Pantalla de búsqueda ────────────────────────────────────────────────────
+def search(client, monkeypatch, **extra):
+    """Deja la sesión en el paso 4 y lanza la búsqueda."""
+    through_step2(client, monkeypatch)
+    client.post("/asistente/perfil", data={"summary": "x", "roles": ["Contadora"]})
+    data = {"terms": ["Contadora"], "portal": ["remotive"], **extra}
+    client.post("/asistente/busqueda", data=data, follow_redirects=False)
+    return next(iter(sessions._store.values()))
+
+
+def finished(s, timeout=5.0):
+    limit = time.time() + timeout
+    while s.run.active and time.time() < limit:
+        time.sleep(0.01)
+    assert not s.run.active
+    return s.run
+
+
+def test_submitting_step4_starts_the_search(client, monkeypatch):
+    s = search(client, monkeypatch)
+    assert s.run is not None and [p.key for p in s.run.portals] == ["remotive"]
+    assert finished(s).outcome == run.SUCCESS
+
+
+def test_the_progress_screen_shows_phases_and_every_portal(client, monkeypatch):
+    monkeypatch.setitem(scrapers.PORTAL_SCRAPERS, "remotive",
+                        lambda keywords, max_results=0: time.sleep(0.4) or [make_job()])
+    s = search(client, monkeypatch)
+    html = client.get("/buscando").text
+    assert 'id="run"' in html and 'hx-get="/buscando/estado"' in html
+    assert "Remotive" in html and "Portales" in html
+    assert "/buscando/detener" in html
+    finished(s)
+    # Terminada y con resultados, esta pantalla ya no tiene nada que mostrar.
+    r = client.get("/buscando", follow_redirects=False)
+    assert r.status_code == 303 and r.headers["location"] == "/resultados"
+
+
+def test_the_state_fragment_polls_while_the_search_runs(client, monkeypatch):
+    monkeypatch.setitem(scrapers.PORTAL_SCRAPERS, "remotive",
+                        lambda keywords, max_results=0: time.sleep(0.3) or [make_job()])
+    s = search(client, monkeypatch)
+    fragment = client.get("/buscando/estado", headers={"HX-Request": "true"}).text
+    assert 'hx-trigger="every 1s"' in fragment and "<html" not in fragment
+    finished(s)
+
+
+def test_a_finished_search_sends_the_user_to_the_results(client, monkeypatch):
+    s = search(client, monkeypatch)
+    finished(s)
+    hx = client.get("/buscando/estado", headers={"HX-Request": "true"})
+    assert hx.status_code == 204 and hx.headers["HX-Redirect"] == "/resultados"
+    plain = client.get("/buscando/estado", follow_redirects=False)
+    assert plain.status_code == 303 and plain.headers["location"] == "/resultados"
+
+
+def test_stopping_the_search_explains_what_happened(client, monkeypatch):
+    monkeypatch.setitem(scrapers.PORTAL_SCRAPERS, "remotive",
+                        lambda keywords, max_results=0: time.sleep(0.3) or [make_job()])
+    s = search(client, monkeypatch)
+    client.post("/buscando/detener", headers={"HX-Request": "true"})
+    assert finished(s).outcome == run.CANCELED
+    html = client.get("/buscando").text
+    assert "Detuviste la búsqueda" in html and 'hx-trigger="every 1s"' not in html
+
+
+def test_an_empty_search_does_not_pretend_to_have_results(client, monkeypatch):
+    monkeypatch.setitem(scrapers.PORTAL_SCRAPERS, "remotive", lambda keywords, max_results=0: [])
+    s = search(client, monkeypatch)
+    assert finished(s).outcome == run.EMPTY
+    html = client.get("/buscando").text
+    assert "No encontramos ofertas" in html and "/asistente/4" in html
+
+
+def test_the_search_screen_needs_a_search(client, monkeypatch):
+    through_step2(client, monkeypatch)
+    r = client.get("/buscando", follow_redirects=False)
+    assert r.status_code == 303 and r.headers["location"] == "/asistente/3"

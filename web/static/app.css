@@ -302,6 +302,34 @@ form.alt { display: flex; gap: 6px; align-items: baseline; flex-wrap: wrap; }
   background: none; border: 0; padding: 0; text-align: left; }
 .review u { color: var(--primary); text-decoration: none; white-space: nowrap; }
 
+/* Pantalla de búsqueda: fases, barra y estado portal por portal (docs/design/mockup-wizard.html) */
+.run { max-width: 820px; margin: 0 auto; }
+.run .card { padding: 34px; }
+.run h3 { font-size: 30px; }
+.bigbar { height: 10px; border-radius: 9px; background: var(--surface-2); overflow: hidden; margin: 22px 0 10px; }
+.bigbar i { display: block; height: 100%; border-radius: 9px; background: linear-gradient(90deg, var(--primary), var(--accent));
+  transition: width .6s cubic-bezier(.2, .7, .2, 1); }
+.run-meta { display: flex; justify-content: space-between; gap: 12px; font-size: 12.5px; color: var(--text-muted); }
+.phases { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 24px 0; }
+.ph { border-radius: 16px; padding: 14px; background: var(--bg); font-size: 13px; color: var(--text-muted);
+  transition: background-color .2s ease, border-color .2s ease; }
+.ph b { display: block; font-size: 14px; color: var(--text-2); margin-bottom: 2px; }
+.ph.done { background: var(--surface-2); } .ph.done b { color: var(--primary); }
+.ph.on { background: var(--surface); box-shadow: inset 0 0 0 1.5px var(--primary); } .ph.on b { color: var(--text); }
+.log { border: 1px solid var(--border-subtle); border-radius: 16px; overflow: hidden; display: grid; grid-template-columns: 1fr 1fr; }
+.log div { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 10px; align-items: center;
+  padding: 10px 14px; font-size: 13.5px; border-top: 1px solid var(--border-subtle); }
+.log div:nth-child(odd) { border-right: 1px solid var(--border-subtle); }
+.log div:first-child, .log div:nth-child(2) { border-top: 0; }
+.log div.pending { opacity: .55; }
+.log span:nth-child(2) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.log span:last-child { color: var(--text-muted); font-size: 12.5px; white-space: nowrap; }
+.log .s-ok { color: var(--success); font-weight: 800; }
+.log .s-err { color: var(--warning); font-weight: 800; }
+.log .s-run { color: var(--primary); display: inline-grid; place-items: center; }
+.run .foot .hint { font-size: 12.5px; color: var(--text-muted); max-width: 46ch; }
+.run .foot form { display: contents; }
+
 /* Paso 4 */
 .where-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px 18px; }
 .where-grid > .field:last-child { grid-column: 1 / -1; }
@@ -468,7 +496,7 @@ html.no-vt .page { animation: fade-plain .18s ease both; }
   .wz-steps li { grid-template-columns: 1fr; justify-items: center; text-align: center; padding: 0; }
   .wz-steps small, .privacy, .rail > p { display: none; } .wz-steps b { font-size: 12px; }
   .summary { grid-template-columns: 1fr; } .sum-r { border-left: 0; padding-left: 0; justify-content: space-between; }
-  .grid3 { grid-template-columns: 1fr 1fr; }
+  .grid3, .phases { grid-template-columns: 1fr 1fr; }
   .filters { position: static; }
   .job { grid-template-columns: 44px 1fr; }
   .avatar { width: 44px; height: 44px; }
@@ -486,7 +514,10 @@ html.no-vt .page { animation: fade-plain .18s ease both; }
   .ring { width: 64px; height: 64px; } .ring div { width: 50px; height: 50px; font-size: 18px; }
   .band { grid-template-columns: 1fr; }
   .card { padding: 22px 18px; }
-  .grid2, .grid3, .where-grid, .keyrow, .why-ai, .groups { grid-template-columns: 1fr; }
+  .grid2, .grid3, .where-grid, .keyrow, .why-ai, .groups, .log { grid-template-columns: 1fr; }
+  .log div:nth-child(odd) { border-right: 0; } .log div:nth-child(2) { border-top: 1px solid var(--border-subtle); }
+  .log { max-height: 300px; overflow-y: auto; }   /* 15 portales en una columna no valen 700 px de pantalla */
+  .run .card { padding: 22px 18px; } .run h3 { font-size: 24px; }
   .foot { flex-direction: column-reverse; align-items: stretch; } .foot .r { flex-direction: column-reverse; } .foot .btn { width: 100%; }
   .to-top { right: 16px; bottom: 16px; width: 44px; height: 44px; }
   .next-hint { text-align: center; }

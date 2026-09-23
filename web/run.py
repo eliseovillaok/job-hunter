@@ -24,6 +24,7 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Optional
 
+import demo
 import matching
 import scrapers
 from candidate import CandidateProfile
@@ -114,6 +115,25 @@ class Run:
         return (self.finished or time.time()) - self.started
 
     @property
+    def progress(self) -> int:
+        """Avance 0-100. Leer los portales pesa menos que evaluar con IA, que es lo que tarda."""
+        if self.phase == QUEUED:
+            return 0
+        if self.phase == SCRAPING:
+            return int(5 + 35 * self.portals_done / max(1, len(self.portals)))
+        if self.phase == EVALUATING:
+            return int(45 + 55 * self.evaluated / max(1, self.to_evaluate))
+        return 100
+
+    @property
+    def eta(self) -> Optional[int]:
+        """Segundos que faltan, a partir de lo que ya tardó. None mientras no haya con qué estimar."""
+        done = self.progress
+        if not self.active or done < 10:
+            return None
+        return int(self.elapsed * (100 - done) / done)
+
+    @property
     def portals_done(self) -> int:
         return sum(1 for p in self.portals if p.status in (DONE, FAILED))
 
@@ -152,11 +172,14 @@ def _execute(run: Run, cfg: RunConfig) -> None:
     if not _slots.acquire(timeout=max(1.0, deadline - time.time())):
         return _finish(run, TIMEOUT)   # el proceso está lleno y no se liberó a tiempo
     try:
-        jobs = _scrape(run, cfg, deadline)
-        _check(run, deadline)
-        if not jobs:
-            return _finish(run, EMPTY if run.portals_ok else ERROR)
-        _evaluate(run, cfg, jobs, deadline)
+        if demo.enabled():
+            _demo(run, cfg, deadline)
+        else:
+            jobs = _scrape(run, cfg, deadline)
+            _check(run, deadline)
+            if not jobs:
+                return _finish(run, EMPTY if run.portals_ok else ERROR)
+            _evaluate(run, cfg, jobs, deadline)
         _finish(run, PARTIAL if run.failed_portals else SUCCESS)
     except _Stopped:
         _finish(run, TIMEOUT if time.time() >= deadline else CANCELED)
@@ -199,6 +222,31 @@ def _evaluate(run: Run, cfg: RunConfig, jobs: list[scrapers.JobPosting], deadlin
         api_key=cfg.api_key, model=cfg.model, lang=cfg.lang,
         top_n=cfg.eval_limit, on_progress=on_progress,
     )
+
+
+def _demo(run: Run, cfg: RunConfig, deadline: float) -> None:
+    """Modo demo (JOB_HUNTER_DEMO=1): recorre las fases con los datos ficticios de demo.py.
+
+    Sin red ni IA, para poder mirar y probar la pantalla de progreso entera."""
+    profile, scored = demo.load()
+    run.phase = SCRAPING
+    for i, portal in enumerate(run.portals):
+        _check(run, deadline)
+        portal.status = RUNNING
+        time.sleep(0.35)
+        portal.found = 4 + (i * 3) % 11
+        portal.status = DONE
+        run.found += portal.found
+    run.phase = EVALUATING
+    run.to_evaluate = min(cfg.eval_limit, max(len(scored), 12))
+    step = max(1, run.to_evaluate // 10)
+    while run.evaluated < run.to_evaluate:
+        _check(run, deadline)
+        time.sleep(0.3)
+        run.evaluated = min(run.to_evaluate, run.evaluated + step)
+    run.result = matching.MatchResult(
+        scored=scored, total_found=run.found, duplicates_removed=4,
+        excluded={"modality": 3}, pre_ranked_out=max(0, run.found - run.to_evaluate))
 
 
 def _check(run: Run, deadline: float) -> None:

@@ -20,8 +20,8 @@ import candidate as cand
 import demo
 import normalize
 from candidate import CandidateProfile
-from web import portals, settings
-from web.common import LEVELS, render, sess, t_for
+from web import portals, run, settings
+from web.common import LEVELS, prefs, render, sess, t_for
 from web.session import CVFile, Session
 
 router = APIRouter()
@@ -479,13 +479,49 @@ async def save_search(request: Request):
     if errors:
         return invalid(request, 4, errors, **step_context(request, 4))
     s.search_ready = True
+    run.start(s, prefs(request)[0])
     return RedirectResponse("/buscando", status_code=303)
 
 
 @router.get("/buscando", response_class=HTMLResponse)
 def searching(request: Request):
-    # Etapa 3: acá corre la búsqueda en segundo plano con progreso en vivo.
+    """Pantalla de progreso. El trabajo corre en su hilo (web/run.py); acá solo se lee su estado."""
+    if (r := expired(request)) is not None:
+        return r
     s = sess(request)
-    if not s.search_ready:
+    if s.run is None:
         return go(s.max_step())
-    return render(request, "searching.html", s=s)
+    if s.run.outcome in (run.SUCCESS, run.PARTIAL):
+        return RedirectResponse("/resultados", status_code=303)
+    return render(request, "searching.html", s=s, run=s.run)
+
+
+def run_state(request: Request):
+    """Estado actual de la corrida: el fragmento, o el camino a los resultados si ya terminó bien."""
+    if (r := expired(request)) is not None:
+        return r
+    s = sess(request)
+    if s.run is None:
+        return go(s.max_step())
+    if s.run.outcome in (run.SUCCESS, run.PARTIAL):
+        if request.headers.get("HX-Request"):
+            return Response(status_code=204, headers={"HX-Redirect": "/resultados"})
+        return RedirectResponse("/resultados", status_code=303)
+    return render(request, "_run.html", s=s, run=s.run)
+
+
+@router.get("/buscando/estado", response_class=HTMLResponse)
+def searching_state(request: Request):
+    """Se pide una vez por segundo mientras la búsqueda corre."""
+    return run_state(request)
+
+
+@router.post("/buscando/detener")
+def stop_search(request: Request):
+    """Detener corta entre portales o al terminar la tanda de evaluación en curso."""
+    s = sess(request)
+    if s.run is not None:
+        s.run.cancel()
+    if not request.headers.get("HX-Request"):
+        return RedirectResponse("/buscando", status_code=303)
+    return run_state(request)

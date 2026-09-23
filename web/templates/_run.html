@@ -1,0 +1,84 @@
+{% from "_macros.html" import tip with context %}
+{# Progreso de la búsqueda. Se refresca solo cada segundo; cuando termina bien, /buscando/estado
+   responde con una redirección a los resultados y este fragmento deja de pedirse. #}
+<div class="card" id="run" hx-get="/buscando/estado" {% if run.active %}hx-trigger="every 1s"{% endif %}
+     hx-target="this" hx-swap="outerHTML transition:false">
+{% if run.active %}
+  <div class="eyebrow">{{ t('run_eta', time=format_duration(run.eta)) if run.eta else t('run_eta_unknown') }}</div>
+  <h3>{{ t('run_title_' ~ run.phase) }}</h3>
+
+  <div class="bigbar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ run.progress }}">
+    <i style="width: {{ run.progress }}%"></i>
+  </div>
+  <div class="run-meta" aria-live="polite">
+    <span>
+      {%- if run.phase == 'evaluating' %}{{ t('run_evaluated', done=run.evaluated, total=run.to_evaluate) }}
+      {%- elif run.phase == 'queued' %}{{ t('run_queued_note') }}
+      {%- else %}{{ t('run_found', n=run.found) }}{% endif -%}
+    </span>
+    <span>{{ run.progress }} %</span>
+  </div>
+
+  {% set evaluating = run.phase == 'evaluating' %}
+  <div class="phases">
+    <div class="ph {{ 'done' if evaluating else ('on' if run.phase == 'scraping' else '') }}">
+      <b>{{ '✓ ' if evaluating }}{{ t('run_phase_search') }}</b>
+      {{ t('run_phase_search_detail', jobs=run.found, portals=run.portals_ok) }}
+    </div>
+    <div class="ph {{ 'done' if evaluating else '' }}">
+      <b>{{ '✓ ' if evaluating }}{{ t('run_phase_filters') }}</b>{{ t('run_phase_filters_detail') }}
+    </div>
+    <div class="ph {{ 'done' if evaluating else '' }}">
+      <b>{{ '✓ ' if evaluating }}{{ t('run_phase_prerank') }}</b>
+      {{ t('run_phase_prerank_detail', n=run.to_evaluate) if evaluating else '—' }}
+    </div>
+    <div class="ph {{ 'on' if evaluating else '' }}">
+      <b>{{ t('run_phase_ai') }}</b>
+      {{ t('run_evaluated_short', done=run.evaluated, total=run.to_evaluate) if evaluating else '—' }}
+    </div>
+  </div>
+
+  <div class="flabel">{{ t('run_portals') }}</div>
+  <div class="log">
+    {% for p in run.portals %}
+    <div class="{{ p.status }}">
+      <span class="s-{{ 'ok' if p.status == 'done' else ('err' if p.status == 'failed' else 'run') }}" aria-hidden="true">
+        {%- if p.status == 'done' %}✓{% elif p.status == 'failed' %}!{% elif p.status == 'running' %}<span class="spin"></span>{% else %}·{% endif -%}
+      </span>
+      <span>{{ p.label }}</span>
+      <span>
+        {%- if p.status == 'done' %}{{ t('run_portal_jobs', n=p.found) }}
+        {%- elif p.status == 'failed' %}{{ t('run_portal_failed') }}
+        {%- elif p.status == 'running' %}{{ t('run_portal_reading') }}
+        {%- else %}{{ t('run_portal_waiting') }}{% endif -%}
+      </span>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="foot">
+    <span class="hint">{{ t('run_hint') }}</span>
+    <div class="r">
+      <form action="/buscando/detener" method="post" hx-post="/buscando/detener" hx-target="#run">
+        <button class="btn btn-o" type="submit">{{ t('run_stop') }}</button>
+      </form>
+      {{ tip(t('run_stop_help')) }}
+    </div>
+  </div>
+
+{% else %}
+  {# Terminó sin resultados que mostrar: se dice qué pasó y se vuelve al paso 4. #}
+  <div class="card-h"><div>
+    <div class="eyebrow">{{ t('run_end_eyebrow') }}</div>
+    <h3>{{ t('run_end_' ~ run.outcome) }}</h3>
+    <p>{{ t('run_end_' ~ run.outcome ~ '_desc') }}</p>
+  </div></div>
+  {% if run.failed_portals %}
+  <p class="help">{{ t('run_end_failed_portals', portals=run.failed_portals|map(attribute='label')|join(', ')) }}</p>
+  {% endif %}
+  <div class="foot">
+    <span></span>
+    <div class="r"><a class="btn btn-p" href="/asistente/4">{{ t('run_back') }}</a></div>
+  </div>
+{% endif %}
+</div>
