@@ -9,10 +9,13 @@ __pycache__/
 .pytest_cache/
 tests/
 eval/
+# ...salvo los datos ficticios del modo demo (JOB_HUNTER_DEMO=1), que la imagen sí lleva.
+!eval/dataset.json
 scripts/
-docs/private/
-docs/design/
-docs/*.md
+# De docs/ la app solo usa los colores y el logo; el resto es documentación.
+docs/
+!docs/brand/tokens.json
+!docs/brand/logo/
 *.md
 !README.md
 .env
