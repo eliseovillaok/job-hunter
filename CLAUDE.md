@@ -82,7 +82,7 @@ Los portales son dependencias poco confiables: HTML y APIs cambian, hay rate lim
 | Archivo | Rol |
 |---|---|
 | `app.py` (~1.1k líneas) | UI Streamlit: navegación, landing, asistente de 4 pasos (CV → acceso a la IA → perfil → búsqueda), orquestación de la búsqueda, resultados con filtros y desglose |
-| `web/` | **Nueva UI (en migración)**: FastAPI + Jinja2 + HTMX. `main.py` (landing, resultados, middleware de sesión y CSP), `wizard.py` (asistente de 4 pasos), `session.py` (estado por usuario en memoria, cookie httponly, vence a las 3 h), `portals.py` (portales por región), `common.py` (plantillas, idioma/tema, marca), `templates/` (maquetas aprobadas), `static/app.css` (colores solo vía variables de `tokens.json`) |
+| `web/` | **Nueva UI (en migración)**: FastAPI + Jinja2 + HTMX. `main.py` (landing, resultados, salud, middleware de sesión y CSP), `wizard.py` (asistente de 4 pasos), `run.py` (la búsqueda en un hilo, con su progreso en la sesión), `session.py` (estado por usuario en memoria, cookie httponly, vence a las 3 h), `portals.py` (portales por región), `common.py` (plantillas, idioma/tema, marca), `templates/` (maquetas aprobadas), `static/app.css` (colores solo vía variables de `tokens.json`) |
 | `theme.py` | CSS de marca generado desde `docs/brand/tokens.json` (claro/oscuro) y SVG del logo |
 | `ui.py` | Fragmentos HTML puros de la UI (hero, tarjeta de oferta, anillo de afinidad, stepper); todo texto externo con `html.escape` |
 | `i18n.py` | `TRANSLATIONS` ES/EN (se usa vía `_t()` en `app.py`) |
@@ -129,7 +129,7 @@ Streamlit limita el diseño. La UI nueva vive en `web/` y reusa el núcleo (cand
 
 ## Deuda conocida (no empeorarla; atacarla solo con OK)
 - `app.py` todavía mezcla asistente, orquestación de la búsqueda y resultados.
-- Scraping duplicado entre `app.py` (cadena de `elif` por portal) y `scrapers.get_all_jobs()`. El matching ya es único (`matching.match_jobs`).
+- Scraping duplicado: `app.py` (cadena de `elif`) y `scrapers.get_all_jobs()` (lee `config`) siguen por su lado; `web/` ya usa `scrapers.PORTAL_SCRAPERS`. Los dos primeros se van con `app.py`.
 - Sin caché de evaluaciones: repetir una búsqueda vuelve a evaluar las mismas ofertas.
 - Las sesiones viven en memoria del proceso: un reinicio las borra y no habría forma de correr dos instancias. Se resuelve con la persistencia de la Fase 1 (spec §0.3).
 - Scraper de GetOnBoard: una request por oferta, secuencial (~90 s para 8 ofertas). Migrar a su API pública.

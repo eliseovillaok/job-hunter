@@ -12,12 +12,15 @@ import secrets
 import threading
 import time
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 import ai_engine
 import matching
 from candidate import CandidateProfile
 from web import portals, settings
+
+if TYPE_CHECKING:   # solo para tipos: web/run.py sí importa este módulo
+    from web.run import Run
 
 COOKIE = "jh_sid"
 TTL_SECONDS = settings.SESSION_TTL_SECONDS
@@ -58,6 +61,8 @@ class Session:
     min_score: int = 65
     eval_limit: int = matching.DEFAULT_TOP_N
     search_ready: bool = False
+    # La búsqueda en curso (o la última), con su progreso y su resultado.
+    run: Optional["Run"] = None
     touched: float = field(default_factory=time.time)
 
     # ─── Hasta qué paso puede llegar (no se saltean pasos) ───────────────

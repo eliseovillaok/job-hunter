@@ -11,6 +11,8 @@ comportamiento en un servidor no hace falta tocar código, solo variables de ent
 | `JH_MAX_SESSIONS`   | `500`       | Sesiones simultáneas en memoria (tope de consumo del proceso)     |
 | `JH_MAX_CV_MB`      | `10`        | Tamaño máximo del CV                                              |
 | `JH_HTTPS`          | (vacío)     | `1` detrás de un proxy TLS: marca la cookie de sesión como segura |
+| `JH_MAX_RUNS`       | `3`         | Búsquedas corriendo a la vez en el proceso (el resto espera)      |
+| `JH_RUN_TIMEOUT`    | `600`       | Segundos máximos de una búsqueda antes de darla por fallida       |
 | `GEMINI_RPM`        | `15`        | Llamadas por minuto a Gemini (subir solo con una key paga)        |
 """
 
@@ -29,4 +31,6 @@ def _int(name: str, default: int, minimum: int = 1) -> int:
 SESSION_TTL_SECONDS = _int("JH_SESSION_TTL", 3 * 60 * 60, minimum=60)
 MAX_SESSIONS = _int("JH_MAX_SESSIONS", 500, minimum=10)
 MAX_CV_BYTES = _int("JH_MAX_CV_MB", 10, minimum=1) * 1024 * 1024
+MAX_RUNS = _int("JH_MAX_RUNS", 3, minimum=1)
+RUN_TIMEOUT = _int("JH_RUN_TIMEOUT", 10 * 60, minimum=30)
 HTTPS_ONLY_COOKIES = os.environ.get("JH_HTTPS") == "1"

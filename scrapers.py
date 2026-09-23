@@ -23,7 +23,7 @@ import html
 import json
 import re
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Callable, Optional
 import config
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -1026,3 +1026,35 @@ def get_all_jobs() -> list[JobPosting]:
 
     log.info(f"=== Total de ofertas únicas: {len(all_jobs)} ===")
     return all_jobs
+
+
+# =============================================================================
+# Registro de portales
+# =============================================================================
+# La clave es la misma que usa web/portals.py: la interfaz elige por clave y nadie tiene que
+# mantener una cadena de if/elif por portal. Firma única: (palabras, tope) -> ofertas.
+
+def _fixed_list(fn: Callable[..., list[JobPosting]]) -> Callable[[list[str], int], list[JobPosting]]:
+    """Dos portales publican una lista fija: reciben las palabras y las ignoran."""
+    def scrape(keywords: list[str], max_results: int = 0) -> list[JobPosting]:
+        return fn(max_results=max_results)
+    return scrape
+
+
+PORTAL_SCRAPERS: dict[str, Callable[[list[str], int], list[JobPosting]]] = {
+    "getonboard": scrape_getonboard,
+    "latojobs": scrape_latojobs,
+    "puentetalent": scrape_puente,
+    "remotive": scrape_remotive,
+    "himalayas": scrape_himalayas,
+    "remoteok": scrape_remoteok,
+    "jobicy": scrape_jobicy,
+    "workingnomads": scrape_workingnomads,
+    "arbeitnow": scrape_arbeitnow,
+    "wwr": scrape_weworkremotely,
+    "themuse": scrape_themuse,
+    "jobspresso": _fixed_list(scrape_jobspresso),
+    "remoteco": scrape_remoteco,
+    "justjoinit": scrape_justjoinit,
+    "authenticjobs": _fixed_list(scrape_authenticjobs),
+}
