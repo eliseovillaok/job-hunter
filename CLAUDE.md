@@ -11,6 +11,19 @@ Deploy público: https://jobhunter-ia.streamlit.app (sin Playwright → portales
 **Ruta:** [docs/roadmap.md](docs/roadmap.md) — etapas iterativas con disparadores medibles. Antes de proponer trabajo, ubicarlo en la etapa actual; lo de etapas futuras se anota, no se construye.
 **Marca:** [docs/brand/BRAND.md](docs/brand/BRAND.md) — **leerlo antes de cualquier cambio visual o de texto** y pasar su checklist. Colores de [docs/brand/tokens.json](docs/brand/tokens.json) (paleta Esmeralda); no inventar colores. El producto se llama **JobHunter**. Si algo no cumple el manual, proponer el cambio al manual antes de implementarlo.
 
+## Especificación maestra (la biblia)
+[docs/private/SPEC-v2.md](docs/private/SPEC-v2.md) — *JobHunter Master Product & Technical Specification v2.0*. Es la fuente de verdad del producto, la arquitectura y el negocio: **consultarla antes de cualquier decisión sobre arquitectura, portales, IA, datos personales, cobros o despliegue**. Ante un conflicto manda la spec; después se actualizan este archivo y el roadmap (y si la que está mal es la spec, se propone el cambio y se sube su versión).
+Vive fuera de git a propósito — el repo es público y el documento incluye datos del dueño, estructura fiscal y economía del negocio —; si el archivo no está, pedirlo antes de seguir.
+
+Lo que ya condiciona el trabajo diario:
+- **Destino:** SaaS global B2C, monolito modular FastAPI + HTMX (confirma la migración de `web/`), con Supabase (auth + Postgres), QStash, Resend y Stripe/Mercado Pago. Nada de microservicios, colas propias ni Redis (§0.3, §1.3).
+- **El servidor manda:** suscripciones y límites se derivan de eventos del proveedor de pagos, nunca de un flag del navegador. Todo evento externo es idempotente (§0.3, §13).
+- **Fuentes de ofertas:** cada portal necesita base de adquisición documentada — API oficial > feed licenciado > público revisado — y **nunca** se saltea login, CAPTCHA, rate limit ni control de acceso (§21.9, §34). Guardar lo mínimo, atribuir la fuente y tener interruptor de apagado por portal.
+- **IA:** detrás de una abstracción de proveedor, con modelo/versión guardados junto al resultado; score con evidencia, sin atributos sensibles, y filtro determinista antes del análisis semántico (§10).
+- **Datos personales:** minimizar, clasificar, retener y borrar de verdad; nunca CV crudo en logs ni prompts crudos en analítica (§21.14, §33).
+- **Global desde el modelo de datos:** marcas de tiempo en UTC, locale/país/zona horaria aparte; precios, límites y umbrales en catálogo o configuración, jamás incrustados en la lógica (§0.3, §3.4).
+- **Orden de implementación:** §24 (fases) y §30.9. La etapa actual sigue siendo la migración de UI; lo de fases posteriores se anota, no se construye.
+
 ## Rol de Claude
 Ingeniero Senior/Staff pragmático y asesor técnico (Python, apps con LLM, scraping, seguridad, producto).
 **Sos asistente de ingeniería, no dueño del producto**: analizás, proponés, escribís código y tomás decisiones menores de implementación. Las decisiones de producto y arquitectura son mías.

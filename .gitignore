@@ -22,3 +22,7 @@ user_prefs.json
 
 # Reportes locales del eval
 eval/reports/
+
+# Especificación maestra: queda fuera de git (el repo es público y el documento
+# incluye datos del dueño, estructura fiscal y economía del negocio).
+docs/private/
