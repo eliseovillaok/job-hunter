@@ -16,16 +16,6 @@ function animateThen(anim, ms, done) {
   setTimeout(finish, ms);
 }
 
-function slide(el, show) {
-  if (show === !el.hidden) return;
-  if (reduceMotion() || !el.animate) { el.hidden = !show; return; }
-  el.hidden = false;
-  const h = el.scrollHeight;
-  const frames = [{ height: "0px", opacity: 0, overflow: "hidden" }, { height: `${h}px`, opacity: 1, overflow: "hidden" }];
-  const anim = el.animate(show ? frames : frames.reverse(), { duration: 220, easing: "cubic-bezier(.2,.7,.2,1)" });
-  animateThen(anim, 260, () => { if (!show) el.hidden = true; });
-}
-
 // ─── Clics ───────────────────────────────────────────────────────────────────
 document.addEventListener("click", (e) => {
   // Tocar un ⓘ abre su tooltip (en móvil no hay hover). Si está dentro de un <label>, no debe activar el campo.
@@ -83,7 +73,7 @@ document.addEventListener("click", (e) => {
   if (modeBtn) {
     const card = modeBtn.closest("[data-step1]");
     const mode = modeBtn.dataset.modeSwitch;
-    card.querySelectorAll("[data-mode]").forEach((el) => slide(el, el.dataset.mode === mode));
+    card.querySelectorAll("[data-mode]").forEach((el) => { el.hidden = el.dataset.mode !== mode; });
     card.querySelectorAll("[data-mode-title]").forEach((el) => { el.hidden = el.dataset.modeTitle !== mode; });
     const railSub = document.querySelector("[data-rail-sub1]");
     if (railSub) railSub.textContent = railSub.dataset[mode === "write" ? "write" : "upload"];
@@ -121,11 +111,12 @@ document.addEventListener("click", (e) => {
   if (editBtn) {
     const row = editBtn.closest("[data-row]");
     const panel = row.querySelector(".re");
-    const open = panel.hidden;
-    slide(panel, open);
+    const open = !panel.classList.contains("open");
+    panel.classList.toggle("open", open);
     row.classList.toggle("open", open);
+    editBtn.setAttribute("aria-expanded", String(open));
     editBtn.textContent = open ? editBtn.dataset.done : editBtn.dataset.label;
-    if (open) setTimeout(() => panel.querySelector("input:not([type=hidden]), textarea, .chip-add")?.focus({ preventScroll: true }), 220);
+    if (open) setTimeout(() => panel.querySelector("input:not([type=hidden]), textarea, .chip-add")?.focus({ preventScroll: true }), 180);
     else refreshRow(row);
     return;
   }
@@ -135,28 +126,10 @@ document.addEventListener("click", (e) => {
   if (toggle) {
     const panel = document.getElementById(toggle.dataset.toggle);
     if (!panel) return;
-    const show = panel.hidden;
-    slide(panel, show);
+    const show = !panel.classList.contains("open");
+    panel.classList.toggle("open", show);
     toggle.setAttribute("aria-expanded", String(show));
     rememberOpen(toggle.dataset.toggle, show);
-    return;
-  }
-
-  // <details> con animación (opciones avanzadas).
-  const summary = e.target.closest("details.how > summary");
-  if (summary && !reduceMotion()) {
-    e.preventDefault();
-    const details = summary.parentElement;
-    const body = [...details.children].filter((c) => c !== summary);
-    if (!details.open) {
-      details.open = true;
-      rememberOpen(details.id || summary.textContent.trim(), true);
-      body.forEach((b) => { b.hidden = true; slide(b, true); });
-    } else {
-      rememberOpen(details.id || summary.textContent.trim(), false);
-      body.forEach((b) => slide(b, false));
-      setTimeout(() => { details.open = false; body.forEach((b) => { b.hidden = false; }); }, 260);
-    }
     return;
   }
 
@@ -420,7 +393,7 @@ function syncEnables(field) {
 // Mostrar u ocultar un bloque según un interruptor (email).
 document.addEventListener("change", (e) => {
   const sw = e.target.closest("[data-reveals]");
-  if (sw) slide(document.getElementById(sw.dataset.reveals), sw.checked);
+  if (sw) document.getElementById(sw.dataset.reveals)?.classList.toggle("open", sw.checked);
 });
 
 // ─── Paso 4: grupos de portales y resumen ──────────────────────────────────
@@ -572,8 +545,7 @@ function restoreOpen(root) {
   Object.keys(state).forEach((id) => {
     const panel = root.querySelector?.(`#${CSS.escape(id)}`) || document.getElementById(id);
     if (!panel) return;
-    if (panel.tagName === "DETAILS") { panel.open = true; return; }
-    panel.hidden = false;
+    panel.classList.add("open");
     const toggle = document.querySelector(`[data-toggle="${CSS.escape(id)}"]`);
     if (toggle) toggle.setAttribute("aria-expanded", "true");
   });

@@ -26,80 +26,80 @@
       <div class="rl">{{ t('wz3_roles') }}{% if 'f-roles' in flagged %} <span class="dot-c" aria-hidden="true"></span>{% endif %}</div>
       <div class="rv" data-preview>{{ p.target_roles|join(', ') or t('prof_unknown_short') }}</div>
       <button class="link-btn" type="button" data-edit data-done="{{ t('wz_done') }}">{{ t('wz_edit') }}</button>
-      <div class="re" hidden>
+      <div class="re collapse"><div class="re-in">
         {{ chip_editor('roles', p.target_roles, t('wz_add'), field_id='f-roles') }}
         <p class="help">{{ t('prof_roles_help') }}</p>
-      </div>
+      </div></div>
     </div>
 
     <div class="row" data-row id="row-f-level">
       <div class="rl">{{ t('prof_seniority') }}{% if 'f-level' in flagged %} <span class="dot-c" aria-hidden="true"></span>{% endif %}</div>
       <div class="rv" data-preview>{{ t('sen_' ~ p.seniority) if p.seniority in levels else t('prof_unknown_short') }}</div>
       <button class="link-btn" type="button" data-edit data-done="{{ t('wz_done') }}">{{ t('wz_edit') }}</button>
-      <div class="re" hidden>
+      <div class="re collapse"><div class="re-in">
         <div class="chips">
           {% for v in levels %}<label class="chip"><input type="radio" name="seniority" value="{{ v }}" {{ 'checked' if p.seniority == v }}><span>{{ t('sen_' ~ v) }}</span></label>{% endfor %}
           <label class="chip"><input type="radio" name="seniority" value="unknown" {{ 'checked' if p.seniority not in levels }}><span>{{ t('prof_unknown_short') }}</span></label>
         </div>
         {% if p.seniority_evidence %}<p class="help">{{ t('wz_from_cv') }} «{{ p.seniority_evidence }}»</p>{% endif %}
-      </div>
+      </div></div>
     </div>
 
     <div class="row" data-row id="row-f-years">
       <div class="rl">{{ t('prof_years') }}{% if 'f-years' in flagged %} <span class="dot-c" aria-hidden="true"></span>{% endif %}</div>
       <div class="rv" data-preview>{{ '%g'|format(p.years_experience) if p.years_experience is not none else t('prof_unknown_short') }}</div>
       <button class="link-btn" type="button" data-edit data-done="{{ t('wz_done') }}">{{ t('wz_edit') }}</button>
-      <div class="re" hidden>
+      <div class="re collapse"><div class="re-in">
         <input id="f-years" class="input narrow" name="years" inputmode="decimal" value="{{ '' if p.years_experience is none else '%g'|format(p.years_experience) }}" placeholder="{{ t('prof_unknown') }}">
         {% if p.years_evidence %}<p class="help">{{ t('wz_from_cv') }} «{{ p.years_evidence }}»</p>{% endif %}
-      </div>
+      </div></div>
     </div>
 
     <div class="row" data-row id="row-f-location">
       <div class="rl">{{ t('prof_location') }}{% if 'f-location' in flagged %} <span class="dot-c" aria-hidden="true"></span>{% endif %}</div>
       <div class="rv" data-preview>{{ p.location if p.location != 'unknown' else t('prof_unknown_short') }}</div>
       <button class="link-btn" type="button" data-edit data-done="{{ t('wz_done') }}">{{ t('wz_edit') }}</button>
-      <div class="re" hidden>
+      <div class="re collapse"><div class="re-in">
         <input id="f-location" class="input" name="location" value="{{ '' if p.location == 'unknown' else p.location }}" placeholder="{{ t('prof_unknown') }}" maxlength="120">
-      </div>
+      </div></div>
     </div>
 
     <div class="row" data-row id="row-f-langs">
       <div class="rl">{{ t('prof_languages') }}{% if 'f-langs' in flagged %} <span class="dot-c" aria-hidden="true"></span>{% endif %}</div>
       <div class="rv" data-preview>{{ langs|join(', ') or t('prof_unknown_short') }}</div>
       <button class="link-btn" type="button" data-edit data-done="{{ t('wz_done') }}">{{ t('wz_edit') }}</button>
-      <div class="re" hidden>
+      <div class="re collapse"><div class="re-in">
         {{ chip_editor('langs', langs, t('wz3_lang_add'), field_id='f-langs', flagged=unknown_langs) }}
         <p class="help">{{ t('wz3_langs_help') }}</p>
-      </div>
+      </div></div>
     </div>
 
     <div class="row" data-row id="row-f-skills">
       <div class="rl">{{ t('prof_skills') }}</div>
       <div class="rv" data-preview>{{ p.skills|map(attribute='name')|join(', ') or t('prof_unknown_short') }}</div>
       <button class="link-btn" type="button" data-edit data-done="{{ t('wz_done') }}">{{ t('wz_edit') }}</button>
-      <div class="re" hidden>
+      <div class="re collapse"><div class="re-in">
         {{ chip_editor('skills', p.skills|map(attribute='name')|list, t('wz_add'), evidence=skill_evidence) }}
         <p class="help">{{ t('wz3_skills_help') }}</p>
-      </div>
+      </div></div>
     </div>
 
     <div class="row" data-row id="row-f-summary">
       <div class="rl">{{ t('prof_summary') }}</div>
       <div class="rv" data-preview>{{ p.summary or t('prof_unknown_short') }}</div>
       <button class="link-btn" type="button" data-edit data-done="{{ t('wz_done') }}">{{ t('wz_edit') }}</button>
-      <div class="re" hidden>
+      <div class="re collapse"><div class="re-in">
         <textarea id="f-summary" class="input" name="summary" rows="4" maxlength="4000">{{ p.summary }}</textarea>
-      </div>
+      </div></div>
     </div>
 
     <div class="row" data-row id="row-f-notes">
       <div class="rl">{{ t('wz3_notes') }} <span class="opt">{{ t('wz_optional') }}</span></div>
       <div class="rv" data-preview>{{ p.notes or '—' }}</div>
       <button class="link-btn" type="button" data-edit data-done="{{ t('wz_done') }}">{{ t('wz_edit') }}</button>
-      <div class="re" hidden>
+      <div class="re collapse"><div class="re-in">
         <textarea id="f-notes" class="input" name="notes" rows="3" maxlength="4000" placeholder="{{ t('wz3_notes_ph') }}">{{ p.notes }}</textarea>
-      </div>
+      </div></div>
     </div>
   </div>
   {% else %}

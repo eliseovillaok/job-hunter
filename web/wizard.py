@@ -384,10 +384,14 @@ def check_key(request: Request, key: str = Form(""), model: str = Form(ai_engine
 
 @router.post("/asistente/clave/cambiar")
 def change_key(request: Request):
+    """Borra la clave guardada. Por HTMX se reemplaza solo ese campo: el paso no se redibuja."""
     if (r := expired(request)) is not None:
         return r
     s = sess(request)
     s.api_key, s.key_ok = "", None
+    if request.headers.get("HX-Request"):
+        return render(request, "_wz_key_field.html", s=s, masked_key="", errors={},
+                      needs_analysis=bool(s.cv) and s.analyzed_cv_id != s.cv.id)
     return go(2)
 
 

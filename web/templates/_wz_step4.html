@@ -24,7 +24,7 @@
         {%- if s.job_languages %} · {% for c in s.job_languages %}{{ t('lang_' ~ c) }}{{ ', ' if not loop.last }}{% endfor %}{% endif -%}
       </div>
       <button class="link-btn" type="button" data-edit data-done="{{ t('wz_done') }}">{{ t('wz_edit') }}</button>
-      <div class="re" hidden>
+      <div class="re collapse wide"><div class="re-in">
         <p class="help">{{ t('pref_caption') }}</p>
         <div class="grid3">
           <div class="field">
@@ -44,14 +44,14 @@
             </div>
           </div>
         </div>
-      </div>
+      </div></div>
     </div>
 
     <div class="row" data-row id="row-portals">
       <div class="rl">{{ t('wz4_portals') }}</div>
       <div class="rv" data-portals-preview data-tpl="{{ t('wz4_portals_n', n='{n}') }}">{{ t('wz4_portals_n', n=n_portals) }}</div>
       <button class="link-btn" type="button" data-edit data-done="{{ t('wz_done') }}">{{ t('wz_edit') }}</button>
-      <div class="re" hidden>
+      <div class="re collapse wide"><div class="re-in">
         {{ field_error(errors, 'portal') }}
         <div class="groups">
           {% for g in groups %}
@@ -62,20 +62,20 @@
               <span class="count"><span data-group-count>{{ g.n_on }}</span> / {{ g['items']|length }}</span>
               <button class="btn-link" type="button" data-toggle="grp-{{ g.key }}" aria-expanded="false" aria-controls="grp-{{ g.key }}">{{ t('wz4_see') }} <span class="caret" aria-hidden="true">▾</span></button>
             </div>
-            <div class="chips" id="grp-{{ g.key }}" hidden>
+            <div class="collapse" id="grp-{{ g.key }}"><div class="chips">
               {% for p in g['items'] %}<label class="chip"><input type="checkbox" name="portal" value="{{ p.key }}" {{ 'checked' if p.key in s.portals }}><span>{{ p.label }}</span></label>{% endfor %}
-            </div>
+            </div></div>
           </div>
           {% endfor %}
         </div>
-      </div>
+      </div></div>
     </div>
 
     <div class="row" data-row id="row-advanced">
       <div class="rl">{{ t('wz4_advanced') }} <span class="opt">{{ t('wz_optional') }}</span></div>
       <div class="rv" data-adv-preview data-tpl="{{ t('wz4_adv_preview', score='{score}', n='{n}') }}">{{ t('wz4_adv_preview', score=s.min_score, n=s.eval_limit) }}</div>
       <button class="link-btn" type="button" data-edit data-done="{{ t('wz_done') }}">{{ t('wz_edit') }}</button>
-      <div class="re" hidden>
+      <div class="re collapse wide"><div class="re-in">
         <div class="grid2">
           <div class="field">
             <div class="rl-range"><label for="f-minscore">{{ t('wz4_min_score') }} {{ tip(t('wz4_min_score_help')) }}</label><b data-out="f-minscore">{{ s.min_score }}</b></div>
@@ -86,7 +86,7 @@
             <input id="f-eval" class="range" type="range" name="eval_limit" min="10" max="200" step="10" value="{{ s.eval_limit }}" style="--v:{{ ((s.eval_limit - 10) / 190 * 100)|round|int }}" data-range-min="10" data-range-max="200">
           </div>
         </div>
-      </div>
+      </div></div>
     </div>
   </div>
 

@@ -1,0 +1,33 @@
+{% from "_macros.html" import tip, field_error with context %}
+{# Campo de la clave. Se reemplaza solo (al tocar "Cambiar") para no redibujar el paso entero. #}
+<div class="field" id="key-field">
+  <label for="k">{{ t('step1_key_label') }} {{ tip(t('wz2_key_help')) }}</label>
+  {% if s.api_key %}
+  {# Clave guardada en la sesión: se muestra su estado, nunca el valor completo. #}
+  {% set state = 'ok' if s.key_ok else ('unverified' if s.key_ok is none else 'bad') %}
+  <div class="key-saved {{ state }}">
+    <span class="check" aria-hidden="true">{{ '✓' if state == 'ok' else '!' }}</span>
+    <div class="meta">
+      <b>{{ {'ok': t('wz2_key_connected'), 'unverified': t('wz2_key_unverified_short'), 'bad': t('wz2_key_rejected')}[state] }}</b>
+      <span>{{ masked_key }}</span>
+    </div>
+    <button class="link-btn" type="button" hx-post="/asistente/clave/cambiar" hx-target="#key-field"
+            hx-swap="outerHTML transition:false">{{ t('wz_change') }}</button>
+  </div>
+  {% else %}
+  <div class="input-wrap">
+    <input id="k" class="input now" type="password" name="key" autocomplete="off" spellcheck="false"
+           placeholder="{{ t('wz2_key_ph') }}" autofocus
+           hx-post="/asistente/clave" hx-trigger="input changed delay:600ms, paste delay:100ms" hx-target="#key-status"
+           hx-swap="innerHTML transition:false" hx-include="[name=model]" hx-sync="this:replace" hx-indicator="#key-checking">
+    <button class="in-btn" type="button" data-reveal="k" data-show="{{ t('wz_show') }}" data-hide="{{ t('wz_hide') }}">{{ t('wz_show') }}</button>
+  </div>
+  <div class="checking" id="key-checking" aria-hidden="true"><span class="spin"></span>{{ t('wz2_checking') }}</div>
+  <div id="key-status" aria-live="polite"></div>
+  {{ field_error(errors, 'key') }}
+  {% endif %}
+</div>
+{% if request.headers.get('HX-Request') %}
+{# El botón principal del paso acompaña al estado de la clave. #}
+<div class="r" id="s2-actions" hx-swap-oob="true">{% set key_state = s.key_ok if s.api_key else False %}{% include "_wz_s2_next.html" %}</div>
+{% endif %}

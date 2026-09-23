@@ -15,32 +15,7 @@
   </div>
 
   <div class="keyrow">
-    <div class="field">
-      <label for="k">{{ t('step1_key_label') }} {{ tip(t('wz2_key_help')) }}</label>
-      {% if s.api_key %}
-      {# Clave ya guardada en la sesión: se muestra como estado, nunca el valor completo. #}
-      {% set state = 'ok' if s.key_ok else ('unverified' if s.key_ok is none else 'bad') %}
-      <div class="key-saved {{ state }}">
-        <span class="check" aria-hidden="true">{{ '✓' if state == 'ok' else '!' }}</span>
-        <div class="meta">
-          <b>{{ {'ok': t('wz2_key_connected'), 'unverified': t('wz2_key_unverified_short'), 'bad': t('wz2_key_rejected')}[state] }}</b>
-          <span>{{ masked_key }}</span>
-        </div>
-        <button class="link-btn" type="submit" formaction="/asistente/clave/cambiar" formnovalidate>{{ t('wz_change') }}</button>
-      </div>
-      {% else %}
-      <div class="input-wrap">
-        <input id="k" class="input now" type="password" name="key" autocomplete="off" spellcheck="false"
-               placeholder="{{ t('wz2_key_ph') }}" autofocus
-               hx-post="/asistente/clave" hx-trigger="input changed delay:600ms, paste delay:100ms" hx-target="#key-status" hx-swap="innerHTML transition:false"
-               hx-include="[name=model]" hx-sync="this:replace" hx-indicator="#key-checking">
-        <button class="in-btn" type="button" data-reveal="k" data-show="{{ t('wz_show') }}" data-hide="{{ t('wz_hide') }}">{{ t('wz_show') }}</button>
-      </div>
-      <div class="checking" id="key-checking" aria-hidden="true"><span class="spin"></span>{{ t('wz2_checking') }}</div>
-      <div id="key-status" aria-live="polite"></div>
-      {{ field_error(errors, 'key') }}
-      {% endif %}
-    </div>
+    {% include "_wz_key_field.html" %}
     <div class="field">
       <label for="model">{{ t('step1_model_label') }} {{ tip(t('wz2_model_help')) }}</label>
       <select id="model" class="input" name="model">
@@ -55,13 +30,13 @@
       <span class="sp"></span>
       <input class="switch" type="checkbox" id="send-email" name="send_email" value="1" {{ 'checked' if s.send_email }} data-reveals="email-body">
     </div>
-    <div class="opt-body" id="email-body" {{ '' if s.send_email else 'hidden' }}>
+    <div class="collapse{{ ' open' if s.send_email }}" id="email-body"><div class="opt-body">
       <div class="grid3">
         <div class="field"><label for="e1">{{ t('step1_gmail_label') }}</label><input id="e1" class="input" type="email" name="email_sender" {{ 'class="input has-error" aria-invalid="true"'|safe if errors and errors.get('email_sender') }} value="{{ s.email_sender }}" placeholder="{{ t('ph_email_sender') }}" autocomplete="email">{{ field_error(errors, 'email_sender') }}</div>
         <div class="field"><label for="e2">{{ t('step1_recip_label') }}</label><input id="e2" class="input" type="email" name="email_recipient" {{ 'class="input has-error" aria-invalid="true"'|safe if errors and errors.get('email_recipient') }} value="{{ s.email_recipient }}" placeholder="{{ t('ph_email_recip') }}">{{ field_error(errors, 'email_recipient') }}</div>
         <div class="field"><label for="e3">{{ t('wz2_app_pass') }} {{ tip(t('wz2_app_pass_help')) }}</label><input id="e3" class="input" type="password" name="email_password" {{ 'class="input has-error" aria-invalid="true"'|safe if errors and errors.get('email_password') }} autocomplete="off" placeholder="{{ t('wz2_key_saved') if s.email_password else 'abcd efgh ijkl mnop' }}">{{ field_error(errors, 'email_password') }}</div>
       </div>
-    </div>
+    </div></div>
   </div>
 
   <div class="foot">

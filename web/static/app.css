@@ -206,11 +206,11 @@ a.dot:hover { border-color: var(--primary); }
 .field { margin-bottom: 16px; min-width: 0; }
 .field > label, .flabel { display: flex; align-items: center; gap: 4px; font-size: 14px; font-weight: 600; margin-bottom: 8px; }
 .field > label > span:not(.tt), .flabel > span:not(.tt) { margin-left: auto; font-weight: 500; color: var(--text-muted); font-size: 12.5px; }
-.input { width: 100%; font: 500 14.5px var(--body); color: var(--text); background: var(--surface); border: 1.5px solid var(--border-control);
-  border-radius: 14px; padding: 12px 14px; outline: none; }
+.input { width: 100%; min-height: 48px; font: 500 14.5px var(--body); color: var(--text); background: var(--surface);
+  border: 1.5px solid var(--border-control); border-radius: 14px; padding: 12px 14px; outline: none; }
 .input::placeholder { color: var(--text-muted); }
 .input:focus, .input.now { border-color: var(--primary); box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 15%, transparent); }
-textarea.input { resize: vertical; min-height: 84px; line-height: 1.5; }
+textarea.input { resize: vertical; min-height: 84px; line-height: 1.5; padding-top: 10px; }
 select.input { appearance: auto; }
 .input-wrap { position: relative; } .input-wrap .input { padding-right: 90px; }
 .in-btn { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font: 600 12.5px var(--body); color: var(--primary);
@@ -299,10 +299,6 @@ form.alt { display: flex; gap: 6px; align-items: baseline; flex-wrap: wrap; }
 .review u { color: var(--primary); text-decoration: none; white-space: nowrap; }
 
 /* Paso 4 */
-.how { border: 1px solid var(--border-subtle); border-radius: 16px; padding: 0 16px; margin-top: 18px; }
-.how summary { cursor: pointer; list-style: none; padding: 14px 0; font-size: 14px; font-weight: 600; color: var(--primary); display: flex; justify-content: space-between; }
-.how summary::-webkit-details-marker { display: none; }
-.how summary::after { content: "▾"; color: var(--text-muted); } .how[open] summary::after { content: "▴"; }
 .groups { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: start; }
 .group { border: 1px solid var(--border-subtle); border-radius: 16px; padding: 12px 14px; }
 .group-h { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -339,7 +335,9 @@ form.alt { display: flex; gap: 6px; align-items: baseline; flex-wrap: wrap; }
 .checking { display: none; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted); margin-top: 8px; }
 .checking.htmx-request { display: flex; animation: fade-plain .2s ease .25s both; }
 .checking.htmx-request + #key-status { display: none; }
-.key-saved { display: flex; align-items: center; gap: 12px; border: 1.5px solid var(--primary); border-radius: 14px; padding: 9px 14px; background: var(--surface); }
+/* Misma altura y alineación que el campo de al lado (el selector de modelo). */
+.key-saved { display: flex; align-items: center; gap: 12px; border: 1.5px solid var(--primary); border-radius: 14px;
+  padding: 0 14px; min-height: 48px; background: var(--surface); }
 .key-saved .check { width: 24px; height: 24px; border-radius: 50%; background: var(--primary); color: var(--on-primary); display: grid; place-items: center;
   font-size: 13px; font-weight: 800; flex: none; }
 .key-saved.unverified { border-color: var(--warning); } .key-saved.unverified .check { background: var(--warning); color: #FFFFFF; }
@@ -362,11 +360,19 @@ form.alt { display: flex; gap: 6px; align-items: baseline; flex-wrap: wrap; }
 .rl { grid-column: 1; font-size: 13.5px; font-weight: 600; color: var(--text-2); display: flex; align-items: center; gap: 6px; }
 .rl .opt { font: 500 11.5px var(--body); color: var(--text-muted); background: none; border: 0; padding: 0; }
 .rv { grid-column: 2; font-size: 14px; color: var(--text); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.row.open .rv { visibility: hidden; }
+.row.open .rv { display: none; }
 .row > .link-btn { grid-column: 3; justify-self: end; }
-.re { grid-column: 1 / -1; padding: 2px 0 6px; }
+/* Plegables: animan en una sola etapa (filas de grilla), sin medir alturas desde JavaScript. */
+.collapse { display: grid; grid-template-rows: 0fr; visibility: hidden; opacity: 0;
+  transition: grid-template-rows .26s cubic-bezier(.2, .7, .2, 1), opacity .18s ease, visibility 0s linear .26s; }
+.collapse > * { overflow: hidden; min-height: 0; }
+.collapse.open { grid-template-rows: 1fr; visibility: visible; opacity: 1; transition-delay: 0s; }
+/* El editor aparece al lado de la etiqueta (aprovecha el ancho); los anchos van debajo. */
+.re { grid-column: 2; }
+.re.wide { grid-column: 1 / -1; padding-top: 4px; }
+.re-in { padding: 2px 0 6px; }
 /* Con la fila abierta, "Listo" es un botón con borde y queda alineado con el contenido que se edita. */
-.row.open { align-items: start; padding-top: 8px; padding-bottom: 6px; }
+.row.open { align-items: start; padding: 10px 12px; margin: 6px 0; box-shadow: inset 0 0 0 1px var(--border-subtle); }
 .row.open > .link-btn { align-self: start; border: 1.5px solid var(--primary); border-radius: 999px; padding: 5px 14px; min-height: 32px;
   background: var(--surface); text-decoration: none; white-space: nowrap; }
 .row.open > .link-btn:hover { background: var(--surface-2); text-decoration: none; }
