@@ -216,10 +216,33 @@ function openChipInput(btn) {
 }
 
 // ─── Tooltips: que nunca se corten contra el borde de la pantalla ────────────
+function clipper(el) {
+  for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+    if (getComputedStyle(p).overflow !== "visible") return p;
+  }
+  return null;
+}
+
 function placeTip(host) {
   const tip = host.querySelector(".tt-b");
   if (!tip) return;
+  tip.classList.remove("pinned", "below");
+  tip.style.left = tip.style.top = "";
   tip.style.setProperty("--tt-shift", "0px");
+  // Dentro de un panel plegable (que recorta para poder animarse) el globo se anclaría cortado:
+  // en ese caso pasa a coordenadas de ventana, y debajo del icono si arriba no entra.
+  const clip = clipper(host);
+  if (clip) {
+    const cr = clip.getBoundingClientRect(), tr = tip.getBoundingClientRect();
+    if (tr.top < cr.top || tr.bottom > cr.bottom || tr.left < cr.left || tr.right > cr.right) {
+      const hr = host.getBoundingClientRect();
+      const below = hr.top - tr.height - 8 < 8;
+      tip.classList.add("pinned");
+      tip.classList.toggle("below", below);
+      tip.style.left = `${Math.round(hr.left + hr.width / 2)}px`;
+      tip.style.top = `${Math.round(below ? hr.bottom + 8 : hr.top - tr.height - 8)}px`;
+    }
+  }
   const r = tip.getBoundingClientRect();
   const margin = 12;
   let shift = 0;
@@ -227,10 +250,17 @@ function placeTip(host) {
   if (r.left + shift < margin) shift = margin - r.left;
   tip.style.setProperty("--tt-shift", `${Math.round(shift)}px`);
 }
+let tipHost = null;
 ["mouseover", "focusin"].forEach((ev) => document.addEventListener(ev, (e) => {
   const host = e.target.closest?.(".tt, .chip.skill");
-  if (host) placeTip(host);
+  if (host) { tipHost = host; placeTip(host); }
 }));
+// Un globo anclado a la ventana acompaña a su icono si la página se mueve mientras se lee.
+addEventListener("scroll", () => {
+  if (!tipHost) return;
+  if (tipHost.isConnected && tipHost.matches(":hover, :focus-within")) placeTip(tipHost);
+  else tipHost = null;
+}, { passive: true, capture: true });
 
 // ─── Carga del CV: elegir o arrastrar ───────────────────────────────────────
 document.addEventListener("change", (e) => {

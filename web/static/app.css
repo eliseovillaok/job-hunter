@@ -232,9 +232,13 @@ select.input { appearance: auto; }
   background: #13261E; color: #E8F2EC; font: 500 12.5px/1.45 var(--body); letter-spacing: 0; text-transform: none; text-align: left;
   padding: 9px 12px; border-radius: 12px; z-index: 20; box-shadow: 0 8px 24px rgba(19, 38, 30, .18); white-space: normal; }
 .tt-b::after { content: ""; position: absolute; top: 100%; left: calc(50% - var(--tt-shift, 0px)); margin-left: -6px; border: 6px solid transparent; border-top-color: #13261E; }
+.tt-b.pinned { position: fixed; bottom: auto; }
+.tt-b.below::after { top: auto; bottom: 100%; border-top-color: transparent; border-bottom-color: #13261E; }
 :root[data-theme="dark"] .tt-b { background: #E8F2EC; color: #13261E; } :root[data-theme="dark"] .tt-b::after { border-top-color: #E8F2EC; }
+:root[data-theme="dark"] .tt-b.below::after { border-top-color: transparent; border-bottom-color: #E8F2EC; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .tt-b { background: #E8F2EC; color: #13261E; }
-  :root:not([data-theme="light"]) .tt-b::after { border-top-color: #E8F2EC; } }
+  :root:not([data-theme="light"]) .tt-b::after { border-top-color: #E8F2EC; }
+  :root:not([data-theme="light"]) .tt-b.below::after { border-top-color: transparent; border-bottom-color: #E8F2EC; } }
 .tt:hover .tt-b, .tt:focus .tt-b, .card .chip.skill:hover .tt-b, .card .chip.skill:focus-within .tt-b {
   opacity: 1; visibility: visible; transform: translate(calc(-50% + var(--tt-shift, 0px)), 0); transition-delay: .1s, .1s, 0s; }
 
