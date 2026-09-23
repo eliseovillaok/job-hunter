@@ -480,7 +480,67 @@ addEventListener("scroll", () => {
 }, { passive: true });
 addEventListener("resize", syncToTop, { passive: true });
 
-addEventListener("popstate", () => { document.documentElement.dataset.nav = "back"; });
+// ─── Volver atrás: instantáneo y con la misma animación que el resto ────────
+// HTMX, sin caché de historial, tardaba ~300 ms en redibujar y lo hacía de golpe (titileo).
+// Guardamos las páginas visitadas en memoria (nunca en el disco: contienen el perfil del CV).
+const pageCache = new Map();
+const pageKey = () => location.pathname + location.search;
+
+function cachePage() {
+  if (pageCache.size > 12) pageCache.delete(pageCache.keys().next().value);
+  pageCache.set(pageKey(), { html: document.body.innerHTML, title: document.title });
+}
+
+async function fetchPage(key) {
+  const res = await fetch(key, { headers: { "HX-Request": "true", "HX-Boosted": "true" }, credentials: "same-origin" });
+  const doc = new DOMParser().parseFromString(await res.text(), "text/html");
+  return { html: doc.body.innerHTML, title: doc.title };
+}
+
+function paint(entry) {
+  document.body.innerHTML = entry.html;
+  document.title = entry.title;
+  window.htmx?.process(document.body);
+  init();
+}
+
+async function restorePage(key) {
+  const cached = pageCache.get(key);
+  const entry = cached || await fetchPage(key);
+  const apply = () => {
+    paint(entry);
+    // La copia puede haber quedado vieja (p. ej. el CV se subió después): se comprueba contra el servidor
+    // y, si cambió, se actualiza sin animación ni salto.
+    if (cached) {
+      fetchPage(key).then((fresh) => {
+        pageCache.set(key, fresh);
+        const editing = document.activeElement && document.activeElement !== document.body;
+        if (fresh.html !== entry.html && !editing) paint(fresh);
+      }).catch(() => {});
+    }
+  };
+  const root = document.documentElement;
+  root.dataset.nav = "back";
+  if (hasVT && !reduceMotion()) {
+    const vt = document.startViewTransition(apply);
+    vt.ready.catch(() => {});
+    vt.finished.catch(() => {}).finally(() => { delete root.dataset.nav; });
+  } else {
+    apply();
+    setTimeout(() => { delete root.dataset.nav; }, 400);
+  }
+}
+
+let lastKey = pageKey();
+addEventListener("popstate", (e) => {
+  const key = pageKey();
+  if (key === lastKey) return;            // solo cambió el #ancla: lo maneja el navegador
+  e.stopImmediatePropagation();           // HTMX no interviene: el redibujado lo hacemos acá
+  lastKey = key;
+  restorePage(key);
+}, true);
+document.addEventListener("htmx:beforeSwap", cachePage);          // guarda la página que se deja
+document.addEventListener("htmx:afterSettle", () => { lastKey = pageKey(); cachePage(); });
 
 // Errores que llegan solos (sin redibujar la pantalla): llevar el foco al primero.
 document.addEventListener("htmx:oobAfterSwap", (e) => {
