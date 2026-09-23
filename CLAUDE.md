@@ -12,7 +12,7 @@ Prioridades del producto: relevancia, control del usuario, transparencia, simpli
 **Marca:** [docs/brand/BRAND.md](docs/brand/BRAND.md) — **leerlo antes de cualquier cambio visual o de texto** y pasar su checklist. Colores de [docs/brand/tokens.json](docs/brand/tokens.json) (paleta Esmeralda); no inventar colores. El producto se llama **JobHunter**. Si algo no cumple el manual, proponer el cambio al manual antes de implementarlo.
 
 ## Especificación maestra (la biblia)
-[docs/private/SPEC-v2.md](docs/private/SPEC-v2.md) — *JobHunter Master Product & Technical Specification v2.0*. Es la fuente de verdad del producto, la arquitectura y el negocio: **consultarla antes de cualquier decisión sobre arquitectura, portales, IA, datos personales, cobros o despliegue**. Ante un conflicto manda la spec; después se actualizan este archivo y el roadmap (y si la que está mal es la spec, se propone el cambio y se sube su versión).
+[docs/private/SPEC-v2.es.md](docs/private/SPEC-v2.es.md) — *Especificación maestra de producto y técnica, v2.1* (el original en inglés, en la misma versión, es `docs/private/SPEC-v2.md`; si se toca una, se toca la otra). Es la fuente de verdad del producto, la arquitectura y el negocio: **consultarla antes de cualquier decisión sobre arquitectura, portales, IA, datos personales, cobros o despliegue**. Ante un conflicto manda la spec; después se actualizan este archivo y el roadmap (y si la que está mal es la spec, se propone el cambio y se sube su versión). Las decisiones ya tomadas están en su §0.7.
 Vive fuera de git a propósito — el repo es público y el documento incluye datos del dueño, estructura fiscal y economía del negocio —; si el archivo no está, pedirlo antes de seguir.
 
 Lo que ya condiciona el trabajo diario:
