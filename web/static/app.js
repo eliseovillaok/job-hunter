@@ -448,20 +448,21 @@ function syncGroup(group) {
 
 function updateSummary(form) {
   if (!form?.matches("[data-search-form]")) return;
-  const count = (sel) => form.querySelectorAll(sel).length;
-  const set = (key, value) => { const el = form.querySelector(`[data-sum="${key}"]`); if (el) el.textContent = value; };
-  set("terms", count("input[name=terms]:checked"));
-  const portals = count("input[name=portal]:checked");
-  set("portals", portals);
-  const mods = [...form.querySelectorAll("input[name=modality]:checked")].map((b) => b.nextElementSibling.textContent);
-  const modEl = form.querySelector('[data-sum="modality"]');
-  if (modEl) modEl.textContent = mods.length ? mods.join(", ") : modEl.dataset.any;
+  const portals = form.querySelectorAll("input[name=portal]:checked").length;
+  const mods = [...form.querySelectorAll("input[name=modality]:checked")].map((b) => b.nextElementSibling.textContent.trim());
+  const line = form.querySelector('[data-sum="line"]');
+  if (line) {
+    line.textContent = line.dataset.tpl
+      .replace("{terms}", form.querySelectorAll("input[name=terms]").length)
+      .replace("{mode}", mods.join(", ") || line.dataset.any)
+      .replace("{portals}", portals);
+  }
+  // Misma cuenta que web/wizard.py:estimate_minutes.
   const n = +(form.querySelector("[name=eval_limit]")?.value || 40);
-  set("eval", n);
-  // Misma estimación que web/wizard.py:estimate_minutes.
   const rpm = +form.dataset.rpm || 15;
-  const calls = Math.ceil(n / 5) + Math.min(10, n) + 1;
-  set("minutes", Math.max(1, Math.ceil(0.12 * portals + calls / rpm)));
+  const base = 0.15 * portals + (Math.ceil(n / 5) + Math.min(10, n) + 1) / rpm;
+  const time = form.querySelector('[data-sum="time"]');
+  if (time) time.textContent = `${Math.max(1, Math.ceil(base))}–${Math.max(2, Math.ceil(base * 1.7))} min`;
 }
 
 // ─── Volver arriba ──────────────────────────────────────────────────────────

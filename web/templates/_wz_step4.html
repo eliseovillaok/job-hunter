@@ -91,14 +91,14 @@
   </div>
 
   <div class="summary">
-    <dl>
-      <div><dt>{{ t('wz4_sum_profile') }}</dt><dd>{{ rail[2].sub }}</dd></div>
-      <div><dt>{{ t('wz4_sum_terms') }}</dt><dd><span data-sum="terms">{{ s.terms|length }}</span></dd></div>
-      <div><dt>{{ t('pref_modality') }}</dt><dd data-sum="modality" data-any="{{ t('pref_any') }}">{% for m in s.modalities %}{{ t('mod_' ~ m) }}{{ ', ' if not loop.last }}{% else %}{{ t('pref_any') }}{% endfor %}</dd></div>
-      <div><dt>{{ t('wz4_portals') }}</dt><dd><span data-sum="portals">{{ n_portals }}</span></dd></div>
-    </dl>
+    <div class="sum-facts">
+      <b>{{ rail[2].sub }}</b>
+      <span data-sum="line" data-any="{{ t('pref_any') }}"
+            data-tpl="{{ t('wz4_sum_line', terms='{terms}', mode='{mode}', portals='{portals}') }}"
+            >{{ t('wz4_sum_line', terms=s.terms|length, mode=mode_text, portals=n_portals) }}</span>
+    </div>
     <div class="sum-r">
-      <div class="est"><b>~<span data-sum="minutes">{{ estimate }}</span> min</b><span data-sum="eval">{{ s.eval_limit }}</span> {{ t('wz4_sum_eval') }}</div>
+      <div class="est"><span>{{ t('wz4_sum_time') }}</span><b data-sum="time">{{ est_low }}–{{ est_high }} min</b></div>
       <button class="btn" type="submit" data-busy="{{ t('wz4_starting') }}">{{ t('wz4_search') }}</button>
     </div>
   </div>

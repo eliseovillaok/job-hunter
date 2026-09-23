@@ -76,11 +76,31 @@ def is_structured(p: CandidateProfile | None) -> bool:
     return bool(p and (p.summary or p.target_roles or p.skills or p.experiences))
 
 
-def estimate_minutes(eval_limit: int, n_portals: int) -> int:
-    """Estimación gruesa: lectura de portales + llamadas a Gemini al ritmo del limitador (evaluación híbrida)."""
-    scraping = 0.12 * n_portals
-    calls = math.ceil(eval_limit / 5) + min(10, eval_limit) + 1
-    return max(1, math.ceil(scraping + calls / ai_engine.REQUESTS_PER_MINUTE))
+# Duración real de las últimas búsquedas (en memoria del proceso; la etapa 3 las registra con record_run).
+_RUN_MINUTES: list[float] = []
+
+
+def record_run(minutes: float, eval_limit: int) -> None:
+    """Guarda cuánto tardó una búsqueda real, por oferta evaluada, para afinar la estimación."""
+    if eval_limit > 0 and minutes > 0:
+        _RUN_MINUTES.append(minutes / eval_limit)
+        del _RUN_MINUTES[:-20]
+
+
+def estimate_minutes(eval_limit: int, n_portals: int) -> tuple[int, int]:
+    """Rango estimado (mínimo, máximo) en minutos: leer los portales + evaluar con IA.
+
+    Con búsquedas reales registradas se usa su promedio; si no, el ritmo del limitador de Gemini
+    (evaluación híbrida: un lote cada 5 ofertas + un re-chequeo de las 10 mejores).
+    """
+    if len(_RUN_MINUTES) >= 3:
+        per_listing = sum(_RUN_MINUTES) / len(_RUN_MINUTES)
+        base = per_listing * eval_limit
+    else:
+        scraping = 0.15 * n_portals          # ~9 s por portal; alguno (Get on Board) tarda bastante más
+        calls = math.ceil(eval_limit / 5) + min(10, eval_limit) + 1
+        base = scraping + calls / ai_engine.REQUESTS_PER_MINUTE
+    return max(1, math.ceil(base)), max(2, math.ceil(base * 1.7))
 
 
 def verify_key(key: str, model: str) -> bool | None:
@@ -181,8 +201,10 @@ def step_context(request: Request, step: int) -> dict:
         p = s.profile or CandidateProfile()
         tagged = {term.lower(): lang for lang, terms in p.search_terms.items() for term in terms}
         n_portals = len([k for k in s.portals if k in portals.BY_KEY])
+        low, high = estimate_minutes(s.eval_limit, n_portals)
+        mode_text = ", ".join(t(f"mod_{m}") for m in s.modalities) or t("pref_any")
         return {"groups": portals.grouped(s.portals), "tagged": tagged, "job_langs": JOB_LANGUAGES,
-                "estimate": estimate_minutes(s.eval_limit, n_portals), "n_portals": n_portals,
+                "est_low": low, "est_high": high, "n_portals": n_portals, "mode_text": mode_text,
                 "rpm": ai_engine.REQUESTS_PER_MINUTE}
     return {}
 
