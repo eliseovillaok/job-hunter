@@ -1,0 +1,21 @@
+# La imagen lleva la app y los assets de marca; nada más.
+.git/
+.github/
+.devcontainer/
+venv*/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+tests/
+eval/
+scripts/
+docs/private/
+docs/design/
+docs/*.md
+*.md
+!README.md
+.env
+.env.*
+results/
+*.log

@@ -97,6 +97,12 @@ def get(sid: str | None) -> tuple[str, Session, bool]:
         return sid, sess, True
 
 
+def count() -> int:
+    """Sesiones vivas. El chequeo de salud avisa si el proceso está en el tope."""
+    with _lock:
+        return len(_store)
+
+
 def reset() -> None:
     """Solo para tests."""
     with _lock:

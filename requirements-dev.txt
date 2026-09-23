@@ -1,5 +1,6 @@
-# Herramientas de desarrollo — no se instalan en Streamlit Cloud
+# Herramientas de desarrollo y la UI vieja — fuera de la imagen de producción.
 pre-commit>=4.0
 pytest>=8.0
 fonttools>=4.50   # generar el logo en trazos vectoriales (docs/brand/logo)
 httpx>=0.27
+streamlit>=1.37.0   # solo para app.py, que se retira al cerrar la Fase 0

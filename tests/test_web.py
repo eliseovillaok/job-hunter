@@ -7,6 +7,7 @@ import demo
 from ai_engine import ScoredJob
 from helpers import make_job
 from web import main as web
+from web import session as sessions
 
 
 @pytest.fixture
@@ -71,3 +72,23 @@ def test_safe_url_allows_only_http():
     assert web.safe_url("https://example.com/x") == "https://example.com/x"
     for bad in ("javascript:alert(1)", "data:text/html,x", "", None, "//evil.com"):
         assert web.safe_url(bad) is None
+
+
+def test_health_endpoints_answer_without_creating_a_session(client):
+    """La plataforma late cada pocos segundos: si cada latido creara una sesión, expulsaría usuarios."""
+    sessions.reset()
+    live = client.get("/health/live")
+    assert live.status_code == 200 and live.json()["status"] == "ok"
+    ready = client.get("/health/ready")
+    assert ready.status_code == 200 and ready.json()["checks"]["templates"] is True
+    assert sessions.count() == 0
+    assert not [k for k in ready.headers if k.lower() == "set-cookie"]
+    # Las cabeceras de seguridad valen también acá.
+    assert ready.headers["x-content-type-options"] == "nosniff"
+
+
+def test_health_ready_reports_degraded_when_the_session_store_is_full(client, monkeypatch):
+    monkeypatch.setattr(sessions, "count", lambda: sessions.MAX_SESSIONS)
+    r = client.get("/health/ready")
+    assert r.status_code == 503 and r.json()["status"] == "degraded"
+    assert r.json()["checks"]["sessions"] is False

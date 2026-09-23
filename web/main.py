@@ -15,7 +15,7 @@ from datetime import datetime
 from functools import lru_cache
 
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, RedirectResponse, Response
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 import ai_engine
@@ -38,6 +38,32 @@ app.mount("/static", StaticFiles(directory=ROOT / "static"), name="static")
 app.mount("/brand", StaticFiles(directory=BRAND / "logo"), name="brand")
 app.include_router(wizard.router)
 
+# ─── Salud (la plataforma de despliegue consulta estas dos) ──────────────────
+@app.get("/health/live", include_in_schema=False)
+def health_live():
+    """El proceso responde. No toca dependencias: sirve para reiniciar un contenedor colgado."""
+    return {"status": "ok"}
+
+
+@app.get("/health/ready", include_in_schema=False)
+def health_ready():
+    """Listo para recibir tráfico. Chequeos baratos; cuando haya base de datos, se suma acá."""
+    live = sessions.count()
+    checks = {
+        "templates": (ROOT / "templates").is_dir(),
+        "static": (ROOT / "static" / "app.css").is_file(),
+        "brand": (BRAND / "logo").is_dir(),
+        "sessions": live < sessions.MAX_SESSIONS,
+    }
+    ok = all(checks.values())
+    body = {"status": "ok" if ok else "degraded", "checks": checks, "sessions": live, "demo": demo.enabled()}
+    return JSONResponse(body, status_code=200 if ok else 503)
+
+
+# Rutas que no necesitan sesión: si el latido de la plataforma creara una, cada chequeo ocuparía
+# un lugar en el store y terminaría expulsando la sesión de alguien que está usando la app.
+STATELESS = ("/static", "/brand", "/health")
+
 CSP = ("default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; "
        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; "
        "img-src 'self' data:; connect-src 'self'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'")
@@ -45,12 +71,15 @@ CSP = ("default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; "
 
 @app.middleware("http")
 async def session_and_headers(request: Request, call_next):
-    sid, sess, is_new = sessions.get(request.cookies.get(sessions.COOKIE))
-    request.state.session = sess
-    # Traía una cookie de sesión que ya no existe: venció o el servidor se reinició.
-    request.state.session_expired = is_new and sessions.COOKIE in request.cookies
+    stateless = request.url.path.startswith(STATELESS)
+    sid, is_new = "", False
+    if not stateless:
+        sid, sess, is_new = sessions.get(request.cookies.get(sessions.COOKIE))
+        request.state.session = sess
+        # Traía una cookie de sesión que ya no existe: venció o el servidor se reinició.
+        request.state.session_expired = is_new and sessions.COOKIE in request.cookies
     response = await call_next(request)
-    if is_new and not request.url.path.startswith(("/static", "/brand")):
+    if is_new:
         response.set_cookie(sessions.COOKIE, sid, httponly=True, samesite="lax", secure=settings.HTTPS_ONLY_COOKIES or request.url.scheme == "https",
                             max_age=sessions.TTL_SECONDS)
     # Navegación con hx-boost: tras un redirect (POST → 303 → GET) la barra de direcciones debe mostrar
