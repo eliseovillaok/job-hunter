@@ -57,7 +57,6 @@
           <div class="group" data-group>
             <div class="group-h">
               <label class="cb-label"><input type="checkbox" data-group-toggle {{ 'checked' if g.n_on == g['items']|length }}><b>{{ t('wz4_group_' ~ g.key) }}</b></label>
-              {% if g.key == 'login' %}<span class="beta">{{ t('wz4_beta') }}</span>{% endif %}
               <span class="count"><span data-group-count>{{ g.n_on }}</span> / {{ g['items']|length }}</span>
               <button class="btn-link" type="button" data-toggle="grp-{{ g.key }}" aria-expanded="false" aria-controls="grp-{{ g.key }}">{{ t('wz4_see') }} <span class="caret" aria-hidden="true">▾</span></button>
             </div>
@@ -65,7 +64,6 @@
               <div class="chips">
                 {% for p in g['items'] %}<label class="chip"><input type="checkbox" name="portal" value="{{ p.key }}" {{ 'checked' if p.key in s.portals }}><span>{{ p.label }}</span></label>{% endfor %}
               </div>
-              {% if g.key == 'login' %}<p class="help">{{ t('wz4_login_help') }}</p>{% endif %}
             </div></div>
           </div>
           {% endfor %}

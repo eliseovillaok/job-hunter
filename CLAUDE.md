@@ -70,7 +70,7 @@ Los portales son dependencias poco confiables: HTML y APIs cambian, hay rate lim
 - Un portal que falla **nunca** rompe la corrida (try/except por portal, log y seguir). Timeouts explícitos, respetar `max_results`, deduplicar por `title|company`.
 
 ## Reglas duras de seguridad
-1. **Nunca commitear secretos ni datos de usuarios**: API keys, app passwords, tokens, perfiles de navegador, `results/`, CVs, `*.log`. Revisar `git status` antes de cada commit. Los perfiles de Playwright viven fuera del repo (`~/.job-hunter/browser_profiles`), nunca dentro. Nunca embeber tokens en la URL del remote.
+1. **Nunca commitear secretos ni datos de usuarios**: API keys, app passwords, tokens, `results/`, CVs, `*.log`. Revisar `git status` antes de cada commit. Nunca embeber tokens en la URL del remote.
    **Cero datos personales o de desarrollo en el producto**: nada de nombres, emails, CVs, empleadores o ubicaciones reales en código, prompts, defaults, fixtures ni docs. Para ejemplos y tests, usar datos ficticios.
 2. **Sin estado global por usuario.** En Streamlit Cloud el proceso es compartido: no escribir API keys ni perfiles en `os.environ`, `config.*` ni variables de módulo. Pasar la configuración por sesión (parámetros u objeto `RunConfig`).
 3. **XSS**: todo contenido externo (ofertas, salida del LLM, CV) que se renderice con `unsafe_allow_html=True` pasa por `html.escape`.
@@ -87,9 +87,7 @@ Los portales son dependencias poco confiables: HTML y APIs cambian, hay rate lim
 | `ui.py` | Fragmentos HTML puros de la UI (hero, tarjeta de oferta, anillo de afinidad, stepper); todo texto externo con `html.escape` |
 | `i18n.py` | `TRANSLATIONS` ES/EN (se usa vía `_t()` en `app.py`) |
 | `demo.py` | Modo demo (`JOB_HUNTER_DEMO=1`): resultados ficticios sin IA ni red, para probar la UI |
-| `scrapers.py` | Scrapers HTTP/RSS sin auth. Firma: `scrape_x(keywords, max_results=0) -> list[JobPosting]` |
-| `browser_scrapers.py` | Portales con login vía Playwright (LinkedIn, Bumeran, Computrabajo, Indeed), registrados en `PORTALS` |
-| `browser_login.py` | Guarda una sesión persistente: `python browser_login.py linkedin` |
+| `scrapers.py` | Scrapers HTTP/RSS de acceso público. Firma: `scrape_x(keywords, max_results=0) -> list[JobPosting]` |
 | `ai_engine.py` | Acceso a Gemini: `generate_json` (JSON con esquema, temperatura 0), `embed`, `generate_cover_letter`, `ScoredJob`, errores `QuotaExceeded`/`AuthError` |
 | `candidate.py` | `CandidateProfile` estructurado con evidencia, `extract_profile` (CV → perfil + términos de búsqueda ES/EN), `cv_contents` |
 | `normalize.py` | Sin IA: idioma, seniority y modalidad de cada oferta, y deduplicación entre portales |
@@ -108,12 +106,10 @@ Desarrollo **solo en Windows + PowerShell** (no WSL: mezclar ambos genera ruido 
 ```powershell
 py -3.12 -m venv venv; .\venv\Scripts\Activate.ps1
 pip install -r requirements.txt -r requirements-dev.txt
-python -m playwright install chromium      # portales con login (solo local)
 pre-commit install                         # gitleaks en cada commit
 streamlit run app.py                       # app actual (Streamlit)
 $env:JOB_HUNTER_DEMO="1"; uvicorn web.main:app --reload --port 8600   # app nueva (web/), con datos demo
 python main.py --dry-run                   # CLI
-python browser_login.py linkedin           # guarda sesión en ~/.job-hunter/browser_profiles
 ```
 `requirements.txt` = runtime (lo instala Streamlit Cloud); `requirements-dev.txt` = tooling local.
 Si gitleaks frena un commit: sacar el secreto, nunca saltear el hook con `--no-verify`.
@@ -122,7 +118,7 @@ Eval con Gemini real (a mano, consume cuota): `python -m eval.run` — lee `GEMI
 
 ## Convenciones
 - Todo texto visible va por `_t()`, con clave en ES **y** EN en `i18n.py`. Estilos solo con variables de `theme.py`; HTML nuevo en `ui.py`.
-- **Nuevo portal** = función en `scrapers.py` (o entrada en `PORTALS`) + `use_<portal>` en `_defaults` + rama en el pipeline + checkbox en el wizard + claves i18n + README.
+- **Nuevo portal**: primero la base de adquisición (API oficial, feed licenciado o página pública revisada; nunca detrás de un login). Después: función en `scrapers.py` + entrada en `web/portals.py` + `use_<portal>` en `_defaults` + rama en el pipeline + checkbox en el wizard + claves i18n + README.
 - Modelo Gemini por defecto: `_defaults["selected_model"]` en `app.py`. Mantener `ai_engine.DEFAULT_MODEL` alineado y no usar modelos deprecados.
 - Los comentarios explican el *por qué*, no el *qué*. Commits enfocados, sin tocar archivos ajenos a la tarea.
 

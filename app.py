@@ -11,7 +11,6 @@ import os
 from datetime import datetime
 from pathlib import Path
 
-from browser_scrapers import default_profile_dir
 import ai_engine
 import candidate as cand
 import matching
@@ -19,21 +18,6 @@ import normalize
 import theme
 import ui
 from candidate import SENIORITY_LEVELS, CandidateProfile
-
-# ─── Detección de entorno ─────────────────────────────────────────────────────
-# Streamlit Cloud setea la variable STREAMLIT_SHARING_MODE o bien corre dentro
-# de un contenedor sin Playwright instalado. Detectamos ambas condiciones.
-def _is_cloud() -> bool:
-    """True cuando corre en Streamlit Cloud (o cualquier entorno sin Playwright)."""
-    if os.environ.get("STREAMLIT_SHARING_MODE") or os.environ.get("IS_STREAMLIT_CLOUD"):
-        return True
-    try:
-        from playwright.sync_api import sync_playwright  # noqa: F401
-        return False  # Playwright disponible → entorno local
-    except ImportError:
-        return True
-
-IS_CLOUD = _is_cloud()
 
 # ─── Página ───────────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -77,12 +61,6 @@ _defaults = {
     "use_getonboard":     True,
     "use_puentetalent":   True,
     "use_latojobs":       True,
-    # Portales con login — solo se usan cuando IS_CLOUD es False
-    "use_linkedin_browser":      False,
-    "use_bumeran_browser":       False,
-    "use_computrabajo_browser":  False,
-    "use_indeed_browser":        False,
-    "browser_profile_dir":       default_profile_dir(),
     "use_workingnomads":  True,
     "use_themuse":        True,
     "use_remoteco":       True,
@@ -220,12 +198,6 @@ def validate_config():
         errors.append(_t("val_no_kw"))
     if (_get_profile() or CandidateProfile()).is_empty():
         errors.append(_t("val_no_profile"))
-    browser_sources = [] if IS_CLOUD else [
-        st.session_state.use_linkedin_browser,
-        st.session_state.use_bumeran_browser,
-        st.session_state.use_computrabajo_browser,
-        st.session_state.use_indeed_browser,
-    ]
     if not any([st.session_state.use_remotive, st.session_state.use_arbeitnow,
                 st.session_state.use_wwr, st.session_state.use_himalayas,
                 st.session_state.use_remoteok, st.session_state.use_jobicy,
@@ -233,7 +205,7 @@ def validate_config():
                 st.session_state.use_latojobs, st.session_state.use_workingnomads,
                 st.session_state.use_themuse, st.session_state.use_remoteco,
                 st.session_state.use_jobspresso, st.session_state.use_justjoinit,
-                st.session_state.use_authenticjobs, *browser_sources]):
+                st.session_state.use_authenticjobs]):
         errors.append(_t("val_no_src"))
     return errors
 
@@ -591,31 +563,6 @@ def show_config_wizard():
             with l5:
                 st.empty()
 
-            if not IS_CLOUD:
-                st.caption(_t("step3_login"))
-                b1, b2, b3, b4 = st.columns(4)
-                with b1:
-                    st.session_state.use_linkedin_browser = st.checkbox("LinkedIn", value=st.session_state.use_linkedin_browser)
-                with b2:
-                    st.session_state.use_bumeran_browser = st.checkbox("Bumeran", value=st.session_state.use_bumeran_browser)
-                with b3:
-                    st.session_state.use_computrabajo_browser = st.checkbox("Computrabajo", value=st.session_state.use_computrabajo_browser)
-                with b4:
-                    st.session_state.use_indeed_browser = st.checkbox("Indeed", value=st.session_state.use_indeed_browser)
-
-                if any([
-                    st.session_state.use_linkedin_browser,
-                    st.session_state.use_bumeran_browser,
-                    st.session_state.use_computrabajo_browser,
-                    st.session_state.use_indeed_browser,
-                ]):
-                    st.session_state.browser_profile_dir = st.text_input(
-                        _t("step3_browser_dir"),
-                        value=st.session_state.browser_profile_dir,
-                        help=_t("step3_browser_help"),
-                    )
-                    st.caption(_t("step3_browser_note"))
-
             st.caption(_t("step3_us"))
             a1, a2, a3, a4, a5 = st.columns(5)
             with a1:
@@ -678,11 +625,7 @@ if st.session_state.show_dialog:
     st.stop()
 
 # ─── Landing ──────────────────────────────────────────────────────────────────
-# Portales realmente disponibles en este entorno (sin Playwright no hay portales con login).
-N_PORTALS = sum(
-    1 for k in _defaults
-    if k.startswith("use_") and (not IS_CLOUD or not k.endswith("_browser"))
-)
+N_PORTALS = sum(1 for k in _defaults if k.startswith("use_"))
 
 
 def _open_wizard(step: int) -> None:
@@ -757,7 +700,6 @@ if st.session_state.run_search:
         locations=[l.strip() for l in st.session_state.pref_locations.split(",") if l.strip()],
         job_languages=list(st.session_state.pref_languages),
     )
-    browser_profile_dir = st.session_state.browser_profile_dir
 
     st.session_state.result_page     = 0
     st.session_state.result_page_all = 0
@@ -798,11 +740,6 @@ if st.session_state.run_search:
         "Jobspresso":     st.session_state.use_jobspresso,
         "JustJoin.it":    st.session_state.use_justjoinit,
         "AuthenticJobs":  st.session_state.use_authenticjobs,
-        # Portales con login — activos solo en entorno local
-        "LinkedInBrowser":     False if IS_CLOUD else st.session_state.use_linkedin_browser,
-        "BumeranBrowser":      False if IS_CLOUD else st.session_state.use_bumeran_browser,
-        "ComputrabajoBrowser": False if IS_CLOUD else st.session_state.use_computrabajo_browser,
-        "IndeedBrowser":       False if IS_CLOUD else st.session_state.use_indeed_browser,
     }
     enabled_list    = [p for p, v in platforms_enabled.items() if v]
     total_platforms = len(enabled_list)
@@ -832,14 +769,6 @@ if st.session_state.run_search:
                 jobs = sc.scrape_puente(keywords, max_results=remaining)
             elif platform_name == "LatoJobs":
                 jobs = sc.scrape_latojobs(keywords, max_results=remaining)
-            elif platform_name in ("LinkedInBrowser", "BumeranBrowser", "ComputrabajoBrowser", "IndeedBrowser"):
-                import browser_scrapers as bsc
-                jobs = bsc.scrape_browser_portal(
-                    platform_name,
-                    keywords,
-                    profile_dir=browser_profile_dir,
-                    max_results=remaining,
-                )
             elif platform_name == "WorkingNomads":
                 jobs = sc.scrape_workingnomads(keywords, max_results=remaining)
             elif platform_name == "TheMuse":

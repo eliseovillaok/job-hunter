@@ -2,7 +2,8 @@
 web/portals.py — Portales de empleo que ofrece el asistente, agrupados por región.
 
 Las claves coinciden con los `use_<portal>` de app.py para que la etapa 3 reuse el mismo pipeline.
-Los portales con inicio de sesión necesitan Playwright y un perfil guardado: solo se ofrecen en local.
+Solo entran portales de acceso público: la spec prohíbe atravesar logins, CAPTCHA o límites de acceso
+(§21.9 y §34), así que un portal nuevo necesita API, feed o página pública revisada.
 """
 
 from __future__ import annotations
@@ -16,7 +17,6 @@ class Portal:
     label: str
     group: str
     default: bool = True
-    login: bool = False
 
 
 PORTALS: tuple[Portal, ...] = (
@@ -35,27 +35,13 @@ PORTALS: tuple[Portal, ...] = (
     Portal("remoteco", "Remote.co", "us"),
     Portal("justjoinit", "JustJoin.it", "eu", default=False),
     Portal("authenticjobs", "AuthenticJobs", "other"),
-    Portal("linkedin_browser", "LinkedIn", "login", default=False, login=True),
-    Portal("bumeran_browser", "Bumeran", "login", default=False, login=True),
-    Portal("computrabajo_browser", "Computrabajo", "login", default=False, login=True),
-    Portal("indeed_browser", "Indeed", "login", default=False, login=True),
 )
-GROUPS = ("latam", "global", "us", "eu", "other", "login")
+GROUPS = ("latam", "global", "us", "eu", "other")
 BY_KEY = {p.key: p for p in PORTALS}
 
 
-def login_available() -> bool:
-    """Los portales con login requieren Playwright (solo en local)."""
-    try:
-        import playwright.sync_api  # noqa: F401
-        return True
-    except ImportError:
-        return False
-
-
 def available() -> list[Portal]:
-    can_login = login_available()
-    return [p for p in PORTALS if can_login or not p.login]
+    return list(PORTALS)
 
 
 def default_selection() -> list[str]:
