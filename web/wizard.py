@@ -129,7 +129,7 @@ def rail(s: Session, t) -> list[dict]:
                                  p.location if p.location != cand.UNKNOWN else "") if x]
     return [
         {"title": t("wz1"), "sub": s.cv.name if s.cv else (t("wz_rail_manual") if s.manual_profile else t("wz_rail1"))},
-        {"title": t("wz2"), "sub": t("wz_rail2_done") if s.profile is not None else t("wz_rail2")},
+        {"title": t("wz2"), "sub": t("wz_rail2_done") if s.api_key and s.key_ok else t("wz_rail2")},
         {"title": t("wz3"), "sub": " · ".join(prof_bits) if prof_bits else t("wz_rail3")},
         {"title": t("wz4"), "sub": t("wz_rail4")},
     ]

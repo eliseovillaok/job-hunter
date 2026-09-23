@@ -15,10 +15,9 @@
 
   {% if s.cv %}
   <div class="file">
-    <div class="fi">{{ s.cv.name.rsplit('.', 1)[-1]|upper }}</div>
+    <div class="fi">{{ s.cv.name.rsplit('.', 1)[-1]|upper }}<span class="check" aria-hidden="true">✓</span></div>
     <div class="meta"><b>{{ s.cv.name }}</b><span>{{ [1, (s.cv.data|length / 1024)|round|int]|max }} KB · {{ t('wz_cv_next') }}</span></div>
     <form action="/asistente/cv/quitar" method="post"><button class="link-btn" type="submit">{{ t('wz_change') }}</button></form>
-    <div class="check" aria-hidden="true">✓</div>
   </div>
   <div class="foot">
     <span></span>

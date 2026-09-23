@@ -12,7 +12,7 @@
       <li class="{{ 'on' if n == step else ('done' if done else '') }}">
         {% if n <= max_step and n != step %}<a class="dot" href="/asistente/{{ n }}" aria-label="{{ r.title }}" {{ 'data-back' if n < step }}>{{ '✓' if done else n }}</a>
         {% else %}<div class="dot">{{ n }}</div>{% endif %}
-        <div><b>{{ r.title }}</b><small {% if n == 1 and not s.cv %}data-rail-sub1 data-write="{{ t('wz_rail_manual') }}" data-upload="{{ t('wz_rail1') }}"{% endif %}>{{ r.sub }}</small></div>
+        <div><b>{{ r.title }}</b><small title="{{ r.sub }}" {% if n == 1 and not s.cv %}data-rail-sub1 data-write="{{ t('wz_rail_manual') }}" data-upload="{{ t('wz_rail1') }}"{% endif %}>{{ r.sub }}</small></div>
       </li>
       {% endfor %}
     </ol>

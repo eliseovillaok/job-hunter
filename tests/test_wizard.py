@@ -297,3 +297,11 @@ def test_failed_submit_without_htmx_redraws_the_step(client, monkeypatch):
     client.post("/asistente/perfil", data={"summary": "x", "roles": ["Contadora"]})
     r = client.post("/asistente/busqueda", data={"portal": "remotive"})
     assert r.status_code == 400 and 'data-err-for="terms"' in r.text
+
+
+def test_rail_only_says_connected_when_there_is_a_key(client):
+    """El panel lateral decía "Gemini conectado" con el perfil escrito a mano y sin clave."""
+    client.post("/asistente/manual", data={"notes": "Electricista matriculado"})
+    assert "Gemini conectado" not in client.get("/asistente/2").text
+    client.post("/asistente/ia", data={"key": KEY})
+    assert "Gemini conectado" in client.get("/asistente/2").text
