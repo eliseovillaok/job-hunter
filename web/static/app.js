@@ -466,14 +466,31 @@ function updateSummary(form) {
 
 // ─── Volver arriba ──────────────────────────────────────────────────────────
 let ticking = false;
+function syncToTop() {
+  const btn = document.querySelector("[data-to-top]");
+  if (!btn) return;
+  // Aparece cuando hay scroll real: en pantallas grandes la página entera puede medir menos que el umbral viejo.
+  const scrollable = document.documentElement.scrollHeight - innerHeight;
+  btn.classList.toggle("show", scrollable > 200 && scrollY > Math.min(160, scrollable * 0.4));
+}
 addEventListener("scroll", () => {
   if (ticking) return;
   ticking = true;
-  requestAnimationFrame(() => {
-    document.querySelector("[data-to-top]")?.classList.toggle("show", scrollY > 480);
-    ticking = false;
-  });
+  requestAnimationFrame(() => { syncToTop(); ticking = false; });
 }, { passive: true });
+addEventListener("resize", syncToTop, { passive: true });
+
+addEventListener("popstate", () => { document.documentElement.dataset.nav = "back"; });
+
+// Errores que llegan solos (sin redibujar la pantalla): llevar el foco al primero.
+document.addEventListener("htmx:oobAfterSwap", (e) => {
+  const msg = e.detail.target;
+  if (!msg?.dataset?.errFor || msg.hidden) return;
+  const field = document.querySelector(`[name="${msg.dataset.errFor}"]`);
+  if (field && !document.querySelector(".field-err:not([hidden])")?.contains(document.activeElement)) {
+    field.focus({ preventScroll: false });
+  }
+});
 
 // ─── Al cargar y después de cada navegación de HTMX ─────────────────────────
 // Lo que el usuario abrió sigue abierto al cambiar de idioma o volver a la pantalla (por pestaña).
@@ -512,7 +529,7 @@ function init(root = document) {
   const page = document.querySelector("[data-page]");
   if (page?.dataset.lang) document.documentElement.lang = page.dataset.lang;
   const top = document.querySelector("[data-to-top]");
-  if (top) { top.hidden = false; top.classList.toggle("show", scrollY > 480); }
+  if (top) { top.hidden = false; syncToTop(); }
   const firstError = document.querySelector(".has-error");
   if (firstError) firstError.focus({ preventScroll: false });
   restoreOpen(root);

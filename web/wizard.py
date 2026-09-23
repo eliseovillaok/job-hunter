@@ -187,6 +187,22 @@ def step_context(request: Request, step: int) -> dict:
     return {}
 
 
+# Campos con error visible en cada paso (para responder solo el error, sin redibujar la pantalla).
+ERROR_FIELDS = {
+    2: ["key", "email_sender", "email_recipient", "email_password"],
+    3: ["notes"],
+    4: ["terms", "portal"],
+}
+
+
+def invalid(request: Request, step: int, errors: dict, status_code: int = 400, **ctx):
+    """Errores de validación: por HTMX se actualizan solo las líneas de error; si no, se redibuja el paso."""
+    if request.headers.get("HX-Request") and all(k in ERROR_FIELDS.get(step, []) for k in errors):
+        return render(request, "_field_errors.html", errors=errors, fields=ERROR_FIELDS[step],
+                      headers={"HX-Reswap": "none transition:false"})
+    return page(request, step, status_code=status_code, errors=errors, **ctx)
+
+
 # ─── Sesión vencida ──────────────────────────────────────────────────────────
 def expired(request: Request):
     """Si la sesión venció (o el servidor se reinició), volver al paso 1 explicando por qué."""
@@ -383,7 +399,7 @@ async def save_ai(request: Request):
         if len(s.email_password.replace(" ", "")) != 16:
             errors["email_password"] = t("val_pass")
     if errors:
-        return page(request, 2, status_code=400, errors=errors, **step_context(request, 2))
+        return invalid(request, 2, errors, **step_context(request, 2))
 
     if s.cv and s.analyzed_cv_id != s.cv.id:
         try:
@@ -415,7 +431,7 @@ async def save_profile(request: Request):
         return go(s.max_step())
     apply_profile_form(s, await request.form(), t)
     if s.profile.is_empty():
-        return page(request, 3, status_code=400, errors={"notes": t("step4_warning")}, **step_context(request, 3))
+        return invalid(request, 3, {"notes": t("step4_warning")}, **step_context(request, 3))
     s.profile_confirmed = True
     return go(4)
 
@@ -435,7 +451,7 @@ async def save_search(request: Request):
     if not s.portals:
         errors["portal"] = t("wz_err_portals")
     if errors:
-        return page(request, 4, status_code=400, errors=errors, **step_context(request, 4))
+        return invalid(request, 4, errors, **step_context(request, 4))
     s.search_ready = True
     return RedirectResponse("/buscando", status_code=303)
 

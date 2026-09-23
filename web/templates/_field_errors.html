@@ -1,0 +1,4 @@
+{# Errores de validación por campo. Se envían fuera de banda: la pantalla no se redibuja ni parpadea. #}
+{% for name in fields %}
+<p class="field-err" id="err-{{ name }}" data-err-for="{{ name }}" hx-swap-oob="true" {{ '' if errors.get(name) else 'hidden' }}>{{ errors.get(name, '') }}</p>
+{% endfor %}

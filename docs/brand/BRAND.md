@@ -77,12 +77,14 @@ Fuente de verdad: [tokens.json](tokens.json). **No inventar colores**: si falta 
 | Fondo / superficie | `#F4F8F5` / `#FFFFFF` | `#0F1A16` / `#16241E` | Página / tarjetas |
 | Texto / secundario / atenuado | `#13261E` / `#3E5A4E` / `#58736A` | `#E8F2EC` / `#A9C2B6` / `#8FA79B` | Jerarquía de texto |
 | Acento coral | `#E07A5F` | `#F29A80` | Decoración, novedades. Con texto blanco usar `#A8472E` |
+| Borde de control | `#77917F` | `#5A7A69` | Botones, campos, chips e interruptores. **Obligatorio ≥ 3:1**: los bordes decorativos de tarjetas usan `border` |
 | Éxito · Aviso · Error · Info | `#377227` · `#8F5D00` · `#B42318` · `#2B5C8A` | `#8BCB6F` · `#F0B955` · `#F28B7F` · `#8CB8E6` | Estados. El éxito es verde hoja, distinto del primario |
 
 **Proporción aproximada:** 60% fondos claros · 25% texto y superficies · 10% esmeralda · 5% coral.
 Un solo acento cálido por pantalla. El coral no compite con el botón primario.
 
 **Accesibilidad (obligatorio):** texto ≥ 4.5:1 (texto principal ≥ 7:1), botones y estados ≥ 4.5:1, en claro y oscuro.
+El **contorno de cualquier control** (botón, campo, chip, interruptor) ≥ 3:1 contra su fondo: si no se distingue, no existe.
 Nunca comunicar algo solo con color (ej.: el puntaje lleva número y etiqueta, no solo el anillo).
 
 ## 5. Tipografía

@@ -6,7 +6,7 @@
 
 {# Error junto al campo que falla. Ocupa su lugar siempre: mostrarlo no mueve el resto de la pantalla. #}
 {% macro field_error(errors, name) -%}
-<p class="field-err" data-err-for="{{ name }}" {{ '' if errors and errors.get(name) else 'hidden' }}>{{ (errors or {}).get(name, '') }}</p>
+<p class="field-err" id="err-{{ name }}" data-err-for="{{ name }}" {{ '' if errors and errors.get(name) else 'hidden' }}>{{ (errors or {}).get(name, '') }}</p>
 {%- endmacro %}
 
 {# Lista de etiquetas: la × las quita de verdad; "+ Agregar" abre un campo para sumar una nueva. #}

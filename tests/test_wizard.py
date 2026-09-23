@@ -279,10 +279,21 @@ def test_step_4_requires_confirming_the_profile(client, monkeypatch):
     assert client.get("/asistente/4", follow_redirects=False).status_code == 200
 
 
-def test_failed_submit_keeps_the_step_url(client, monkeypatch):
+def test_failed_submit_only_returns_the_errors(client, monkeypatch):
+    """Un error de validación actualiza la línea del error, sin redibujar la pantalla."""
     through_step2(client, monkeypatch)
     client.post("/asistente/perfil", data={"summary": "x", "roles": ["Contadora"]})
     r = client.post("/asistente/busqueda", data={"portal": "remotive"},
                     headers={"HX-Request": "true", "HX-Boosted": "true"})
-    assert r.status_code == 400 and r.headers.get("HX-Push-Url") == "false"
-    assert 'data-err-for="terms"' in r.text and "alert" not in r.text.split("<main")[1][:400]
+    assert r.headers.get("HX-Reswap", "").startswith("none") and "<main" not in r.text
+    assert 'id="err-terms"' in r.text and 'hx-swap-oob="true"' in r.text
+    assert "Agrega al menos un término" in r.text
+    # El campo que sí estaba bien queda sin error (la línea vuelve vacía).
+    assert 'id="err-portal"' in r.text and r.text.count("hidden") >= 1
+
+
+def test_failed_submit_without_htmx_redraws_the_step(client, monkeypatch):
+    through_step2(client, monkeypatch)
+    client.post("/asistente/perfil", data={"summary": "x", "roles": ["Contadora"]})
+    r = client.post("/asistente/busqueda", data={"portal": "remotive"})
+    assert r.status_code == 400 and 'data-err-for="terms"' in r.text
