@@ -329,7 +329,7 @@ async def upload_cv(request: Request, cv: UploadFile = File(...), origin: str = 
     cv_id = hashlib.sha256(data).hexdigest()[:16]
     if cv_id != s.analyzed_cv_id:
         # Otro CV: el perfil y los términos anteriores ya no corresponden.
-        s.profile, s.terms, s.job_languages, s.search_ready = None, [], [], False
+        s.profile, s.terms, s.job_languages = None, [], []
         s.profile_confirmed = False
     s.cv = CVFile(name=Path(cv.filename).name[:120], mime=CV_TYPES[ext][0], data=data, id=cv_id)
     s.manual_profile = False
@@ -355,7 +355,7 @@ async def manual_profile(request: Request):
     if s.cv or is_structured(s.profile):
         # El perfil anterior venía de un CV: se empieza de cero.
         s.profile, s.terms, s.job_languages, s.analyzed_cv_id = None, [], [], ""
-    s.cv, s.manual_profile, s.search_ready = None, True, False
+    s.cv, s.manual_profile = None, True
     if "notes" not in form:
         return go(1, escribir=1)
     if not notes:
@@ -478,7 +478,6 @@ async def save_search(request: Request):
         errors["portal"] = t("wz_err_portals")
     if errors:
         return invalid(request, 4, errors, **step_context(request, 4))
-    s.search_ready = True
     run.start(s, prefs(request)[0])
     return RedirectResponse("/buscando", status_code=303)
 

@@ -2,6 +2,7 @@
 {% block title %}{{ t('res_title') }} · JobHunter{% endblock %}
 {% block nav_cta %}<a class="btn btn-p" href="/asistente">{{ t('btn_new_search') }}</a>{% endblock %}
 {% block content %}
+{% if notice %}<div class="notice" role="status">{{ notice }}</div>{% endif %}
 <div class="rhead">
   <div><h2>{{ t('res_title') }}</h2><p>{{ meta }}</p></div>
   {% if funnel %}{% set ex = funnel.excluded %}

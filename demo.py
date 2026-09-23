@@ -58,3 +58,16 @@ def load() -> tuple[CandidateProfile, list[ScoredJob]]:
                                 summary=f"Afinidad estimada con {j['title']}.", evaluated=True, factors=factors))
     scored.sort(key=lambda s: -s.score)
     return profile, scored
+
+
+def cover_letter(job, lang: str = "es") -> str:
+    """Carta ficticia para mirar la pantalla en modo demo (nunca llama a la IA)."""
+    if lang == "en":
+        return (f"Dear hiring team at {job.company},\n\n"
+                f"I am writing about the {job.title} position. My experience covers the tasks the listing "
+                f"mentions, and I would be glad to walk you through it.\n\n"
+                "This letter is an example generated in demo mode.\n\nKind regards")
+    return (f"Estimado equipo de {job.company}:\n\n"
+            f"Les escribo por la búsqueda de {job.title}. Mi experiencia cubre las tareas que menciona "
+            f"el aviso y me gustaría contarles el detalle.\n\n"
+            "Esta carta es un ejemplo generado en modo demo.\n\nSaludos cordiales")

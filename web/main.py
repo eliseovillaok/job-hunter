@@ -11,6 +11,7 @@ Local:  uvicorn web.main:app --reload --port 8600
 from __future__ import annotations
 
 import json
+import logging
 from datetime import datetime
 from functools import lru_cache
 
@@ -25,9 +26,11 @@ import matching
 import normalize
 from web import portals, settings, wizard
 from web import session as sessions
-from web.common import BRAND, LEVELS, ROOT, prefs, render, translator
+from web.common import BRAND, LEVELS, ROOT, prefs, render, sess, translator
 # Reexportados para los tests y plantillas existentes.
 from web.common import affinity, avatar_color, dom_id, safe_url  # noqa: F401
+
+log = logging.getLogger("jobhunter.web")
 
 PAGE_SIZE = 15
 DEFAULT_MIN_SCORE = 65
@@ -98,17 +101,32 @@ async def session_and_headers(request: Request, call_next):
 
 
 # ─── Datos de resultados ─────────────────────────────────────────────────────
-# Etapa 1: solo demo. En la etapa 3 esto sale de la búsqueda de la sesión del usuario.
 @lru_cache(maxsize=1)
 def demo_results():
+    """Datos ficticios para mirar la pantalla sin haber buscado (landing en modo demo)."""
     profile, scored = demo.load()
     funnel = {"found": 112, "dups": 6, "excluded": {"modality": 9, "language": 4, "location": 3},
               "out": 50, "evaluated": len(scored), "top_n": 40}
     return profile, scored, funnel
 
 
-def current_results():
+def current_results(request: Request):
+    """(perfil, ofertas, embudo) de la búsqueda de esta sesión. Sin búsqueda, los datos de demo."""
+    s = sess(request)
+    if s.run is not None and s.run.result is not None:
+        r = s.run.result
+        funnel = {"found": r.total_found, "dups": r.duplicates_removed, "excluded": r.excluded,
+                  "out": r.pre_ranked_out, "evaluated": sum(1 for sj in r.scored if sj.evaluated),
+                  "top_n": s.run.eval_limit}
+        return (s.profile or cand.CandidateProfile()), r.scored, funnel
     return demo_results() if demo.enabled() else None
+
+
+def results_notice(request: Request) -> str:
+    """Si la evaluación se cortó, se dice por qué en vez de mostrar ofertas sin explicación."""
+    s, t = sess(request), translator(prefs(request)[0])
+    reason = s.run.result.stop_reason if (s.run and s.run.result) else None
+    return {"quota": t("wf_quota_stop"), "auth": t("none_evaluated")}.get(reason, "")
 
 
 def chips(job, t) -> list[str]:
@@ -132,10 +150,12 @@ def filtered(scored, show: str, min_score: int, mods: list[str], lvls: list[str]
 
 def read_filters(request: Request) -> dict:
     q = request.query_params
+    s = sess(request)
+    default_min = s.run.min_score if s.run is not None else DEFAULT_MIN_SCORE
     try:
-        min_score = max(0, min(100, int(q.get("min", DEFAULT_MIN_SCORE))))
+        min_score = max(0, min(100, int(q.get("min", default_min))))
     except ValueError:
-        min_score = DEFAULT_MIN_SCORE
+        min_score = default_min
     try:
         page = max(0, int(q.get("page", 0)))
     except ValueError:
@@ -163,7 +183,7 @@ def list_context(scored, f: dict) -> dict:
 # ─── Rutas ───────────────────────────────────────────────────────────────────
 @app.get("/", response_class=HTMLResponse)
 def landing(request: Request):
-    return render(request, "landing.html", n_portals=N_PORTALS, has_results=current_results() is not None)
+    return render(request, "landing.html", n_portals=N_PORTALS, has_results=current_results(request) is not None)
 
 
 @app.get("/empezar")
@@ -173,7 +193,7 @@ def start():
 
 @app.get("/resultados", response_class=HTMLResponse)
 def results(request: Request):
-    data = current_results()
+    data = current_results(request)
     if not data:
         return RedirectResponse("/", status_code=303)
     profile, scored, funnel = data
@@ -183,14 +203,14 @@ def results(request: Request):
         t(f"sen_{profile.seniority}") if profile.seniority != cand.UNKNOWN else "",
         profile.location if profile.location != cand.UNKNOWN else "",
     ) if x)
-    return render(request, "results.html", meta=meta, funnel=funnel, levels=LEVELS,
+    return render(request, "results.html", meta=meta, funnel=funnel, levels=LEVELS, notice=results_notice(request),
                   modalities=matching.MODALITIES, **list_context(scored, read_filters(request)))
 
 
 @app.get("/resultados/lista", response_class=HTMLResponse)
 def results_list(request: Request):
     """Fragmento HTMX: la lista filtrada (y los contadores, fuera de banda)."""
-    data = current_results()
+    data = current_results(request)
     if not data:
         return HTMLResponse("", status_code=204)
     return render(request, "_list.html", **list_context(data[1], read_filters(request)))
@@ -198,14 +218,37 @@ def results_list(request: Request):
 
 @app.post("/carta/{job_id}", response_class=HTMLResponse)
 def cover_letter(request: Request, job_id: str):
-    # Etapa 3: generar con la key de la sesión. Hoy no hay sesión con acceso a la IA.
-    t = translator(prefs(request)[0])
-    return HTMLResponse(f'<p class="note-inline">{t("letter_need_key")}</p>')
+    """Carta para una oferta concreta, con la clave de esta sesión. Se genera una sola vez."""
+    s, t = sess(request), translator(prefs(request)[0])
+    data = current_results(request)
+    if not data:
+        return render(request, "_letter.html", error=t("letter_need_key"))
+    profile, scored, _ = data
+    sj = next((x for x in scored if dom_id(x.job) == job_id), None)
+    if sj is None:
+        return HTMLResponse("", status_code=204)
+    if not sj.cover_letter:
+        if demo.enabled():
+            sj.cover_letter = demo.cover_letter(sj.job, prefs(request)[0])
+        elif not s.api_key:
+            return render(request, "_letter.html", error=t("letter_need_key"))
+        else:
+            try:
+                sj.cover_letter = ai_engine.generate_cover_letter(
+                    sj.job, sj.match_reasons, profile.to_prompt(), api_key=s.api_key, model=s.model)
+            except ai_engine.QuotaExceeded:
+                return render(request, "_letter.html", error=t("wz_err_quota"))
+            except ai_engine.AuthError:
+                return render(request, "_letter.html", error=t("wz_err_key"))
+            except Exception:
+                log.exception("carta job=%s", job_id)
+                return render(request, "_letter.html", error=t("letter_error", error=""))
+    return render(request, "_letter.html", letter=sj.cover_letter)
 
 
 @app.get("/resultados/export.json")
 def export(request: Request):
-    data = current_results()
+    data = current_results(request)
     if not data:
         return RedirectResponse("/", status_code=303)
     payload = [{

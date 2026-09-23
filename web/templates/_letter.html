@@ -1,0 +1,11 @@
+{# Carta de presentación de una oferta. Texto de la IA: lo escapa Jinja, nunca va como HTML. #}
+{% if error %}
+<p class="note-inline">{{ error }}</p>
+{% else %}
+<div class="letter">
+  <div class="letter-h"><b>{{ t('cover_letter_expander') }}</b>
+    <button class="link-btn" type="button" data-copy data-done="{{ t('btn_copied') }}">{{ t('btn_copy') }}</button>
+  </div>
+  <pre>{{ letter }}</pre>
+</div>
+{% endif %}

@@ -60,7 +60,6 @@ class Session:
     portals: list[str] = field(default_factory=portals.default_selection)
     min_score: int = 65
     eval_limit: int = matching.DEFAULT_TOP_N
-    search_ready: bool = False
     # La búsqueda en curso (o la última), con su progreso y su resultado.
     run: Optional["Run"] = None
     touched: float = field(default_factory=time.time)

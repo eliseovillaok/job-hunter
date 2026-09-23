@@ -32,11 +32,11 @@ La clave de Gemini la pone el usuario; en la fase de cobros pasa a ser nuestra y
 
 **Objetivo:** el flujo completo corre sobre `web/` en local y Streamlit sale de escena.
 
-- [ ] Búsqueda real en segundo plano con pantalla de progreso (fases + estado por portal) y resultados en la sesión.
+- [x] Búsqueda real en segundo plano con pantalla de progreso (fases + estado por portal) y resultados en la sesión.
 - [ ] Retirar `app.py`, `theme.py` y `ui.py`; dejar `web/` como única interfaz.
 - [ ] Dar de baja el despliegue en Streamlit Cloud.
-- [ ] `Dockerfile` + `/health/live` y `/health/ready` + configuración por variables de entorno (lista para Railway o Render).
-- [ ] README reescrito: una sola app, instalación, desarrollo y despliegue.
+- [x] `Dockerfile` + `/health/live` y `/health/ready` + configuración por variables de entorno (lista para Railway o Render).
+- [x] README reescrito: una sola app, instalación, desarrollo y despliegue.
 - [ ] GetOnBoard por su API pública (hoy tarda ~90 s por 8 ofertas).
 
 **Listo cuando:** `uvicorn web.main:app` hace CV → perfil → búsqueda real → resultados, y la imagen levanta igual en un contenedor limpio.

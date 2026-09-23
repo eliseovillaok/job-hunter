@@ -215,6 +215,22 @@ function openChipInput(btn) {
   input.addEventListener("blur", () => { addChip(input); setTimeout(close, 0); });
 }
 
+// Copiar la carta: si el navegador no deja, al menos queda seleccionada para copiar a mano.
+document.addEventListener("click", async (e) => {
+  const btn = e.target.closest("[data-copy]");
+  if (!btn) return;
+  const text = btn.closest(".letter")?.querySelector("pre");
+  if (!text) return;
+  try {
+    await navigator.clipboard.writeText(text.textContent);
+    const before = btn.textContent;
+    btn.textContent = btn.dataset.done || before;
+    setTimeout(() => { btn.textContent = before; }, 1600);
+  } catch {
+    getSelection().selectAllChildren(text);
+  }
+});
+
 // ─── Tooltips: que nunca se corten contra el borde de la pantalla ────────────
 function clipper(el) {
   for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {

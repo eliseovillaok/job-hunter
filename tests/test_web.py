@@ -55,7 +55,7 @@ def test_card_escapes_external_content_and_drops_unsafe_links(client, monkeypatc
     job.url = "javascript:alert(1)"
     sj = ScoredJob(job=job, score=90, match_reasons=["<img src=x onerror=alert(1)>"], missing_skills=[],
                    cover_letter=None, summary="<svg onload=1>")
-    monkeypatch.setattr(web, "current_results", lambda: (demo.load()[0], [sj], None))
+    monkeypatch.setattr(web, "current_results", lambda request: (demo.load()[0], [sj], None))
     html = client.get("/resultados").text
     for raw in ("<script>alert", "<img src=x", "<b>", "javascript:alert"):
         assert raw not in html
@@ -92,3 +92,86 @@ def test_health_ready_reports_degraded_when_the_session_store_is_full(client, mo
     r = client.get("/health/ready")
     assert r.status_code == 503 and r.json()["status"] == "degraded"
     assert r.json()["checks"]["sessions"] is False
+
+
+# ─── Resultados de una búsqueda real ─────────────────────────────────────────
+def searched(monkeypatch, client, *, scored=None, stop_reason=None, min_score=65, api_key="AIza-test"):
+    """Deja en la sesión del cliente una búsqueda terminada, sin haberla corrido."""
+    import matching
+    from web import run as runner
+    from web import session as sessions
+
+    sessions.reset()
+    client.get("/")                                   # crea la sesión y su cookie
+    s = next(iter(sessions._store.values()))
+    s.api_key, s.profile = api_key, demo.load()[0]
+    jobs = scored if scored is not None else demo.load()[1][:3]
+    s.run = runner.Run(id="test", portals=[], eval_limit=40, min_score=min_score, phase=runner.FINISHED,
+                       outcome=runner.SUCCESS)
+    s.run.result = matching.MatchResult(scored=jobs, total_found=80, duplicates_removed=5,
+                                        excluded={"modality": 7}, pre_ranked_out=28, stop_reason=stop_reason)
+    return s
+
+
+def test_results_come_from_the_session_search(client, monkeypatch):
+    monkeypatch.setattr(demo, "enabled", lambda: False)
+    s = searched(monkeypatch, client)
+    html = client.get("/resultados").text
+    assert s.run.result.scored[0].job.title in html
+    assert "80" in html and "28" in html        # el embudo sale de la corrida, no de números fijos
+
+
+def test_results_without_a_search_send_you_home(client, monkeypatch):
+    monkeypatch.setattr(demo, "enabled", lambda: False)
+    r = client.get("/resultados", follow_redirects=False)
+    assert r.status_code == 303 and r.headers["location"] == "/"
+
+
+def test_the_minimum_match_comes_from_step4(client, monkeypatch):
+    monkeypatch.setattr(demo, "enabled", lambda: False)
+    searched(monkeypatch, client, min_score=90)
+    html = client.get("/resultados").text
+    assert 'value="90"' in html
+
+
+def test_an_exhausted_quota_is_explained(client, monkeypatch):
+    monkeypatch.setattr(demo, "enabled", lambda: False)
+    searched(monkeypatch, client, stop_reason="quota")
+    assert "cuota" in client.get("/resultados").text
+
+
+def test_the_letter_uses_the_session_key(client, monkeypatch):
+    monkeypatch.setattr(demo, "enabled", lambda: False)
+    s = searched(monkeypatch, client)
+    sj = s.run.result.scored[0]
+    seen = {}
+
+    def fake_letter(job, reasons, profile, *, api_key, model):
+        seen.update(job=job.title, key=api_key)
+        return "Estimado equipo: me interesa el puesto."
+
+    monkeypatch.setattr(web.ai_engine, "generate_cover_letter", fake_letter)
+    html = client.post(f"/carta/{web.dom_id(sj.job)}").text
+    assert "me interesa el puesto" in html
+    assert seen["key"] == "AIza-test" and seen["job"] == sj.job.title
+    assert sj.cover_letter                      # queda guardada: no se paga dos veces
+
+
+def test_the_letter_needs_a_key(client, monkeypatch):
+    monkeypatch.setattr(demo, "enabled", lambda: False)
+    s = searched(monkeypatch, client, api_key="")
+    r = client.post(f"/carta/{web.dom_id(s.run.result.scored[0].job)}")
+    assert "conectar tu acceso" in r.text
+
+
+def test_an_unknown_job_asks_for_nothing(client, monkeypatch):
+    monkeypatch.setattr(demo, "enabled", lambda: False)
+    searched(monkeypatch, client)
+    assert client.post("/carta/nada").status_code == 204
+
+
+def test_the_export_carries_the_session_results(client, monkeypatch):
+    monkeypatch.setattr(demo, "enabled", lambda: False)
+    s = searched(monkeypatch, client)
+    payload = client.get("/resultados/export.json").json()
+    assert [j["title"] for j in payload] == [sj.job.title for sj in s.run.result.scored]
