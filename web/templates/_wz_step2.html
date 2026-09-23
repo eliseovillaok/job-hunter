@@ -30,11 +30,27 @@
       <span class="sp"></span>
       <input class="switch" type="checkbox" id="send-email" name="send_email" value="1" {{ 'checked' if s.send_email }} data-reveals="email-body">
     </div>
-    <div class="collapse{{ ' open' if s.send_email }}" id="email-body"><div class="opt-body">
+    <div class="collapse{{ ' open' if s.send_email }}" id="email-body" {{ 'data-pass-saved' if s.email_password }}><div class="opt-body">
       <div class="grid3">
-        <div class="field"><label for="e1">{{ t('step1_gmail_label') }}</label><input id="e1" class="input" type="email" name="email_sender" {{ 'class="input has-error" aria-invalid="true"'|safe if errors and errors.get('email_sender') }} value="{{ s.email_sender }}" placeholder="{{ t('ph_email_sender') }}" autocomplete="email">{{ field_error(errors, 'email_sender') }}</div>
-        <div class="field"><label for="e2">{{ t('step1_recip_label') }}</label><input id="e2" class="input" type="email" name="email_recipient" {{ 'class="input has-error" aria-invalid="true"'|safe if errors and errors.get('email_recipient') }} value="{{ s.email_recipient }}" placeholder="{{ t('ph_email_recip') }}">{{ field_error(errors, 'email_recipient') }}</div>
-        <div class="field"><label for="e3">{{ t('wz2_app_pass') }} {{ tip(t('wz2_app_pass_help')) }}</label><input id="e3" class="input" type="password" name="email_password" {{ 'class="input has-error" aria-invalid="true"'|safe if errors and errors.get('email_password') }} autocomplete="off" placeholder="{{ t('wz2_key_saved') if s.email_password else 'abcd efgh ijkl mnop' }}">{{ field_error(errors, 'email_password') }}</div>
+        {% for f in [('e1', 'email_sender', 'step1_gmail_label', 'ph_email_sender', 'email'),
+                     ('e2', 'email_recipient', 'step1_recip_label', 'ph_email_recip', 'email')] %}
+        {% set err = errors.get(f[1]) if errors else none %}
+        <div class="field">
+          <label for="{{ f[0] }}">{{ t(f[2]) }}</label>
+          <input id="{{ f[0] }}" class="input{{ ' has-error' if err }}" type="email" name="{{ f[1] }}" value="{{ s[f[1]] }}"
+                 placeholder="{{ t(f[3]) }}" autocomplete="{{ f[4] if loop.first else 'off' }}" maxlength="200"
+                 {% if err %}aria-invalid="true" aria-describedby="err-{{ f[1] }}"{% endif %} data-mail-field>
+          {{ field_error(errors, f[1]) }}
+        </div>
+        {% endfor %}
+        {% set err = errors.get('email_password') if errors else none %}
+        <div class="field">
+          <label for="e3">{{ t('wz2_app_pass') }} {{ tip(t('wz2_app_pass_help')) }}</label>
+          <input id="e3" class="input{{ ' has-error' if err }}" type="password" name="email_password" autocomplete="off" maxlength="40"
+                 placeholder="{{ t('wz2_key_saved') if s.email_password else 'abcd efgh ijkl mnop' }}"
+                 {% if err %}aria-invalid="true" aria-describedby="err-email_password"{% endif %} data-mail-field>
+          {{ field_error(errors, 'email_password') }}
+        </div>
       </div>
     </div></div>
   </div>

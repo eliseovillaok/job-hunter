@@ -1,8 +1,9 @@
-{# Botón principal del paso 2: habilitado cuando la clave no fue rechazada. #}
+{# Botón principal del paso 2: habilitado cuando la clave no fue rechazada.
+   data-locked = lo bloqueó el servidor (sin clave válida): app.js nunca lo habilita. #}
 {% if key_state is sameas false %}
 <span class="next-hint">{{ t('wz_hint2') }}</span>
-<button class="btn btn-p" type="submit" disabled>{{ t('wz2_analyze') if needs_analysis else t('btn_continue') }}</button>
+<button class="btn btn-p" type="submit" data-locked disabled>{{ t('wz2_analyze') if needs_analysis else t('btn_continue') }}</button>
 {% else %}
-<span class="next-hint">{{ t('wz_hint2_ready') if needs_analysis else '' }}</span>
-<button class="btn btn-p{{ ' ready' if fresh }}" type="submit" data-busy="{{ t('wz2_analyzing') }}">{{ t('wz2_analyze') if needs_analysis else t('btn_continue') }}</button>
+<span class="next-hint" data-hint data-ready="{{ t('wz_hint2_ready') if needs_analysis else '' }}" data-email="{{ t('wz_hint2_email') }}">{{ t('wz_hint2_ready') if needs_analysis else '' }}</span>
+<button class="btn btn-p{{ ' ready' if fresh }}" type="submit" data-mail-gate data-busy="{{ t('wz2_analyzing') }}">{{ t('wz2_analyze') if needs_analysis else t('btn_continue') }}</button>
 {% endif %}

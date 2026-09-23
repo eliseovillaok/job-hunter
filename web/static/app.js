@@ -275,20 +275,32 @@ document.addEventListener("drop", (e) => {
 });
 
 // ─── Envíos: sin doble clic y con el botón mostrando que trabaja ─────────────
+let pending = null;                                  // botón que envió, por si hay que devolverlo a su estado
 document.addEventListener("submit", (e) => {
   const form = e.target;
   if (form.dataset.sending) { e.preventDefault(); return; }
   form.dataset.sending = "1";
   const btn = e.submitter;
   if (btn) {
+    pending = { btn, html: btn.innerHTML };
     setTimeout(() => { btn.disabled = true; }, 0);   // evita el doble envío desde el primer instante
     if (btn.dataset.busy) delayedBusy(() => { btn.innerHTML = `<span class="spin"></span> ${btn.dataset.busy}`; });
   }
 }, true);
-// Si el servidor devuelve la misma página (error de validación), el formulario vuelve a estar disponible.
+// Si la respuesta no redibuja la pantalla (error de validación), el formulario y su botón
+// vuelven a estar disponibles: sin esto el botón queda apagado hasta recargar.
 document.addEventListener("htmx:afterRequest", (e) => {
   const form = e.detail.elt.closest?.("form") || e.detail.elt;
   if (form?.dataset) delete form.dataset.sending;
+  const reswap = e.detail.xhr?.getResponseHeader("HX-Reswap") || "";
+  const swapped = e.detail.successful && e.detail.xhr?.status !== 204 && !reswap.startsWith("none");
+  if (!pending) return;
+  if (swapped) { pending = null; return; }   // la página se redibujó: el botón de antes ya no existe
+  clearTimeout(busyTimer);
+  pending.btn.innerHTML = pending.html;
+  pending.btn.disabled = false;
+  pending = null;
+  syncMailGate();
 });
 
 // ─── Guardado automático: antes de navegar, se envía lo pendiente ───────────
@@ -395,6 +407,23 @@ document.addEventListener("change", (e) => {
   const sw = e.target.closest("[data-reveals]");
   if (sw) document.getElementById(sw.dataset.reveals)?.classList.toggle("open", sw.checked);
 });
+
+// Paso 2: con el envío por correo activado, el botón principal espera a que los tres datos estén
+// completos (mismas reglas que el servidor); apagado el interruptor, no estorba.
+function syncMailGate() {
+  const btn = document.querySelector("[data-mail-gate]");
+  if (!btn) return;
+  const sw = document.getElementById("send-email");
+  const body = document.getElementById("email-body");
+  const val = (id) => document.getElementById(id)?.value.trim() || "";
+  const ok = !sw?.checked || (val("e1").includes("@") && val("e2").includes("@")
+    && (body?.hasAttribute("data-pass-saved") || val("e3").replace(/ /g, "").length === 16));
+  btn.disabled = !ok;
+  const hint = document.querySelector("[data-hint]");
+  if (hint) hint.textContent = ok ? hint.dataset.ready : hint.dataset.email;
+}
+document.addEventListener("change", (e) => { if (e.target.closest("#send-email, [data-mail-field]")) syncMailGate(); });
+document.addEventListener("input", (e) => { if (e.target.closest("[data-mail-field]")) syncMailGate(); });
 
 // ─── Paso 4: grupos de portales y resumen ──────────────────────────────────
 document.addEventListener("change", (e) => {
@@ -569,6 +598,7 @@ function init(root = document) {
   root.querySelectorAll("[data-edit]").forEach((b) => { b.dataset.label = b.dataset.label || b.textContent.trim(); });
   root.querySelectorAll("[data-group]").forEach(syncGroup);
   root.querySelectorAll("[data-enables]").forEach(syncEnables);
+  syncMailGate();
   // Entrada desde otra página con #sección: desplazamiento suave hasta ella.
   if (location.hash && root === document) {
     const target = document.querySelector(location.hash);

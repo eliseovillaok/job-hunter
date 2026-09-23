@@ -126,6 +126,15 @@ def test_email_fields_are_validated(client, monkeypatch):
     assert r.status_code == 400
 
 
+def test_email_off_ignores_incomplete_email_fields(client, monkeypatch):
+    """Con el envío por correo apagado, lo que haya quedado escrito no frena el análisis."""
+    monkeypatch.setattr(cand, "extract_profile", lambda *a, **k: profile())
+    upload(client)
+    r = client.post("/asistente/ia", data={"key": KEY, "email_sender": "x", "email_recipient": "y",
+                                           "email_password": "corta"}, follow_redirects=False)
+    assert r.status_code == 303 and r.headers["location"] == "/asistente/3"
+
+
 # ─── Paso 3 ──────────────────────────────────────────────────────────────────
 def test_profile_page_escapes_cv_content_and_flags_missing_data(client, monkeypatch):
     through_step2(client, monkeypatch, profile(summary="<script>alert(1)</script>", location=cand.UNKNOWN))

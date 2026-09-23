@@ -9,7 +9,7 @@
     <span class="check" aria-hidden="true">{{ '✓' if state == 'ok' else '!' }}</span>
     <div class="meta">
       <b>{{ {'ok': t('wz2_key_connected'), 'unverified': t('wz2_key_unverified_short'), 'bad': t('wz2_key_rejected')}[state] }}</b>
-      <span>{{ masked_key }}</span>
+      {% if masked_key %}<span>{{ masked_key }}</span>{% endif %}
     </div>
     <button class="link-btn" type="button" hx-post="/asistente/clave/cambiar" hx-target="#key-field"
             hx-swap="outerHTML transition:false">{{ t('wz_change') }}</button>

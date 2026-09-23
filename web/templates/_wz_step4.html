@@ -26,7 +26,7 @@
       <button class="link-btn" type="button" data-edit data-done="{{ t('wz_done') }}">{{ t('wz_edit') }}</button>
       <div class="re collapse wide"><div class="re-in">
         <p class="help">{{ t('pref_caption') }}</p>
-        <div class="grid3">
+        <div class="where-grid">
           <div class="field">
             <div class="flabel">{{ t('pref_modality') }} {{ tip(t('wz4_modality_help')) }}</div>
             <div class="chips">
@@ -62,8 +62,11 @@
               <span class="count"><span data-group-count>{{ g.n_on }}</span> / {{ g['items']|length }}</span>
               <button class="btn-link" type="button" data-toggle="grp-{{ g.key }}" aria-expanded="false" aria-controls="grp-{{ g.key }}">{{ t('wz4_see') }} <span class="caret" aria-hidden="true">▾</span></button>
             </div>
-            <div class="collapse" id="grp-{{ g.key }}"><div class="chips">
-              {% for p in g['items'] %}<label class="chip"><input type="checkbox" name="portal" value="{{ p.key }}" {{ 'checked' if p.key in s.portals }}><span>{{ p.label }}</span></label>{% endfor %}
+            <div class="collapse" id="grp-{{ g.key }}"><div>
+              <div class="chips">
+                {% for p in g['items'] %}<label class="chip"><input type="checkbox" name="portal" value="{{ p.key }}" {{ 'checked' if p.key in s.portals }}><span>{{ p.label }}</span></label>{% endfor %}
+              </div>
+              {% if g.key == 'login' %}<p class="help">{{ t('wz4_login_help') }}</p>{% endif %}
             </div></div>
           </div>
           {% endfor %}

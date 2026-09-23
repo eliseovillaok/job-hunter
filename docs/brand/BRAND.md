@@ -170,6 +170,7 @@ El producto se siente fluido y predecible. Estas reglas aplican a toda pantalla 
 | afinidad, coincide, se ajusta a tu perfil | encaja, matchea, match (en ES) |
 | oferta, puesto, empleo, vacante | laburo, curro, chamba |
 | perfil, CV | currículum vitae (salvo en texto legal) |
+| en inglés: **resume** (en español: **CV**) | "CV" en la copy en inglés |
 | portales de empleo | job boards (en ES) |
 | explicación, por qué | "insights" |
 
