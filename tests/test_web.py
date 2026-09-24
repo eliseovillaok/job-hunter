@@ -207,3 +207,25 @@ def test_an_empty_result_offers_a_way_out(client, monkeypatch):
     searched(monkeypatch, client)
     html = client.get("/resultados?lvl=intern").text
     assert "Ninguna oferta coincide" in html and "data-clear-filters" in html
+
+
+def test_the_email_outcome_is_told_on_the_results(client, monkeypatch):
+    monkeypatch.setattr(demo, "enabled", lambda: False)
+    s = searched(monkeypatch, client)
+    s.email_recipient = "yo@gmail.com"
+    s.run.email = "sent"
+    assert "Te enviamos el resumen a yo@gmail.com" in client.get("/resultados").text
+    s.run.email = "auth"
+    assert "rechazó la contraseña" in client.get("/resultados").text
+
+
+def test_the_email_body_is_branded_and_escapes_its_content():
+    import notifier
+    job = make_job(title="<script>alert(1)</script>", company="Evil & Co")
+    sj = ScoredJob(job=job, score=88, match_reasons=["Python"], missing_skills=["Kubernetes"],
+                   cover_letter=None, summary="")
+    html = notifier.build_html([sj], [sj], lang="es", min_score=65, logo_cid="logo@test")
+    assert "JobHunter" in html and "cid:logo@test" in html
+    assert "#1F6F54" in html                       # color de marca, no inventado
+    assert "<script>alert" not in html and "Evil &amp; Co" in html
+    assert "88" in html and "Afinidad alta" in html

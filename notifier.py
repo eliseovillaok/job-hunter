@@ -1,193 +1,176 @@
 """
-notifier.py — Envía el digest de oportunidades por email en formato HTML
+notifier.py — Resumen de oportunidades por correo, en HTML.
+
+El correo se arma con tablas y estilos en línea porque los clientes de correo ignoran hojas de estilo
+y CSS moderno. Colores y bandas salen de docs/brand/tokens.json y de docs/scoring.md (BRAND.md §4 y §6);
+el logo viaja adjunto porque no hay dónde alojarlo todavía.
+
+Todo lo que viene de una oferta o del LLM se escapa con html.escape antes de entrar al HTML.
 """
 
+from __future__ import annotations
+
 import html
-import smtplib
+import json
 import logging
+import smtplib
 from datetime import datetime
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from config import SMTP_HOST, SMTP_PORT
+from email.message import EmailMessage
+from email.utils import make_msgid
+from pathlib import Path
+
 from ai_engine import ScoredJob, recommended
+from config import SMTP_HOST, SMTP_PORT
+from i18n import TRANSLATIONS
 
 log = logging.getLogger(__name__)
 
+SMTP_TIMEOUT = 30          # sin esto, un servidor que no responde deja la búsqueda colgada
+LOGO = Path(__file__).resolve().parent / "docs" / "brand" / "logo" / "icon-512.png"
+TOKENS = Path(__file__).resolve().parent / "docs" / "brand" / "tokens.json"
 
-def _score_color(score: int) -> str:
+
+class EmailError(Exception):
+    """El envío falló por algo que el usuario puede corregir (credenciales, servidor)."""
+
+
+def _t(lang: str):
+    table = TRANSLATIONS.get(lang, TRANSLATIONS["es"])
+
+    def translate(key: str, **kw) -> str:
+        text = table.get(key) or TRANSLATIONS["es"].get(key, key)
+        return text.format(**kw) if kw else text
+
+    return translate
+
+
+def _colors() -> dict:
+    return json.loads(TOKENS.read_text(encoding="utf-8"))["light"]
+
+
+def _band(score: int, c: dict) -> tuple[str, str]:
+    """(color, clave de etiqueta) según las bandas de docs/scoring.md."""
     if score >= 80:
-        return "#377227"  # verde
-    elif score >= 65:
-        return "#8F5D00"  # amarillo
-    else:
-        return "#58736A"  # gris
+        return c["primary"], "aff_high"
+    if score >= 60:
+        return "#C98A1A", "aff_good"
+    if score >= 40:
+        return c["text-muted"], "aff_partial"
+    return c["text-muted"], "aff_low"
 
 
-def _score_label(score: int) -> str:
-    if score >= 80:
-        return "🔥 Excelente match"
-    elif score >= 65:
-        return "✅ Buen match"
-    else:
-        return "🔍 Match parcial"
-
-
-def _build_html(jobs: list[ScoredJob], top_jobs: list[ScoredJob], run_date: str) -> str:
-    esc = html.escape  # todo el contenido viene de ofertas externas o del LLM
-
-    job_cards = ""
-    for sj in top_jobs:
-        reasons_html = "".join(f"<li>{esc(r)}</li>" for r in sj.match_reasons)
-        missing_html = (
-            "".join(f"<li>{esc(m)}</li>" for m in sj.missing_skills)
-            if sj.missing_skills else "<li>Ninguno crítico</li>"
-        )
-        cover_section = ""
-        if sj.cover_letter:
-            cover_section = f"""
-          <div style="padding:0 24px 24px;">
-            <details style="cursor:pointer;">
-              <summary style="font-weight:600;color:#1F6F54;font-size:14px;padding:10px 0;
-                              border-top:1px solid #F4F8F5;list-style:none;">
-                📝 Cover Letter generada — click para ver
-              </summary>
-              <div style="background:#FFFFFF;border:1px solid #DCE8E1;border-radius:8px;
-                          padding:18px;margin-top:12px;font-size:13px;color:#13261E;
-                          line-height:1.8;white-space:pre-wrap;font-family:Georgia,serif;">
-                {esc(sj.cover_letter)}
-              </div>
-            </details>
-          </div>"""
-        modality = "🌐 Remoto" if sj.job.remote else f"📍 {esc(sj.job.location or 'Ubicación no especificada')}"
-
-        source_badge = {
-            "GetOnBoard": "#1F6F54",
-            "Torre.co":   "#2B5C8A",
-            "LinkedIn":   "#2B5C8A",
-            "Indeed":     "#2B5C8A",
-        }.get(sj.job.source, "#3E5A4E")
-
-        job_cards += f"""
-        <div style="background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08);
-                    margin-bottom:28px;overflow:hidden;">
-          <!-- Header -->
-          <div style="padding:20px 24px;border-bottom:1px solid #F4F8F5;">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
-              <span style="background:{source_badge};color:#fff;font-size:11px;font-weight:600;
-                           padding:3px 9px;border-radius:20px;">{esc(sj.job.source)}</span>
-              <span style="background:{_score_color(sj.score)};color:#fff;font-size:11px;font-weight:700;
-                           padding:3px 9px;border-radius:20px;">{sj.score}/100</span>
-              <span style="color:{_score_color(sj.score)};font-size:13px;font-weight:600;">
-                {_score_label(sj.score)}</span>
-            </div>
-            <h2 style="margin:0 0 4px;font-size:18px;color:#13261E;">{esc(sj.job.title)}</h2>
-            <p style="margin:0;color:#3E5A4E;font-size:14px;">
-              🏢 <strong>{esc(sj.job.company)}</strong> &nbsp;|&nbsp; 
-              {modality} &nbsp;|&nbsp;
-              <a href="{esc(sj.job.url, quote=True)}" style="color:#1F6F54;text-decoration:none;">Ver oferta →</a>
-            </p>
-          </div>
-
-          <!-- Summary -->
-          <div style="padding:16px 24px;background:#EAF3EE;border-bottom:1px solid #F4F8F5;">
-            <p style="margin:0;color:#3E5A4E;font-style:italic;font-size:14px;">{esc(sj.summary)}</p>
-          </div>
-
-          <!-- Match Details -->
-          <div style="padding:20px 24px;display:flex;gap:24px;flex-wrap:wrap;">
-            <div style="flex:1;min-width:200px;">
-              <h4 style="margin:0 0 8px;color:#377227;font-size:13px;text-transform:uppercase;
-                          letter-spacing:.05em;">✅ Por qué matchea</h4>
-              <ul style="margin:0;padding-left:18px;color:#3E5A4E;font-size:13px;line-height:1.7;">
-                {reasons_html}
-              </ul>
-            </div>
-            <div style="flex:1;min-width:200px;">
-              <h4 style="margin:0 0 8px;color:#8F5D00;font-size:13px;text-transform:uppercase;
-                          letter-spacing:.05em;">⚠️ Skills faltantes</h4>
-              <ul style="margin:0;padding-left:18px;color:#3E5A4E;font-size:13px;line-height:1.7;">
-                {missing_html}
-              </ul>
-            </div>
-          </div>
-
-          {cover_section}
-        </div>
-        """
-
-    total = len(jobs)
-    matched = len(top_jobs)
+def _card(sj: ScoredJob, t, c: dict) -> str:
+    esc = html.escape
+    color, label = _band(sj.score, c)
+    meta = " · ".join(esc(x) for x in (sj.job.company, sj.job.location, sj.job.source) if x)
+    reasons = "".join(
+        f'<tr><td style="padding:2px 0;color:{c["success"]};font-size:13px;line-height:1.5;">✓ {esc(r)}</td></tr>'
+        for r in sj.match_reasons[:3])
+    missing = "".join(
+        f'<tr><td style="padding:2px 0;color:{c["warning"]};font-size:13px;line-height:1.5;">• {esc(m)}</td></tr>'
+        for m in sj.missing_skills[:3])
+    url = sj.job.url if (sj.job.url or "").startswith(("http://", "https://")) else ""
+    button = (f'<a href="{esc(url)}" style="display:inline-block;background:{c["primary"]};color:{c["on-primary"]};'
+              f'text-decoration:none;font-size:14px;font-weight:600;padding:11px 20px;border-radius:999px;">'
+              f'{t("btn_view")}</a>') if url else ""
 
     return f"""
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Job Hunt Digest — {run_date}</title>
-</head>
-<body style="margin:0;padding:0;background:#F4F8F5;font-family:-apple-system,BlinkMacSystemFont,
-             'Segoe UI',Roboto,sans-serif;">
-
-  <div style="max-width:700px;margin:0 auto;padding:24px 16px;">
-
-    <!-- Header -->
-    <div style="background:linear-gradient(135deg,#1F6F54,#185A44);border-radius:16px;
-                padding:32px;margin-bottom:24px;text-align:center;color:#fff;">
-      <h1 style="margin:0 0 8px;font-size:26px;">🎯 Job Hunt Digest</h1>
-      <p style="margin:0;opacity:.85;font-size:14px;">{run_date}</p>
-      <div style="display:inline-flex;gap:16px;margin-top:16px;flex-wrap:wrap;
-                  justify-content:center;">
-        <div style="background:rgba(255,255,255,.15);border-radius:8px;padding:10px 20px;">
-          <div style="font-size:22px;font-weight:700;">{total}</div>
-          <div style="font-size:11px;opacity:.8;">OFERTAS ANALIZADAS</div>
-        </div>
-        <div style="background:rgba(255,255,255,.15);border-radius:8px;padding:10px 20px;">
-          <div style="font-size:22px;font-weight:700;">{matched}</div>
-          <div style="font-size:11px;opacity:.8;">MATCHES ENCONTRADOS</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Job Cards -->
-    {job_cards if job_cards else
-     '<div style="text-align:center;padding:40px;color:#58736A;">No se encontraron matches hoy. ¡Mañana puede ser diferente!</div>'}
-
-    <!-- Footer -->
-    <div style="text-align:center;padding:16px;color:#58736A;font-size:12px;">
-      Generado automáticamente por Job Hunter<br>
-      Powered by Google Gemini 🤖
-    </div>
-
-  </div>
-</body>
-</html>
-"""
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 14px;">
+      <tr><td style="background:{c['surface']};border:1px solid {c['border-subtle']};border-radius:22px;padding:22px 24px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td style="vertical-align:top;">
+              <div style="font-size:17px;font-weight:700;color:{c['text']};line-height:1.35;">{esc(sj.job.title)}</div>
+              <div style="font-size:13px;color:{c['text-muted']};padding-top:4px;">{meta}</div>
+            </td>
+            <td width="86" style="vertical-align:top;text-align:right;">
+              <div style="display:inline-block;border:2px solid {color};border-radius:999px;padding:7px 14px;
+                          font-size:17px;font-weight:700;color:{color};">{sj.score}</div>
+              <div style="font-size:11px;color:{color};padding-top:5px;letter-spacing:.04em;">{t(label)}</div>
+            </td>
+          </tr>
+        </table>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="padding-top:12px;">
+          {reasons}{missing}
+        </table>
+        <div style="padding-top:16px;">{button}</div>
+      </td></tr>
+    </table>"""
 
 
-def send_digest(jobs: list[ScoredJob], *, sender: str, password: str, recipient: str, min_score: int) -> bool:
-    """Envía el digest con las ofertas recomendadas. Devuelve False si no había nada para enviar."""
-    top_jobs = recommended(jobs, min_score)
-    run_date = datetime.now().strftime("%d/%m/%Y %H:%M")
+def build_html(jobs: list[ScoredJob], top: list[ScoredJob], *, lang: str, min_score: int, logo_cid: str) -> str:
+    t, c = _t(lang), _colors()
+    date = datetime.now().strftime("%d/%m/%Y")
+    cards = "".join(_card(sj, t, c) for sj in top)
+    return f"""<!doctype html>
+<html lang="{lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<title>{t('mail_subject', n=len(top))}</title></head>
+<body style="margin:0;padding:0;background:{c['bg']};">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:{c['bg']};padding:24px 12px;">
+    <tr><td align="center">
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
 
-    if not top_jobs:
-        log.info("Sin matches para notificar hoy.")
+        <tr><td style="background:{c['surface']};border:1px solid {c['border-subtle']};border-radius:28px 28px 0 0;
+                       padding:20px 24px;border-bottom:0;">
+          <img src="cid:{logo_cid}" width="36" height="36" alt=""
+               style="vertical-align:middle;border-radius:10px;">
+          <span style="vertical-align:middle;padding-left:10px;font-size:19px;font-weight:800;color:{c['text']};
+                       letter-spacing:-.01em;">JobHunter</span>
+        </td></tr>
+
+        <tr><td style="background:{c['surface']};border:1px solid {c['border-subtle']};border-top:0;border-bottom:0;
+                       padding:4px 24px 22px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+                      color:{c['text-muted']};padding-bottom:6px;">{date}</div>
+          <div style="font-size:26px;font-weight:800;color:{c['text']};line-height:1.2;">{t('mail_title', n=len(top))}</div>
+          <div style="font-size:14px;color:{c['text-2']};padding-top:8px;line-height:1.6;">
+            {t('mail_intro', n=len(top), total=len(jobs), score=min_score)}
+          </div>
+        </td></tr>
+
+        <tr><td style="background:{c['surface-subtle']};border:1px solid {c['border-subtle']};border-top:0;
+                       border-radius:0 0 28px 28px;padding:22px 20px 8px;">
+          {cards}
+        </td></tr>
+
+        <tr><td style="padding:20px 24px;font-size:12px;color:{c['text-muted']};line-height:1.7;text-align:center;">
+          {t('mail_footer')}
+        </td></tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body></html>"""
+
+
+def send_digest(jobs: list[ScoredJob], *, sender: str, password: str, recipient: str, min_score: int,
+                lang: str = "es") -> bool:
+    """Envía el resumen con las ofertas recomendadas. False = no había nada que enviar."""
+    top = recommended(jobs, min_score)
+    if not top:
+        log.info("Sin ofertas recomendadas para enviar.")
         return False
 
-    log.info(f"Enviando digest con {len(top_jobs)} ofertas...")
-
-    html_body = _build_html(jobs, top_jobs, run_date)
-
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = f"🎯 Job Hunt Digest — {len(top_jobs)} matches — {datetime.now().strftime('%d/%m/%Y')}"
+    t = _t(lang)
+    msg = EmailMessage()
+    msg["Subject"] = t("mail_subject", n=len(top))
     msg["From"] = sender
     msg["To"] = recipient
+    msg.set_content(t("mail_plain", n=len(top)))
 
-    msg.attach(MIMEText(html_body, "html"))
+    logo_cid = make_msgid()[1:-1]
+    msg.add_alternative(build_html(jobs, top, lang=lang, min_score=min_score, logo_cid=logo_cid), subtype="html")
+    if LOGO.exists():
+        msg.get_payload()[1].add_related(LOGO.read_bytes(), maintype="image", subtype="png", cid=f"<{logo_cid}>")
 
-    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
-        server.starttls()
-        server.login(sender, password)
-        server.sendmail(sender, recipient, msg.as_string())
-    log.info("✅ Digest enviado")
+    try:
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=SMTP_TIMEOUT) as server:
+            server.starttls()
+            server.login(sender, password)
+            server.send_message(msg)
+    except smtplib.SMTPAuthenticationError as e:
+        raise EmailError("auth") from e
+    except (smtplib.SMTPException, OSError) as e:
+        raise EmailError("smtp") from e
+    log.info("Resumen enviado a %s con %d ofertas.", recipient, len(top))
     return True

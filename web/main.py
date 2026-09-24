@@ -123,10 +123,19 @@ def current_results(request: Request):
 
 
 def results_notice(request: Request) -> str:
-    """Si la evaluación se cortó, se dice por qué en vez de mostrar ofertas sin explicación."""
+    """Si la evaluación se cortó o el correo no salió, se dice acá en vez de dejarlo en silencio."""
     s, t = sess(request), translator(prefs(request)[0])
-    reason = s.run.result.stop_reason if (s.run and s.run.result) else None
-    return {"quota": t("wf_quota_stop"), "auth": t("none_evaluated")}.get(reason, "")
+    if s.run is None or s.run.result is None:
+        return ""
+    avisos = []
+    stop = {"quota": t("wf_quota_stop"), "auth": t("none_evaluated")}.get(s.run.result.stop_reason)
+    if stop:
+        avisos.append(stop)
+    mail = {"sent": t("mail_sent", to=s.email_recipient), "empty": t("mail_none"),
+            "auth": t("mail_err_auth"), "smtp": t("mail_err_smtp")}.get(s.run.email)
+    if mail:
+        avisos.append(mail)
+    return " ".join(avisos)
 
 
 def chips(job, t) -> list[str]:

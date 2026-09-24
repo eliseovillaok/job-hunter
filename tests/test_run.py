@@ -188,6 +188,41 @@ def test_each_portal_reports_how_long_it_took(session, monkeypatch):
     assert next(p for p in run.portals if p.key == "remotive").elapsed >= 0.05
 
 
+def test_the_summary_is_emailed_when_asked(session, monkeypatch):
+    enviados = {}
+
+    def fake_send(jobs, *, sender, password, recipient, min_score, lang):
+        enviados.update(to=recipient, lang=lang, min_score=min_score)
+        return True
+
+    monkeypatch.setattr(runner.notifier, "send_digest", fake_send)
+    session.send_email = True
+    session.email_sender, session.email_password = "yo@gmail.com", "abcd efgh ijkl mnop"
+    session.email_recipient = "yo@gmail.com"
+    run = wait(runner.start(session, "es"))
+    assert run.email == "sent" and enviados["to"] == "yo@gmail.com" and enviados["lang"] == "es"
+
+
+def test_a_rejected_password_does_not_sink_the_search(session, monkeypatch):
+    def boom(*a, **k):
+        raise runner.notifier.EmailError("auth")
+
+    monkeypatch.setattr(runner.notifier, "send_digest", boom)
+    session.send_email = True
+    session.email_sender = session.email_recipient = "yo@gmail.com"
+    session.email_password = "mala"
+    run = wait(runner.start(session, "es"))
+    assert run.outcome == runner.SUCCESS and run.email == "auth" and run.result is not None
+
+
+def test_without_the_switch_no_email_goes_out(session, monkeypatch):
+    def boom(*a, **k):
+        raise AssertionError("no debería enviarse")
+
+    monkeypatch.setattr(runner.notifier, "send_digest", boom)
+    wait(runner.start(session, "es"))
+
+
 def test_sessions_do_not_share_their_run():
     sessions.reset()
     a, b = Session(terms=["x"], portals=["remotive"]), Session(terms=["y"], portals=["themuse"])

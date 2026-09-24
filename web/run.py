@@ -27,6 +27,7 @@ from typing import Optional
 
 import demo
 import matching
+import notifier
 import scrapers
 from candidate import CandidateProfile
 from web import portals, settings
@@ -78,6 +79,10 @@ class RunConfig:
     lang: str
     eval_limit: int
     min_score: int
+    send_email: bool
+    email_sender: str
+    email_password: str
+    email_recipient: str
 
     @classmethod
     def from_session(cls, s: Session, lang: str) -> "RunConfig":
@@ -95,6 +100,10 @@ class RunConfig:
             lang=lang,
             eval_limit=s.eval_limit,
             min_score=s.min_score,
+            send_email=s.send_email,
+            email_sender=s.email_sender,
+            email_password=s.email_password,
+            email_recipient=s.email_recipient,
         )
 
 
@@ -110,6 +119,7 @@ class Run:
     evaluated: int = 0        # evaluadas por la IA hasta ahora
     to_evaluate: int = 0
     stage: str = ""           # screen | recheck, dentro de la evaluación
+    email: str = ""           # "" | sent | empty | auth | smtp: cómo terminó el envío del resumen
     result: Optional[matching.MatchResult] = None
     started: float = field(default_factory=time.time)
     finished: float = 0.0
@@ -191,6 +201,7 @@ def _execute(run: Run, cfg: RunConfig) -> None:
             if not jobs:
                 return _finish(run, EMPTY if run.portals_ok else ERROR)
             _evaluate(run, cfg, jobs, deadline)
+        _mail(run, cfg)
         _finish(run, PARTIAL if run.failed_portals else SUCCESS)
     except _Stopped:
         _finish(run, TIMEOUT if time.time() >= deadline else CANCELED)
@@ -282,6 +293,25 @@ def _demo(run: Run, cfg: RunConfig, deadline: float) -> None:
     run.result = matching.MatchResult(
         scored=scored, total_found=run.found, duplicates_removed=4,
         excluded={"modality": 3}, pre_ranked_out=max(0, run.found - run.to_evaluate))
+
+
+def _mail(run: Run, cfg: RunConfig) -> None:
+    """Resumen por correo, si el usuario lo pidió. Un fallo acá no invalida la búsqueda."""
+    if not (cfg.send_email and cfg.email_sender and cfg.email_password and cfg.email_recipient):
+        return
+    if run.result is None or demo.enabled():
+        run.email = "sent" if demo.enabled() else ""
+        return
+    try:
+        sent = notifier.send_digest(run.result.scored, sender=cfg.email_sender, password=cfg.email_password,
+                                    recipient=cfg.email_recipient, min_score=cfg.min_score, lang=cfg.lang)
+        run.email = "sent" if sent else "empty"
+    except notifier.EmailError as e:
+        run.email = str(e)
+        log.warning("run=%s no se pudo enviar el correo: %s", run.id, e)
+    except Exception:
+        run.email = "smtp"
+        log.exception("run=%s error inesperado al enviar el correo", run.id)
 
 
 def _check(run: Run, deadline: float) -> None:
