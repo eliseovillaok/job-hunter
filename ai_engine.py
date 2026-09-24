@@ -45,6 +45,8 @@ HTTP_TIMEOUT_MS = 60_000
 # Ritmo máximo por API key. El free tier de Gemini limita por minuto (429) y por día
 # (500 llamadas/modelo). Con una key paga se sube con la variable GEMINI_RPM.
 REQUESTS_PER_MINUTE = int(os.environ.get("GEMINI_RPM", "15"))
+# Los embeddings tienen su propio cupo, más bajo que el de generación en el plan gratuito.
+EMBED_REQUESTS_PER_MINUTE = int(os.environ.get("GEMINI_EMBED_RPM", "5"))
 # Temperatura 0 + seed fijo: la misma oferta con el mismo perfil debe dar el mismo resultado.
 DETERMINISTIC = {"temperature": 0.0, "seed": 42}
 
@@ -98,14 +100,19 @@ def check_key(api_key: str, model: str = DEFAULT_MODEL) -> bool | None:
     """
     if not api_key or not api_key.startswith("AIza"):
         return False
-    try:
-        _client(api_key).models.get(model=model)
-        return True
-    except Exception as e:  # noqa: BLE001 — cualquier otra falla es "no se pudo verificar"
-        if _is_auth_error(e):
-            return False
-        log.warning("No se pudo verificar la API key: %s", type(e).__name__)
-        return None
+    # Dos intentos: un corte de red o un 429 pasajero no tienen que aparecer como "no pudimos verificar".
+    for attempt in range(2):
+        try:
+            _client(api_key).models.get(model=model)
+            return True
+        except Exception as e:  # noqa: BLE001 — cualquier otra falla es "no se pudo verificar"
+            if _is_auth_error(e):
+                return False
+            if attempt == 0:
+                time.sleep(1.5)
+                continue
+            log.warning("No se pudo verificar la API key: %s", type(e).__name__)
+    return None
 
 
 _TRANSIENT = ("503", "UNAVAILABLE", "500", "INTERNAL", "DEADLINE_EXCEEDED", "timed out", "Timeout", "ReadTimeout")
@@ -133,14 +140,14 @@ class _RateLimiter:
 _LIMITER = _RateLimiter()
 
 
-def _call_with_retry(fn, api_key: str = ""):
+def _call_with_retry(fn, api_key: str = "", rpm: int = 0):
     """Ejecuta una llamada a Gemini reintentando ante rate limit (429).
 
     Traduce los errores terminales a QuotaExceeded / AuthError.
     """
     for attempt in range(MAX_RETRIES):
         if api_key:
-            _LIMITER.wait(api_key, REQUESTS_PER_MINUTE)
+            _LIMITER.wait(api_key, rpm or REQUESTS_PER_MINUTE)
         try:
             return fn()
         except Exception as e:
@@ -195,7 +202,9 @@ def embed(texts: list[str], *, api_key: str, task_type: str, batch_size: int = 1
     vectors: list[list[float]] = []
     for i in range(0, len(texts), batch_size):
         chunk = texts[i:i + batch_size]
-        resp = _call_with_retry(lambda: client.models.embed_content(model=EMBEDDING_MODEL, contents=chunk, config=config))
+        # Con la key: el limitador espacia las llamadas. Sin esto salen en ráfaga y Google responde 429.
+        resp = _call_with_retry(lambda: client.models.embed_content(model=EMBEDDING_MODEL, contents=chunk, config=config),
+                                api_key, rpm=EMBED_REQUESTS_PER_MINUTE)
         vectors.extend(list(e.values) for e in resp.embeddings)
     return vectors
 

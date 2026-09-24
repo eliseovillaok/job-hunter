@@ -2,7 +2,7 @@
 
 ## Producto
 MVP de startup, desarrollado por **una sola persona**. Flujo:
-1. El usuario carga su CV → 2. la IA lo estructura → 3. se buscan ofertas en 15 portales públicos →
+1. El usuario carga su CV → 2. la IA lo estructura → 3. se buscan ofertas en 14 portales públicos →
 4. se comparan con el perfil (score 0–100 + motivos) → 5. se muestran las más relevantes → 6. el usuario decide qué guardar, descartar o postular.
 
 Prioridades del producto: relevancia, control del usuario, transparencia, simplicidad.

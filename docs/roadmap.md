@@ -21,7 +21,7 @@ como destino. Ante un conflicto manda la spec; este archivo dice **cuándo** y *
 |---|---|
 | Núcleo | CV → perfil editable con evidencia · filtros duros · pre-ranking con embeddings · evaluación híbrida por factores · score explicable · tests + CI · eval por profesión (NDCG@5 medio 0.97, sin sesgo tech) |
 | UI nueva (`web/`) | FastAPI + Jinja + HTMX: landing, asistente de 4 pasos, resultados con datos demo, sesión por usuario en memoria |
-| Fuentes | 15 portales de acceso público. Los que pedían inicio de sesión se retiraron del pipeline |
+| Fuentes | 14 portales de acceso público. Los que pedían inicio de sesión se retiraron del pipeline; Jobicy salió el 24/09/2026 porque su API dejó de existir |
 
 Lo que **no** existe todavía: base de datos, cuentas, pagos, automatización, despliegue propio.
 La clave de Gemini la pone el usuario; en la fase de cobros pasa a ser nuestra y se vuelve un costo a controlar.
@@ -37,7 +37,7 @@ La clave de Gemini la pone el usuario; en la fase de cobros pasa a ser nuestra y
 - [ ] Dar de baja el despliegue en Streamlit Cloud.
 - [x] `Dockerfile` + `/health/live` y `/health/ready` + configuración por variables de entorno (lista para Railway o Render).
 - [x] README reescrito: una sola app, instalación, desarrollo y despliegue.
-- [ ] GetOnBoard por su API pública (hoy tarda ~90 s por 8 ofertas).
+- [ ] GetOnBoard por su API pública (en una corrida real tardó 5 minutos él solo).
 
 **Listo cuando:** `uvicorn web.main:app` hace CV → perfil → búsqueda real → resultados, y la imagen levanta igual en un contenedor limpio.
 

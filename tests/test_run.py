@@ -26,7 +26,7 @@ def wait(run, timeout=5.0):
 
 @pytest.fixture
 def session():
-    s = Session(api_key="AIza-test", terms=["contadora"], portals=["remotive", "jobicy"])
+    s = Session(api_key="AIza-test", terms=["contadora"], portals=["remotive", "themuse"])
     s.profile = None
     return s
 
@@ -37,7 +37,7 @@ def fake_pipeline(monkeypatch):
     def portal(name):
         return lambda keywords, max_results=0: [make_job(title=f"Oferta {name}", company=name)]
 
-    monkeypatch.setattr(scrapers, "PORTAL_SCRAPERS", {k: portal(k) for k in ("remotive", "jobicy", "wwr")})
+    monkeypatch.setattr(scrapers, "PORTAL_SCRAPERS", {k: portal(k) for k in ("remotive", "themuse", "wwr")})
     monkeypatch.setattr(matching, "match_jobs", lambda jobs, *a, **k: matching.MatchResult(scored=[], total_found=len(jobs)))
 
 
@@ -58,10 +58,10 @@ def test_a_failing_portal_does_not_break_the_run(session, monkeypatch):
     def boom(keywords, max_results=0):
         raise RuntimeError("502 del portal")
 
-    monkeypatch.setitem(scrapers.PORTAL_SCRAPERS, "jobicy", boom)
+    monkeypatch.setitem(scrapers.PORTAL_SCRAPERS, "themuse", boom)
     run = wait(runner.start(session, "es"))
     assert run.outcome == runner.PARTIAL
-    assert [p.key for p in run.failed_portals] == ["jobicy"]
+    assert [p.key for p in run.failed_portals] == ["themuse"]
     assert run.found == 1
 
 
@@ -69,14 +69,14 @@ def test_every_portal_failing_ends_as_error(session, monkeypatch):
     def boom(keywords, max_results=0):
         raise RuntimeError("sin red")
 
-    for key in ("remotive", "jobicy"):
+    for key in ("remotive", "themuse"):
         monkeypatch.setitem(scrapers.PORTAL_SCRAPERS, key, boom)
     run = wait(runner.start(session, "es"))
     assert run.outcome == runner.ERROR and run.result is None
 
 
 def test_portals_that_find_nothing_end_as_empty(session, monkeypatch):
-    for key in ("remotive", "jobicy"):
+    for key in ("remotive", "themuse"):
         monkeypatch.setitem(scrapers.PORTAL_SCRAPERS, key, lambda keywords, max_results=0: [])
     run = wait(runner.start(session, "es"))
     assert run.outcome == runner.EMPTY
@@ -123,7 +123,7 @@ def test_the_run_takes_a_snapshot_of_the_search(session):
     cfg = runner.RunConfig.from_session(session, "es")
     session.terms.append("otra cosa")
     session.portals.append("wwr")
-    assert cfg.terms == ["contadora"] and cfg.portals == ["remotive", "jobicy"]
+    assert cfg.terms == ["contadora"] and cfg.portals == ["remotive", "themuse"]
 
 
 def test_unknown_portal_keys_are_ignored(session):
@@ -157,11 +157,42 @@ def test_the_process_limit_makes_the_extra_run_wait(session, monkeypatch):
     assert second.outcome == runner.SUCCESS    # arrancó al liberarse el lugar
 
 
+def test_slow_portals_do_not_eat_the_whole_run(session, monkeypatch):
+    """Al agotarse el tiempo de lectura se evalúa lo traído: quedarse sin nada sería el peor final."""
+    monkeypatch.setattr(runner.settings, "SCRAPE_TIMEOUT", 0.4)
+    monkeypatch.setitem(scrapers.PORTAL_SCRAPERS, "themuse",
+                        lambda keywords, max_results=0: time.sleep(5) or [make_job()])
+    run = wait(runner.start(session, "es"), timeout=8)
+    estados = {p.key: p.status for p in run.portals}
+    assert estados["remotive"] == runner.DONE and estados["themuse"] == runner.SKIPPED
+    assert run.outcome == runner.SUCCESS and run.result.total_found == 1
+
+
+def test_portals_are_read_in_parallel(session, monkeypatch):
+    """Quince portales de a uno son quince esperas sumadas; en paralelo, la del más lento."""
+    for key in ("remotive", "themuse"):
+        monkeypatch.setitem(scrapers.PORTAL_SCRAPERS, key,
+                            lambda keywords, max_results=0: time.sleep(0.5) or [make_job()])
+    started = time.time()
+    run = wait(runner.start(session, "es"), timeout=8)
+    assert run.outcome == runner.SUCCESS
+    assert time.time() - started < 0.9        # secuencial serían 1.0 s o más
+
+
+def test_each_portal_reports_how_long_it_took(session, monkeypatch):
+    """La pantalla muestra ese tiempo: sin él, un portal lento parece trabado."""
+    monkeypatch.setitem(scrapers.PORTAL_SCRAPERS, "remotive",
+                        lambda keywords, max_results=0: time.sleep(0.05) or [make_job()])
+    run = wait(runner.start(session, "es"))
+    assert all(p.started > 0 and p.finished >= p.started for p in run.portals)
+    assert next(p for p in run.portals if p.key == "remotive").elapsed >= 0.05
+
+
 def test_sessions_do_not_share_their_run():
     sessions.reset()
-    a, b = Session(terms=["x"], portals=["remotive"]), Session(terms=["y"], portals=["jobicy"])
+    a, b = Session(terms=["x"], portals=["remotive"]), Session(terms=["y"], portals=["themuse"])
     wait(runner.start(a, "es"))
     wait(runner.start(b, "es"))
     assert a.run is not b.run
     assert [p.key for p in a.run.portals] == ["remotive"]
-    assert [p.key for p in b.run.portals] == ["jobicy"]
+    assert [p.key for p in b.run.portals] == ["themuse"]

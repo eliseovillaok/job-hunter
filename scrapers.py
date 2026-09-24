@@ -5,7 +5,6 @@ scrapers.py — Fuentes de trabajo con APIs públicas (sin auth requerida)
 - We Work Remotely: RSS feeds por categoría
 - Himalayas:      API REST pública, 100% remoto
 - RemoteOK:       API JSON pública, filtro por tag client-side
-- Jobicy:         API REST pública, remoto global
 - Working Nomads: API REST pública, categorías dev
 - The Muse:       API REST paginada, EEUU + global
 - Remote.co:      RSS feed, remoto global
@@ -394,62 +393,12 @@ def scrape_remoteok(keywords: list[str], max_results: int = 0) -> list[JobPostin
 
 
 # =============================================================================
-# Jobicy — https://jobicy.com/api/v0/remote-jobs
 # NOTA: A partir de 2026 requiere autenticación (401). La API pública fue
 # discontinuada. La función se mantiene por si el endpoint vuelve a ser libre,
 # pero devuelve [] y loguea un warning en lugar de reintentar 12 veces.
 # =============================================================================
-def scrape_jobicy(keywords: list[str], max_results: int = 0) -> list[JobPosting]:
-    jobs = []
-    seen = set()
-
-    for keyword in keywords:
-        if max_results > 0 and len(jobs) >= max_results:
-            break
-        try:
-            resp = requests.get(
-                "https://jobicy.com/api/v0/remote-jobs",
-                params={"count": 50, "tag": keyword},
-                headers=HEADERS, timeout=15,
-            )
-            if resp.status_code == 401:
-                log.warning("[Jobicy] API requiere autenticación (401) — fuente deshabilitada.")
-                return []
-            resp.raise_for_status()
-            data = resp.json().get("jobs", [])
-            log.info(f"[Jobicy] '{keyword}' → {len(data)} ofertas")
-
-            for item in data:
-                if max_results > 0 and len(jobs) >= max_results:
-                    break
-                jid = f"jcy-{item.get('id', item.get('jobSlug', ''))}"
-                if jid in seen:
-                    continue
-                seen.add(jid)
-
-                jobs.append(JobPosting(
-                    id=jid,
-                    title=item.get("jobTitle", ""),
-                    company=item.get("companyName", ""),
-                    description=_clean_desc((item.get("jobDescription", "") or "")),
-                    location=item.get("jobGeo", "Remote"),
-                    remote=True,
-                    url=item.get("url", ""),
-                    source="Jobicy",
-                    published_at=item.get("pubDate", ""),
-                    salary=item.get("annualSalaryMin", None),
-                    tags=item.get("jobIndustry", []) if isinstance(item.get("jobIndustry"), list) else [],
-                ))
-            time.sleep(1)
-        except Exception as e:
-            log.error(f"[Jobicy] Error '{keyword}': {e}")
-
-    return jobs
 
 
-# =============================================================================
-# Get on Board — HTML público + detalle SSR
-# =============================================================================
 def scrape_getonboard(keywords: list[str], max_results: int = 0) -> list[JobPosting]:
     jobs = []
     seen = set()
@@ -995,7 +944,6 @@ def get_all_jobs() -> list[JobPosting]:
         ("Remotive",   scrape_remotive),
         ("Arbeitnow",  scrape_arbeitnow),
         ("Himalayas",  scrape_himalayas),
-        ("Jobicy",     scrape_jobicy),
         ("GetOnBoard", scrape_getonboard),
         ("PuenteTalent", scrape_puente),
         ("LatoJobs",   scrape_latojobs),
@@ -1041,6 +989,7 @@ def _fixed_list(fn: Callable[..., list[JobPosting]]) -> Callable[[list[str], int
     return scrape
 
 
+# Jobicy salió el 24/09/2026: su API pasa a redirigir a un artículo del blog y responde 403.
 PORTAL_SCRAPERS: dict[str, Callable[[list[str], int], list[JobPosting]]] = {
     "getonboard": scrape_getonboard,
     "latojobs": scrape_latojobs,
@@ -1048,7 +997,6 @@ PORTAL_SCRAPERS: dict[str, Callable[[list[str], int], list[JobPosting]]] = {
     "remotive": scrape_remotive,
     "himalayas": scrape_himalayas,
     "remoteok": scrape_remoteok,
-    "jobicy": scrape_jobicy,
     "workingnomads": scrape_workingnomads,
     "arbeitnow": scrape_arbeitnow,
     "wwr": scrape_weworkremotely,

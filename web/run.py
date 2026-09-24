@@ -21,6 +21,7 @@ import logging
 import threading
 import time
 import uuid
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -37,7 +38,7 @@ PER_PORTAL = 40   # tope de ofertas por portal; el filtrado fino lo hace matchin
 
 # Fases de la corrida y estados de cada portal.
 QUEUED, SCRAPING, EVALUATING, FINISHED = "queued", "scraping", "evaluating", "finished"
-PENDING, RUNNING, DONE, FAILED = "pending", "running", "done", "failed"
+PENDING, RUNNING, DONE, FAILED, SKIPPED = "pending", "running", "done", "failed", "skipped"
 # Cómo terminó: éxito, éxito con portales caídos, sin nada, o cortada por el usuario o el reloj.
 SUCCESS, PARTIAL, EMPTY, ERROR, CANCELED, TIMEOUT = "success", "partial", "empty", "error", "canceled", "timeout"
 
@@ -54,6 +55,15 @@ class PortalRun:
     label: str
     status: str = PENDING
     found: int = 0
+    started: float = 0.0
+    finished: float = 0.0
+
+    @property
+    def elapsed(self) -> float:
+        """Cuánto lleva (o llevó) este portal: sin esto, uno lento parece trabado."""
+        if not self.started:
+            return 0.0
+        return (self.finished or time.time()) - self.started
 
 
 @dataclass
@@ -135,7 +145,7 @@ class Run:
 
     @property
     def portals_done(self) -> int:
-        return sum(1 for p in self.portals if p.status in (DONE, FAILED))
+        return sum(1 for p in self.portals if p.status in (DONE, FAILED, SKIPPED))
 
     @property
     def portals_ok(self) -> int:
@@ -169,7 +179,8 @@ def start(s: Session, lang: str) -> Run:
 def _execute(run: Run, cfg: RunConfig) -> None:
     """Corre en su propio hilo: nada de acá toca la petición que la lanzó."""
     deadline = run.started + settings.RUN_TIMEOUT
-    if not _slots.acquire(timeout=max(1.0, deadline - time.time())):
+    slots = _slots   # el mismo objeto para tomar y devolver el lugar
+    if not slots.acquire(timeout=max(1.0, deadline - time.time())):
         return _finish(run, TIMEOUT)   # el proceso está lleno y no se liberó a tiempo
     try:
         if demo.enabled():
@@ -187,25 +198,50 @@ def _execute(run: Run, cfg: RunConfig) -> None:
         log.exception("run=%s falló", run.id)
         _finish(run, ERROR)
     finally:
-        _slots.release()
+        slots.release()
+
+
+def _read_portal(run: Run, portal: PortalRun, cfg: RunConfig) -> list[scrapers.JobPosting]:
+    """Un portal, en su propio hilo. Si falla, queda marcado y no arrastra a los demás."""
+    portal.started, portal.status = time.time(), RUNNING
+    try:
+        jobs = scrapers.PORTAL_SCRAPERS[portal.key](cfg.terms, PER_PORTAL)
+        portal.found, portal.status = len(jobs), DONE
+        return jobs
+    except Exception as e:
+        portal.status = FAILED
+        log.warning("run=%s portal=%s falló: %s", run.id, portal.key, e)
+        return []
+    finally:
+        portal.finished = time.time()
 
 
 def _scrape(run: Run, cfg: RunConfig, deadline: float) -> list[scrapers.JobPosting]:
-    """Un portal que falla no corta la corrida: queda marcado y se sigue con el resto."""
+    """Los portales se leen en paralelo y con presupuesto propio: el más lento no se come la corrida.
+
+    Al agotarse ese presupuesto se evalúa lo ya traído en vez de terminar sin nada."""
     run.phase = SCRAPING
+    budget = min(deadline, time.time() + settings.SCRAPE_TIMEOUT)
     found: list[scrapers.JobPosting] = []
-    for portal in run.portals:
-        _check(run, deadline)
-        portal.status = RUNNING
-        try:
-            jobs = scrapers.PORTAL_SCRAPERS[portal.key](cfg.terms, PER_PORTAL)
-            portal.found = len(jobs)
-            portal.status = DONE
-            found.extend(jobs)
-        except Exception as e:
-            portal.status = FAILED
-            log.warning("run=%s portal=%s falló: %s", run.id, portal.key, e)
-        run.found = len(found)
+    pool = ThreadPoolExecutor(max_workers=settings.SCRAPE_WORKERS, thread_name_prefix=f"scrape-{run.id}")
+    try:
+        pending = {pool.submit(_read_portal, run, p, cfg): p for p in run.portals}
+        while pending:
+            _check(run, deadline)
+            if time.time() >= budget:
+                for portal in pending.values():
+                    if portal.status in (PENDING, RUNNING):
+                        portal.status, portal.finished = SKIPPED, time.time()
+                log.info("run=%s sin tiempo de lectura: %d portales sin terminar", run.id, len(pending))
+                break
+            done, _ = wait(list(pending), timeout=0.5, return_when=FIRST_COMPLETED)
+            for fut in done:
+                found.extend(fut.result())
+                pending.pop(fut, None)
+            run.found = len(found)
+    finally:
+        pool.shutdown(wait=False, cancel_futures=True)
+    run.found = len(found)
     return found
 
 
@@ -232,10 +268,9 @@ def _demo(run: Run, cfg: RunConfig, deadline: float) -> None:
     run.phase = SCRAPING
     for i, portal in enumerate(run.portals):
         _check(run, deadline)
-        portal.status = RUNNING
+        portal.started, portal.status = time.time(), RUNNING
         time.sleep(0.35)
-        portal.found = 4 + (i * 3) % 11
-        portal.status = DONE
+        portal.found, portal.status, portal.finished = 4 + (i * 3) % 11, DONE, time.time()
         run.found += portal.found
     run.phase = EVALUATING
     run.to_evaluate = min(cfg.eval_limit, max(len(scored), 12))

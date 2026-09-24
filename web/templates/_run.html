@@ -2,9 +2,12 @@
 {# Progreso de la búsqueda. Se refresca solo cada segundo; cuando termina bien, /buscando/estado
    responde con una redirección a los resultados y este fragmento deja de pedirse. #}
 <div class="card" id="run" hx-get="/buscando/estado" {% if run.active %}hx-trigger="every 1s"{% endif %}
-     hx-target="this" hx-swap="outerHTML transition:false">
+     hx-target="this" hx-swap="outerHTML transition:false" hx-disinherit="*">
 {% if run.active %}
-  <div class="eyebrow">{{ t('run_eta', time=format_duration(run.eta)) if run.eta else t('run_eta_unknown') }}</div>
+  <div class="eyebrow">
+    {%- if run.phase == 'evaluating' and run.eta %}{{ t('run_eta', time=format_duration(run.eta)) }}
+    {%- else %}{{ t('run_elapsed', time=format_duration(run.elapsed)) }}{% endif -%}
+  </div>
   <h3>{{ t('run_title_' ~ run.phase) }}</h3>
 
   <div class="bigbar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ run.progress }}">
@@ -42,14 +45,15 @@
   <div class="log">
     {% for p in run.portals %}
     <div class="{{ p.status }}">
-      <span class="s-{{ 'ok' if p.status == 'done' else ('err' if p.status == 'failed' else 'run') }}" aria-hidden="true">
-        {%- if p.status == 'done' %}✓{% elif p.status == 'failed' %}!{% elif p.status == 'running' %}<span class="spin"></span>{% else %}·{% endif -%}
+      <span class="s-{{ 'ok' if p.status == 'done' else ('err' if p.status in ('failed', 'skipped') else 'run') }}" aria-hidden="true">
+        {%- if p.status == 'done' %}✓{% elif p.status in ('failed', 'skipped') %}!{% elif p.status == 'running' %}<span class="spin"></span>{% else %}·{% endif -%}
       </span>
       <span>{{ p.label }}</span>
       <span>
         {%- if p.status == 'done' %}{{ t('run_portal_jobs', n=p.found) }}
         {%- elif p.status == 'failed' %}{{ t('run_portal_failed') }}
-        {%- elif p.status == 'running' %}{{ t('run_portal_reading') }}
+        {%- elif p.status == 'skipped' %}{{ t('run_portal_skipped') }}
+        {%- elif p.status == 'running' %}{{ t('run_portal_reading_for', time=format_duration(p.elapsed)) }}
         {%- else %}{{ t('run_portal_waiting') }}{% endif -%}
       </span>
     </div>

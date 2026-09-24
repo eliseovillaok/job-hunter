@@ -26,7 +26,6 @@ PORTALS: tuple[Portal, ...] = (
     Portal("remotive", "Remotive", "global"),
     Portal("himalayas", "Himalayas", "global"),
     Portal("remoteok", "RemoteOK", "global"),
-    Portal("jobicy", "Jobicy", "global"),
     Portal("workingnomads", "WorkingNomads", "global"),
     Portal("arbeitnow", "Arbeitnow", "us"),
     Portal("wwr", "WeWorkRemotely", "us"),

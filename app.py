@@ -57,7 +57,6 @@ _defaults = {
     "use_wwr":            True,
     "use_himalayas":      True,
     "use_remoteok":       True,
-    "use_jobicy":         True,
     "use_getonboard":     True,
     "use_puentetalent":   True,
     "use_latojobs":       True,
@@ -200,7 +199,7 @@ def validate_config():
         errors.append(_t("val_no_profile"))
     if not any([st.session_state.use_remotive, st.session_state.use_arbeitnow,
                 st.session_state.use_wwr, st.session_state.use_himalayas,
-                st.session_state.use_remoteok, st.session_state.use_jobicy,
+                st.session_state.use_remoteok,
                 st.session_state.use_getonboard, st.session_state.use_puentetalent,
                 st.session_state.use_latojobs, st.session_state.use_workingnomads,
                 st.session_state.use_themuse, st.session_state.use_remoteco,
@@ -546,9 +545,9 @@ def show_config_wizard():
             with g3:
                 st.session_state.use_remoteok     = st.checkbox("RemoteOK",       value=st.session_state.use_remoteok)
             with g4:
-                st.session_state.use_jobicy       = st.checkbox("Jobicy",         value=st.session_state.use_jobicy)
-            with g5:
                 st.session_state.use_workingnomads = st.checkbox("WorkingNomads", value=st.session_state.use_workingnomads)
+            with g5:
+                st.empty()
 
             st.caption(_t("step3_latam"))
             l1, l2, l3, l4, l5 = st.columns(5)
@@ -730,7 +729,6 @@ if st.session_state.run_search:
         "WeWorkRemotely": st.session_state.use_wwr,
         "Himalayas":      st.session_state.use_himalayas,
         "RemoteOK":       st.session_state.use_remoteok,
-        "Jobicy":         st.session_state.use_jobicy,
         "GetOnBoard":     st.session_state.use_getonboard,
         "PuenteTalent":   st.session_state.use_puentetalent,
         "LatoJobs":       st.session_state.use_latojobs,
@@ -761,8 +759,6 @@ if st.session_state.run_search:
                 jobs = sc.scrape_himalayas(keywords, max_results=remaining)
             elif platform_name == "RemoteOK":
                 jobs = sc.scrape_remoteok(keywords, max_results=remaining)
-            elif platform_name == "Jobicy":
-                jobs = sc.scrape_jobicy(keywords, max_results=remaining)
             elif platform_name == "GetOnBoard":
                 jobs = sc.scrape_getonboard(keywords, max_results=remaining)
             elif platform_name == "PuenteTalent":

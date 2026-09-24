@@ -400,6 +400,28 @@ def test_an_empty_search_does_not_pretend_to_have_results(client, monkeypatch):
     assert "No encontramos ofertas" in html and "/asistente/4" in html
 
 
+def test_the_progress_screen_does_not_leak_its_target_to_its_own_links(client, monkeypatch):
+    """Sin esto, «Volver a tu búsqueda» metía la página entera dentro de la tarjeta de progreso."""
+    monkeypatch.setitem(scrapers.PORTAL_SCRAPERS, "remotive",
+                        lambda keywords, max_results=0: time.sleep(0.3) or [make_job()])
+    s = search(client, monkeypatch)
+    assert 'hx-disinherit="*"' in client.get("/buscando/estado", headers={"HX-Request": "true"}).text
+    finished(s)
+
+
+def test_the_screen_shows_elapsed_while_reading_and_eta_while_evaluating(client, monkeypatch):
+    """Estimar el final mientras se leen portales sería inventar: se muestra lo que ya lleva."""
+    from web import run as runner
+    s = search(client, monkeypatch)
+    finished(s)
+    s.run.phase, s.run.outcome, s.run.finished = runner.SCRAPING, "", 0.0
+    assert "Buscando desde hace" in client.get("/buscando").text
+    s.run.phase, s.run.evaluated, s.run.to_evaluate = runner.EVALUATING, 5, 20
+    s.run.started = time.time() - 30
+    assert "Tiempo restante estimado" in client.get("/buscando").text
+    s.run.phase, s.run.outcome = runner.FINISHED, runner.CANCELED
+
+
 def test_the_search_screen_needs_a_search(client, monkeypatch):
     through_step2(client, monkeypatch)
     r = client.get("/buscando", follow_redirects=False)
