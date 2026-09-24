@@ -16,8 +16,8 @@ vale la pena.
 4. **Eliges portales y filtros** (modalidad, ubicaciones, idioma del aviso).
 5. **Se busca y se evalúa**: cada oferta recibe una afinidad de 0 a 100 con sus motivos y lo que te
    falta. Los filtros duros descartan antes de gastar IA.
-6. **Decides tú**: abrir, guardar o descartar. Si quieres, se genera una carta de presentación para una
-   oferta puntual.
+6. **Decides tú**: abrir o descartar. Si quieres, se genera una carta de presentación para una oferta
+   puntual, y puedes recibir el resumen por correo.
 
 Detalle del cálculo: [docs/scoring.md](docs/scoring.md).
 
@@ -106,6 +106,7 @@ revisada— antes de entrar. Los portales que pedían iniciar sesión se retirar
 | `matching.py` | Filtros duros, pre-ranking, evaluación por factores y cálculo del score |
 | `ai_engine.py` | Acceso a Gemini: JSON con esquema, embeddings, cartas de presentación |
 | `eval/` | Perfiles y ofertas ficticios para medir la calidad del matching por profesión |
+| `notifier.py` | Resumen por correo, en HTML, con la marca |
 | `docs/` | Marca, scoring, hoja de ruta y despliegue |
 
 ## Desarrollo

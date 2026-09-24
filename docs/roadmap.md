@@ -30,7 +30,7 @@ La clave de Gemini la pone el usuario; en la fase de cobros pasa a ser nuestra y
 
 ## Fase 0 — Terminar la UI nueva y dejar la base lista ✅ (cerrada el 24/09/2026)
 
-**Objetivo:** el flujo completo corre sobre `web/` en local y Streamlit sale de escena.
+**Objetivo:** el flujo completo corre sobre `web/` en local y en contenedor, y Streamlit sale de escena.
 
 - [x] Búsqueda real en segundo plano con pantalla de progreso (fases + estado por portal) y resultados en la sesión.
 - [x] Retirar `app.py`, `theme.py` y `ui.py`; dejar `web/` como única interfaz.

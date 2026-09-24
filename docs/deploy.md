@@ -25,7 +25,12 @@ Después, `http://localhost:8000` y `http://localhost:8000/health/ready`.
 | `JH_SESSION_TTL` | `10800` | Segundos de inactividad antes de borrar la sesión (CV y clave) |
 | `JH_MAX_SESSIONS` | `500` | Sesiones simultáneas en memoria |
 | `JH_MAX_CV_MB` | `10` | Tamaño máximo del CV |
+| `JH_MAX_RUNS` | `3` | Búsquedas corriendo a la vez en el proceso; el resto espera |
+| `JH_RUN_TIMEOUT` | `1200` | Segundos máximos de una búsqueda entera |
+| `JH_SCRAPE_TIMEOUT` | `480` | Segundos para leer portales; al agotarse se evalúa lo que hay |
+| `JH_SCRAPE_WORKERS` | `6` | Portales que se leen en paralelo |
 | `GEMINI_RPM` | `15` | Llamadas por minuto a Gemini |
+| `GEMINI_EMBED_RPM` | `5` | Llamadas por minuto a los embeddings (cupo propio, más bajo) |
 | `JOB_HUNTER_DEMO` | (vacío) | `1` = datos ficticios, sin IA ni red. **Nunca en producción** |
 
 No hay secretos del servidor todavía: la clave de Gemini la pone cada usuario y vive solo en su
@@ -62,8 +67,7 @@ Precios y planes cambian seguido: verificarlos el día que se contrate (spec §3
 5. Crear un segundo servicio `staging` desde la misma rama, con sus propias variables.
 6. Verificar: `/health/live`, `/health/ready`, el flujo completo en staging y recién después producción.
 
-## Streamlit Cloud (retirado)
+## Historial
 
-La app vieja (`app.py`) estuvo publicada en Streamlit Cloud. Ese despliegue se da de baja: el
-producto es `web/`. Mientras `app.py` siga en el repo se corre solo en local, con
-`pip install -r requirements-dev.txt` (Streamlit ya no es una dependencia de producción).
+La versión anterior de la interfaz (Streamlit) estuvo publicada en Streamlit Cloud. Ese despliegue se
+dio de baja el 24/09/2026 y el código se eliminó del repositorio: hoy el único producto es `web/`.

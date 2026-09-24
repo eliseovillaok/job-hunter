@@ -12,7 +12,7 @@ Prioridades del producto: relevancia, control del usuario, transparencia, simpli
 **Marca:** [docs/brand/BRAND.md](docs/brand/BRAND.md) — **leerlo antes de cualquier cambio visual o de texto** y pasar su checklist. Colores de [docs/brand/tokens.json](docs/brand/tokens.json) (paleta Esmeralda); no inventar colores. El producto se llama **JobHunter**. Si algo no cumple el manual, proponer el cambio al manual antes de implementarlo.
 
 ## Especificación maestra (la biblia)
-[docs/private/SPEC-v2.es.md](docs/private/SPEC-v2.es.md) — *Especificación maestra de producto y técnica, v2.1* (el original en inglés, en la misma versión, es `docs/private/SPEC-v2.md`; si se toca una, se toca la otra). Es la fuente de verdad del producto, la arquitectura y el negocio: **consultarla antes de cualquier decisión sobre arquitectura, portales, IA, datos personales, cobros o despliegue**. Ante un conflicto manda la spec; después se actualizan este archivo y el roadmap (y si la que está mal es la spec, se propone el cambio y se sube su versión). Las decisiones ya tomadas están en su §0.7.
+[docs/private/SPEC-v2.es.md](docs/private/SPEC-v2.es.md) — *Especificación maestra de producto y técnica, v2.2* (el original en inglés, en la misma versión, es `docs/private/SPEC-v2.md`; si se toca una, se toca la otra). Es la fuente de verdad del producto, la arquitectura y el negocio: **consultarla antes de cualquier decisión sobre arquitectura, portales, IA, datos personales, cobros o despliegue**. Ante un conflicto manda la spec; después se actualizan este archivo y el roadmap (y si la que está mal es la spec, se propone el cambio y se sube su versión). Las decisiones ya tomadas están en su §0.7.
 Vive fuera de git a propósito — el repo es público y el documento incluye datos del dueño, estructura fiscal y economía del negocio —; si el archivo no está, pedirlo antes de seguir.
 
 Lo que ya condiciona el trabajo diario:
@@ -72,7 +72,7 @@ Los portales son dependencias poco confiables: HTML y APIs cambian, hay rate lim
 ## Reglas duras de seguridad
 1. **Nunca commitear secretos ni datos de usuarios**: API keys, app passwords, tokens, `results/`, CVs, `*.log`. Revisar `git status` antes de cada commit. Nunca embeber tokens en la URL del remote.
    **Cero datos personales o de desarrollo en el producto**: nada de nombres, emails, CVs, empleadores o ubicaciones reales en código, prompts, defaults, fixtures ni docs. Para ejemplos y tests, usar datos ficticios.
-2. **Sin estado global por usuario.** En Streamlit Cloud el proceso es compartido: no escribir API keys ni perfiles en `os.environ`, `config.*` ni variables de módulo. Pasar la configuración por sesión (parámetros u objeto `RunConfig`).
+2. **Sin estado global por usuario.** El proceso atiende a varias personas a la vez: no escribir API keys ni perfiles en `os.environ`, `config.*` ni variables de módulo. La configuración viaja por sesión (parámetros o `RunConfig`), y el estado de cada usuario vive en su `Session`.
 3. **XSS**: todo contenido externo (ofertas, salida del LLM, CV) que se renderice con `unsafe_allow_html=True` pasa por `html.escape`.
 4. **Prompt injection**: las descripciones de ofertas y los CVs son datos no confiables. Nunca deben poder alterar instrucciones ni disparar acciones.
 5. **Archivos subidos**: validar tipo y tamaño, y no ejecutar ni persistir CVs innecesariamente.
@@ -120,8 +120,8 @@ Eval con Gemini real (a mano, consume cuota): `python -m eval.run` — lee `GEMI
 - Modelo Gemini por defecto: `ai_engine.DEFAULT_MODEL`. No usar modelos deprecados.
 - Los comentarios explican el *por qué*, no el *qué*. Commits enfocados, sin tocar archivos ajenos a la tarea.
 
-## UI: FastAPI + Jinja2 + HTMX (migración cerrada el 2026-09-24)
-La interfaz vive en `web/` y reusa el núcleo (candidate, scrapers, matching, ai_engine). Streamlit, `app.py`, `theme.py` y `ui.py` se eliminaron: si hace falta mirarlos, están en el historial de git. HTML externo siempre con autoescape de Jinja (nunca `|safe` sobre datos externos) y enlaces de ofertas por `safe_url`. La API key nunca se vuelve a mostrar en la página. En modo demo (`JOB_HUNTER_DEMO=1`) el asistente simula la IA: cualquier clave que empiece con `AIza` sirve y el perfil sale de `demo.py`.
+## UI: FastAPI + Jinja2 + HTMX
+La interfaz vive en `web/` y reusa el núcleo (candidate, scrapers, matching, ai_engine). La migración desde Streamlit se cerró el 24/09/2026: `app.py`, `theme.py` y `ui.py` se eliminaron y están en el historial de git. HTML externo siempre con autoescape de Jinja (nunca `|safe` sobre datos externos) y enlaces de ofertas por `safe_url`. La API key nunca se vuelve a mostrar en la página. En modo demo (`JOB_HUNTER_DEMO=1`) el asistente simula la IA: cualquier clave que empiece con `AIza` sirve y el perfil sale de `demo.py`.
 
 ## Deuda conocida (no empeorarla; atacarla solo con OK)
 - Sin caché de evaluaciones: repetir una búsqueda vuelve a evaluar las mismas ofertas.
