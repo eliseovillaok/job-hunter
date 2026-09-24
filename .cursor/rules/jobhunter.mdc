@@ -1,0 +1,28 @@
+---
+description: Manual de trabajo de JobHunter — reglas de producto, marca, seguridad y fases
+alwaysApply: true
+---
+
+Antes de escribir código en este repositorio, leé **@AGENTS.md**: es el manual único de trabajo
+(rol, prioridades, filosofía de ingeniería, cuándo pedir confirmación, reglas de IA y de seguridad,
+mapa del código, comandos y convenciones).
+
+Documentos que manda consultar según la tarea:
+
+- **@docs/brand/BRAND.md** — antes de cualquier cambio visual o de texto; colores solo de
+  `docs/brand/tokens.json`. Pasar su checklist (§9).
+- **@docs/roadmap.md** — qué fase está abierta. Lo de fases futuras se anota, no se construye.
+- **@docs/scoring.md** — factores, pesos y bandas del score. Cambiarlos requiere el OK del dueño y
+  correr el eval antes y después.
+- **@docs/deploy.md** — imagen, variables de entorno y plataformas.
+- **docs/private/SPEC-v2.es.md** — la especificación maestra: producto, arquitectura y negocio.
+  Está fuera de git (el repo es público), así que Cursor no la indexa: adjuntala con `@` cuando la
+  tarea toque arquitectura, portales, IA, datos personales, cobros o despliegue. Ante un conflicto,
+  manda la spec.
+
+Reglas que no se negocian: nunca commitear secretos ni datos personales · ninguna fuente detrás de un
+login, CAPTCHA o control de acceso · el CV es la fuente de verdad y la IA no inventa datos · todo
+contenido externo escapado · sin estado global por usuario.
+
+Comunicación con el dueño: español rioplatense, técnico, directo y corto — una línea por cambio, sin
+sobre-explicar. La copy del producto, en cambio, va en español neutro internacional (tú) e inglés.

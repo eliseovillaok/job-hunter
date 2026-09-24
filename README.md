@@ -117,7 +117,7 @@ python -m eval.run        # calidad del matching con Gemini real (consume cuota)
 pre-commit install        # detección de secretos en cada commit
 ```
 
-Antes de tocar algo conviene leer [CLAUDE.md](CLAUDE.md) (cómo se trabaja en este repo),
+Antes de tocar algo conviene leer [AGENTS.md](AGENTS.md) (cómo se trabaja en este repo),
 [docs/roadmap.md](docs/roadmap.md) (qué se construye ahora y qué no) y
 [docs/brand/BRAND.md](docs/brand/BRAND.md) (colores, tipografía y tono antes de cualquier cambio visual).
 
