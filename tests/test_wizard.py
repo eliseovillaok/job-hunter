@@ -426,3 +426,24 @@ def test_the_search_screen_needs_a_search(client, monkeypatch):
     through_step2(client, monkeypatch)
     r = client.get("/buscando", follow_redirects=False)
     assert r.status_code == 303 and r.headers["location"] == "/asistente/3"
+
+
+def test_the_key_check_keeps_its_client_alive(monkeypatch):
+    """El cliente iba como temporal y se cerraba antes de la petición: la clave nunca se comprobaba."""
+    import ai_engine
+    closed = {"veces": 0}
+
+    class FakeModels:
+        def get(self, *, model):
+            if closed["veces"]:
+                raise RuntimeError("Cannot send a request, as the client has been closed.")
+            return {"name": model}
+
+    class FakeClient:
+        models = FakeModels()
+
+        def __del__(self):
+            closed["veces"] += 1
+
+    monkeypatch.setattr(ai_engine, "_client", lambda key: FakeClient())
+    assert ai_engine.check_key("AIza-test") is True

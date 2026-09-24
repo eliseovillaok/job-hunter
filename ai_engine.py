@@ -103,7 +103,9 @@ def check_key(api_key: str, model: str = DEFAULT_MODEL) -> bool | None:
     # Dos intentos: un corte de red o un 429 pasajero no tienen que aparecer como "no pudimos verificar".
     for attempt in range(2):
         try:
-            _client(api_key).models.get(model=model)
+            # El cliente va a una variable: como temporal, se cierra antes de que salga la petición.
+            client = _client(api_key)
+            client.models.get(model=model)
             return True
         except Exception as e:  # noqa: BLE001 — cualquier otra falla es "no se pudo verificar"
             if _is_auth_error(e):
