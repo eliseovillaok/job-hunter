@@ -101,13 +101,12 @@ revisada— antes de entrar. Los portales que pedían iniciar sesión se retirar
 |---|---|
 | `web/` | La aplicación: FastAPI + Jinja2 + HTMX (`main.py`, `wizard.py`, `session.py`, `portals.py`, `templates/`, `static/`) |
 | `candidate.py` | CV → perfil estructurado con evidencia |
-| `scrapers.py` | Lectura de los portales, todo normalizado a `JobPosting` |
+| `scrapers.py` | Lectura de los portales (APIs y feeds públicos), todo normalizado a `JobPosting` |
 | `normalize.py` | Idioma, nivel y modalidad de cada oferta, y deduplicación |
 | `matching.py` | Filtros duros, pre-ranking, evaluación por factores y cálculo del score |
 | `ai_engine.py` | Acceso a Gemini: JSON con esquema, embeddings, cartas de presentación |
 | `eval/` | Perfiles y ofertas ficticios para medir la calidad del matching por profesión |
 | `docs/` | Marca, scoring, hoja de ruta y despliegue |
-| `app.py`, `theme.py`, `ui.py` | Interfaz vieja en Streamlit, solo local, se retira al cerrar la Fase 0 |
 
 ## Desarrollo
 

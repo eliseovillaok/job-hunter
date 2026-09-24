@@ -22,8 +22,8 @@ import html
 import json
 import re
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Callable, Optional
-import config
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger(__name__)
@@ -400,83 +400,69 @@ def scrape_remoteok(keywords: list[str], max_results: int = 0) -> list[JobPostin
 
 
 def scrape_getonboard(keywords: list[str], max_results: int = 0) -> list[JobPosting]:
-    jobs = []
-    seen = set()
-    categories = [
-        "programming",
-        "data-science-analytics",
-        "sysadmin-devops-qa",
-        "machine-learning-ai",
-        # "product-innovation-agile",  # 404 desde 2026, categoría eliminada
-        "design-ux",
-        "customer-support",
-        "digital-marketing",
-    ]
+    """API pública de Get on Board: una petición por término.
 
-    for category in categories:
+    Antes se recorrían las categorías y se abría cada aviso: cientos de requests y varios minutos.
+    """
+    jobs: list[JobPosting] = []
+    seen: set[str] = set()
+
+    for keyword in keywords:
         if max_results > 0 and len(jobs) >= max_results:
             break
         try:
             resp = requests.get(
-                f"https://www.getonbrd.com/jobs/{category}",
-                headers=HEADERS,
-                timeout=20,
+                "https://www.getonbrd.com/api/v0/search/jobs",
+                params={"query": keyword, "per_page": 50, "expand": '["company"]'},
+                headers=HEADERS, timeout=20,
             )
             resp.raise_for_status()
-            listing_html = resp.text
-            urls = []
-            for match in re.findall(r'href="(https://www\.getonbrd\.com/jobs/[^"?#]+)', listing_html):
-                url = html.unescape(match)
-                if url not in urls:
-                    urls.append(url)
-            log.info(f"[GetOnBoard] categoría '{category}' → {len(urls)} links")
-
-            for url in urls:
-                if max_results > 0 and len(jobs) >= max_results:
-                    break
-                jid = f"gob-{url.rsplit('/', 1)[-1][:80]}"
-                if jid in seen:
-                    continue
-
-                detail = requests.get(url, headers=HEADERS, timeout=20)
-                detail.raise_for_status()
-                page_html = detail.text
-
-                title_match = re.search(r'<h1[^>]*>.*?<span itemprop="title">\s*(.*?)\s*</span>', page_html, re.S)
-                company_match = re.search(r'<h1[^>]*>.*?<span class="fake-hidden[^"]*">\s*in\s*(.*?)\s*</span>', page_html, re.S)
-                location_match = re.search(r'<span class="location">\s*(.*?)\s*</span>', page_html, re.S)
-                desc_match = re.search(r'<meta content="([^"]+)" name="description"', page_html)
-                published_match = re.search(r'<meta content="([^"]+)" property="og:updated_time"', page_html)
-
-                title = _strip_html(title_match.group(1)) if title_match else ""
-                company = _strip_html(company_match.group(1)) if company_match else ""
-                location = _strip_html(location_match.group(1)) if location_match else "Not specified"
-                description = html.unescape(desc_match.group(1)) if desc_match else ""
-
-                if not matches_keywords(keywords, title, company, location, description, category):
-                    continue
-
-                remote = "remote" in location.lower() or "work from home" in page_html.lower()
-
-                seen.add(jid)
-                jobs.append(JobPosting(
-                    id=jid,
-                    title=title,
-                    company=company,
-                    description=_clean_desc(description),
-                    location=location,
-                    remote=remote,
-                    url=url,
-                    source="GetOnBoard",
-                    published_at=published_match.group(1) if published_match else None,
-                    tags=[],
-                ))
-                time.sleep(0.35)
-            time.sleep(0.7)
+            data = resp.json().get("data", [])
         except Exception as e:
-            log.error(f"[GetOnBoard] Error categoría '{category}': {e}")
+            log.error(f"[GetOnBoard] Error '{keyword}': {e}")
+            continue
+
+        log.info(f"[GetOnBoard] '{keyword}' -> {len(data)} ofertas")
+        for item in data:
+            if max_results > 0 and len(jobs) >= max_results:
+                break
+            jid = f"gob-{item.get('id', '')}"[:90]
+            if not item.get("id") or jid in seen:
+                continue
+            attrs = item.get("attributes", {}) or {}
+            company = ((attrs.get("company") or {}).get("data") or {}).get("attributes", {}).get("name", "")
+            countries = [c for c in (attrs.get("countries") or []) if c]
+            # location_cities viene como {"data": [...]} y suele estar vacío: la ubicación útil es countries.
+            cities = [(c.get("attributes") or {}).get("name", "") for c in
+                      ((attrs.get("location_cities") or {}).get("data") or [])]
+            location = ", ".join([c for c in cities if c] or countries) or "Not specified"
+            description = " ".join(_strip_html(attrs.get(field) or "") for field in
+                                   ("description", "functions", "desirable")).strip()
+            published = attrs.get("published_at")
+
+            seen.add(jid)
+            jobs.append(JobPosting(
+                id=jid,
+                title=attrs.get("title", ""),
+                company=company,
+                description=_clean_desc(description),
+                location=location,
+                remote=bool(attrs.get("remote")),
+                url=f"https://www.getonbrd.com/jobs/{item['id']}",
+                source="GetOnBoard",
+                published_at=datetime.fromtimestamp(published).isoformat() if isinstance(published, (int, float)) else None,
+                salary=_gob_salary(attrs),
+                tags=[],
+            ))
 
     return jobs
+
+
+def _gob_salary(attrs: dict) -> Optional[str]:
+    low, high = attrs.get("min_salary"), attrs.get("max_salary")
+    if low and high:
+        return f"USD {low:,.0f} - {high:,.0f}"
+    return f"USD {low or high:,.0f}" if (low or high) else None
 
 
 # =============================================================================
@@ -933,47 +919,31 @@ def scrape_authenticjobs(max_results: int = 0) -> list[JobPosting]:
 # =============================================================================
 # Función principal
 # =============================================================================
-def get_all_jobs() -> list[JobPosting]:
-    all_jobs: list[JobPosting] = []
-    seen_global: set[str] = set()
+def get_all_jobs(keywords: list[str], portal_keys: list[str] | None = None, max_per_portal: int = 0) -> list[JobPosting]:
+    """Lee los portales pedidos (por defecto, todos) y devuelve las ofertas sin duplicados.
 
-    log.info("=== Iniciando scraping de plataformas ===")
+    La usa el CLI. La app web tiene su propia corrida (web/run.py), que lee los portales en paralelo
+    y reporta el progreso; las dos parten del mismo registro PORTAL_SCRAPERS.
+    """
+    keys = [k for k in (portal_keys or PORTAL_SCRAPERS) if k in PORTAL_SCRAPERS]
+    jobs: list[JobPosting] = []
+    seen: set[str] = set()
 
-    # Fuentes con keywords
-    keyword_sources = [
-        ("Remotive",   scrape_remotive),
-        ("Arbeitnow",  scrape_arbeitnow),
-        ("Himalayas",  scrape_himalayas),
-        ("GetOnBoard", scrape_getonboard),
-        ("PuenteTalent", scrape_puente),
-        ("LatoJobs",   scrape_latojobs),
-    ]
-    for name, fn in keyword_sources:
-        log.info(f"--- {name} ---")
+    for key in keys:
+        log.info(f"--- {key} ---")
         try:
-            jobs = fn(config.SEARCH_KEYWORDS)
-            for job in jobs:
-                key = f"{job.title.lower()[:40]}|{job.company.lower()[:30]}"
-                if key not in seen_global:
-                    seen_global.add(key)
-                    all_jobs.append(job)
+            found = PORTAL_SCRAPERS[key](keywords, max_per_portal)
         except Exception as e:
-            log.error(f"Error en {name}: {e}")
+            log.error(f"Error en {key}: {e}")
+            continue
+        for job in found:
+            fingerprint = f"{job.title.lower()[:40]}|{job.company.lower()[:30]}"
+            if fingerprint not in seen:
+                seen.add(fingerprint)
+                jobs.append(job)
 
-    # WeWorkRemotely (sin keywords, categorías fijas)
-    log.info("--- WeWorkRemotely ---")
-    try:
-        jobs = scrape_weworkremotely(config.SEARCH_KEYWORDS)
-        for job in jobs:
-            key = f"{job.title.lower()[:40]}|{job.company.lower()[:30]}"
-            if key not in seen_global:
-                seen_global.add(key)
-                all_jobs.append(job)
-    except Exception as e:
-        log.error(f"Error en WeWorkRemotely: {e}")
-
-    log.info(f"=== Total de ofertas únicas: {len(all_jobs)} ===")
-    return all_jobs
+    log.info(f"=== Total de ofertas únicas: {len(jobs)} ===")
+    return jobs
 
 
 # =============================================================================

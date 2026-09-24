@@ -2,7 +2,7 @@
 demo.py — Datos ficticios para revisar la interfaz sin gastar cuota de Gemini.
 
 Solo desarrollo: se activa con la variable de entorno JOB_HUNTER_DEMO=1
-(PowerShell: `$env:JOB_HUNTER_DEMO="1"; streamlit run app.py`). Nunca se define en producción.
+(PowerShell: `$env:JOB_HUNTER_DEMO="1"; uvicorn web.main:app`). Nunca se define en producción.
 Los perfiles y ofertas salen de eval/dataset.json (100% ficticios); los scores son inventados.
 """
 

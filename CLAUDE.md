@@ -55,7 +55,7 @@ Si una ambigüedad afecta el comportamiento del producto: presentar las alternat
 2. **Planificar**: qué encontraste, qué cambia, qué archivos toca, decisiones y riesgos.
 3. **Confirmar**, si cae en la lista de arriba.
 4. **Implementar**: el cambio más chico y limpio posible.
-5. **Validar**: tests, y correr `streamlit run app.py` (con `$env:JOB_HUNTER_DEMO="1"` para ver resultados sin gastar cuota) para probar el flujo tocado (wizard → búsqueda → resultados) en ES/EN y en light/dark.
+5. **Validar**: tests, y correr `uvicorn web.main:app` (con `$env:JOB_HUNTER_DEMO="1"` para no gastar cuota) para probar el flujo tocado (asistente → búsqueda → resultados) en ES/EN y en claro/oscuro.
 6. **Informar**: qué cambió y por qué, qué archivos, qué se validó, qué queda pendiente y qué necesita mi aprobación.
 
 ## IA, CV y matching
@@ -81,13 +81,10 @@ Los portales son dependencias poco confiables: HTML y APIs cambian, hay rate lim
 ## Mapa del código
 | Archivo | Rol |
 |---|---|
-| `app.py` (~1.1k líneas) | UI Streamlit: navegación, landing, asistente de 4 pasos (CV → acceso a la IA → perfil → búsqueda), orquestación de la búsqueda, resultados con filtros y desglose |
-| `web/` | **Nueva UI (en migración)**: FastAPI + Jinja2 + HTMX. `main.py` (landing, resultados, salud, middleware de sesión y CSP), `wizard.py` (asistente de 4 pasos), `run.py` (la búsqueda en un hilo, con su progreso en la sesión), `session.py` (estado por usuario en memoria, cookie httponly, vence a las 3 h), `portals.py` (portales por región), `common.py` (plantillas, idioma/tema, marca), `templates/` (maquetas aprobadas), `static/app.css` (colores solo vía variables de `tokens.json`) |
-| `theme.py` | CSS de marca generado desde `docs/brand/tokens.json` (claro/oscuro) y SVG del logo |
-| `ui.py` | Fragmentos HTML puros de la UI (hero, tarjeta de oferta, anillo de afinidad, stepper); todo texto externo con `html.escape` |
-| `i18n.py` | `TRANSLATIONS` ES/EN (se usa vía `_t()` en `app.py`) |
+| `web/` | **La aplicación**: FastAPI + Jinja2 + HTMX. `main.py` (landing, resultados, salud, middleware de sesión y CSP), `wizard.py` (asistente de 4 pasos), `run.py` (la búsqueda en un hilo, con su progreso en la sesión), `session.py` (estado por usuario en memoria, cookie httponly, vence a las 3 h), `portals.py` (portales por región), `common.py` (plantillas, idioma/tema, marca), `templates/` (maquetas aprobadas), `static/app.css` (colores solo vía variables de `tokens.json`) |
+| `i18n.py` | `TRANSLATIONS` ES/EN (se usa vía `t()` en las plantillas y `translator()` en `web/common.py`) |
 | `demo.py` | Modo demo (`JOB_HUNTER_DEMO=1`): resultados ficticios sin IA ni red, para probar la UI |
-| `scrapers.py` | Scrapers HTTP/RSS de acceso público. Firma: `scrape_x(keywords, max_results=0) -> list[JobPosting]` |
+| `scrapers.py` | Lectura de portales de acceso público. Firma: `scrape_x(keywords, max_results=0) -> list[JobPosting]`; el registro `PORTAL_SCRAPERS` (clave → función) es la única lista, la usan `web/run.py` y `get_all_jobs()` |
 | `ai_engine.py` | Acceso a Gemini: `generate_json` (JSON con esquema, temperatura 0), `embed`, `generate_cover_letter`, `ScoredJob`, errores `QuotaExceeded`/`AuthError` |
 | `candidate.py` | `CandidateProfile` estructurado con evidencia, `extract_profile` (CV → perfil + términos de búsqueda ES/EN), `cv_contents` |
 | `normalize.py` | Sin IA: idioma, seniority y modalidad de cada oferta, y deduplicación entre portales |
@@ -109,27 +106,26 @@ py -3.12 -m venv venv; .\venv\Scripts\Activate.ps1
 pip install -r requirements.txt -r requirements-dev.txt
 pre-commit install                         # gitleaks en cada commit
 $env:JOB_HUNTER_DEMO="1"; uvicorn web.main:app --reload --port 8600   # la app (web/), con datos demo
-streamlit run app.py                       # UI vieja, solo local, se retira al cerrar la Fase 0
 python main.py --dry-run                   # CLI
 docker build -t jobhunter . ; docker run --rm -p 8000:8000 jobhunter   # igual que en producción
 ```
-`requirements.txt` = runtime de `web/` (lo instala la imagen); `requirements-dev.txt` = tooling local **y Streamlit**.
+`requirements.txt` = runtime de `web/` (lo instala la imagen); `requirements-dev.txt` = tooling local.
 Si gitleaks frena un commit: sacar el secreto, nunca saltear el hook con `--no-verify`.
 Tests: `pytest -q` (sin red ni IA; el LLM se reemplaza con un `generate` falso). Priorizar normalización, filtros, parseo de respuestas del LLM y scoring. Nada de tests solo para subir la cobertura.
 Eval con Gemini real (a mano, consume cuota): `python -m eval.run` — lee `GEMINI_API_KEY` de `.env`. Correrlo antes y después de tocar prompts, pesos o normalización.
 
 ## Convenciones
-- Todo texto visible va por `_t()`, con clave en ES **y** EN en `i18n.py`. Estilos solo con variables de `theme.py`; HTML nuevo en `ui.py`.
-- **Nuevo portal**: primero la base de adquisición (API oficial, feed licenciado o página pública revisada; nunca detrás de un login). Después: función en `scrapers.py` + entrada en `web/portals.py` + `use_<portal>` en `_defaults` + rama en el pipeline + checkbox en el wizard + claves i18n + README.
-- Modelo Gemini por defecto: `_defaults["selected_model"]` en `app.py`. Mantener `ai_engine.DEFAULT_MODEL` alineado y no usar modelos deprecados.
+- Todo texto visible va por `t()`, con clave en ES **y** EN en `i18n.py`. Colores solo con variables de `tokens.json`; HTML nuevo en `web/templates/`.
+- **Nuevo portal**: primero la base de adquisición (API oficial, feed licenciado o página pública revisada; nunca detrás de un login). Después: función en `scrapers.py` + entrada en `PORTAL_SCRAPERS` + entrada en `web/portals.py` + claves i18n + README. Un test verifica que las dos listas coincidan.
+- Modelo Gemini por defecto: `ai_engine.DEFAULT_MODEL`. No usar modelos deprecados.
 - Los comentarios explican el *por qué*, no el *qué*. Commits enfocados, sin tocar archivos ajenos a la tarea.
 
-## Migración de UI: Streamlit → FastAPI + HTMX (decidida 2026-09-22)
-Streamlit limita el diseño. La UI nueva vive en `web/` y reusa el núcleo (candidate, scrapers, matching, ai_engine), que no depende de Streamlit. Etapas: 1) landing + resultados demo ✅ · 2) asistente (CV, acceso a la IA, perfil, búsqueda) ✅ · 3) búsqueda real en segundo plano con progreso y resultados de la sesión ✅ · 4) retirar `app.py`, `theme.py`, `ui.py`. Streamlit ya no se despliega en ningún lado: no invertir un minuto en su UI. HTML externo siempre con autoescape de Jinja (nunca `|safe` sobre datos externos) y enlaces de ofertas por `safe_url`. La API key nunca se vuelve a mostrar en la página. En modo demo (`JOB_HUNTER_DEMO=1`) el asistente simula la IA: cualquier clave que empiece con `AIza` sirve y el perfil sale de `demo.py`.
+## UI: FastAPI + Jinja2 + HTMX (migración cerrada el 2026-09-24)
+La interfaz vive en `web/` y reusa el núcleo (candidate, scrapers, matching, ai_engine). Streamlit, `app.py`, `theme.py` y `ui.py` se eliminaron: si hace falta mirarlos, están en el historial de git. HTML externo siempre con autoescape de Jinja (nunca `|safe` sobre datos externos) y enlaces de ofertas por `safe_url`. La API key nunca se vuelve a mostrar en la página. En modo demo (`JOB_HUNTER_DEMO=1`) el asistente simula la IA: cualquier clave que empiece con `AIza` sirve y el perfil sale de `demo.py`.
 
 ## Deuda conocida (no empeorarla; atacarla solo con OK)
-- `app.py` todavía mezcla asistente, orquestación de la búsqueda y resultados.
-- Scraping duplicado: `app.py` (cadena de `elif`) y `scrapers.get_all_jobs()` (lee `config`) siguen por su lado; `web/` ya usa `scrapers.PORTAL_SCRAPERS`. Los dos primeros se van con `app.py`.
 - Sin caché de evaluaciones: repetir una búsqueda vuelve a evaluar las mismas ofertas.
 - Las sesiones viven en memoria del proceso: un reinicio las borra y no habría forma de correr dos instancias. Se resuelve con la persistencia de la Fase 1 (spec §0.3).
-- Scraper de GetOnBoard: una request por oferta, secuencial (~90 s para 8 ofertas). Migrar a su API pública.
+- `config.py` sigue con globals que solo usa el CLI (`main.py`): palabras clave, credenciales de correo, umbrales.
+- LatoJobs abre cada aviso (una request por oferta): su sitio no expone JSON reusable.
+- Remote.co no responde desde hace días (tiempo de espera agotado en dos corridas): decidir si se retira.

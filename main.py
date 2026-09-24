@@ -110,7 +110,7 @@ def main():
 
     # STEP 1: Scraping
     log.info("STEP 1/3 — Scraping de plataformas")
-    jobs = get_all_jobs()
+    jobs = get_all_jobs(config.SEARCH_KEYWORDS)
 
     if not jobs:
         log.warning("No se encontraron ofertas. Verificá conexión o palabras clave.")

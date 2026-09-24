@@ -20,7 +20,7 @@ como destino. Ante un conflicto manda la spec; este archivo dice **cuándo** y *
 | Hecho | Detalle |
 |---|---|
 | Núcleo | CV → perfil editable con evidencia · filtros duros · pre-ranking con embeddings · evaluación híbrida por factores · score explicable · tests + CI · eval por profesión (NDCG@5 medio 0.97, sin sesgo tech) |
-| UI nueva (`web/`) | FastAPI + Jinja + HTMX: landing, asistente de 4 pasos, resultados con datos demo, sesión por usuario en memoria |
+| UI (`web/`) | FastAPI + Jinja + HTMX: landing, asistente de 4 pasos, búsqueda real con progreso, resultados, cartas y resumen por correo |
 | Fuentes | 14 portales de acceso público. Los que pedían inicio de sesión se retiraron del pipeline; Jobicy salió el 24/09/2026 porque su API dejó de existir |
 
 Lo que **no** existe todavía: base de datos, cuentas, pagos, automatización, despliegue propio.
@@ -33,11 +33,11 @@ La clave de Gemini la pone el usuario; en la fase de cobros pasa a ser nuestra y
 **Objetivo:** el flujo completo corre sobre `web/` en local y Streamlit sale de escena.
 
 - [x] Búsqueda real en segundo plano con pantalla de progreso (fases + estado por portal) y resultados en la sesión.
-- [ ] Retirar `app.py`, `theme.py` y `ui.py`; dejar `web/` como única interfaz.
-- [ ] Dar de baja el despliegue en Streamlit Cloud.
+- [x] Retirar `app.py`, `theme.py` y `ui.py`; dejar `web/` como única interfaz.
+- [x] Dar de baja el despliegue en Streamlit Cloud.
 - [x] `Dockerfile` + `/health/live` y `/health/ready` + configuración por variables de entorno (lista para Railway o Render).
 - [x] README reescrito: una sola app, instalación, desarrollo y despliegue.
-- [ ] GetOnBoard por su API pública (en una corrida real tardó 5 minutos él solo).
+- [x] GetOnBoard por su API pública: de ~5 minutos a menos de un segundo por término.
 
 **Listo cuando:** `uvicorn web.main:app` hace CV → perfil → búsqueda real → resultados, y la imagen levanta igual en un contenedor limpio.
 
