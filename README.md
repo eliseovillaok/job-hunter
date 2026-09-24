@@ -79,8 +79,8 @@ Lee la clave de `GEMINI_API_KEY` en `.env`. Con `--no-email` no envía nada.
 
 ## Portales
 
-14 portales de acceso público: Get on Board, LatoJobs, Puente Talent, Remotive, Himalayas, RemoteOK,
-WorkingNomads, Arbeitnow, WeWorkRemotely, The Muse, Jobspresso, Remote.co, JustJoin.it y AuthenticJobs.
+13 portales de acceso público: Get on Board, LatoJobs, Puente Talent, Remotive, Himalayas, RemoteOK,
+WorkingNomads, Arbeitnow, WeWorkRemotely, The Muse, Jobspresso, JustJoin.it y AuthenticJobs.
 
 Cada fuente necesita una base de adquisición documentada —API oficial, feed licenciado o página pública
 revisada— antes de entrar. Los portales que pedían iniciar sesión se retiraron del producto.

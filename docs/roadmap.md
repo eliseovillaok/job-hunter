@@ -21,14 +21,14 @@ como destino. Ante un conflicto manda la spec; este archivo dice **cuándo** y *
 |---|---|
 | Núcleo | CV → perfil editable con evidencia · filtros duros · pre-ranking con embeddings · evaluación híbrida por factores · score explicable · tests + CI · eval por profesión (NDCG@5 medio 0.97, sin sesgo tech) |
 | UI (`web/`) | FastAPI + Jinja + HTMX: landing, asistente de 4 pasos, búsqueda real con progreso, resultados, cartas y resumen por correo |
-| Fuentes | 14 portales de acceso público. Los que pedían inicio de sesión se retiraron del pipeline; Jobicy salió el 24/09/2026 porque su API dejó de existir |
+| Fuentes | 13 portales de acceso público, todos por API o feed oficial salvo tres. Retirados: los que pedían inicio de sesión, Jobicy (API discontinuada) y Remote.co (su feed no responde) |
 
 Lo que **no** existe todavía: base de datos, cuentas, pagos, automatización, despliegue propio.
 La clave de Gemini la pone el usuario; en la fase de cobros pasa a ser nuestra y se vuelve un costo a controlar.
 
 ---
 
-## Fase 0 — Terminar la UI nueva y dejar la base lista (en curso)
+## Fase 0 — Terminar la UI nueva y dejar la base lista ✅ (cerrada el 24/09/2026)
 
 **Objetivo:** el flujo completo corre sobre `web/` en local y Streamlit sale de escena.
 
@@ -39,9 +39,9 @@ La clave de Gemini la pone el usuario; en la fase de cobros pasa a ser nuestra y
 - [x] README reescrito: una sola app, instalación, desarrollo y despliegue.
 - [x] GetOnBoard por su API pública: de ~5 minutos a menos de un segundo por término.
 
-**Listo cuando:** `uvicorn web.main:app` hace CV → perfil → búsqueda real → resultados, y la imagen levanta igual en un contenedor limpio.
+**Cerrada:** el flujo completo —CV → perfil → búsqueda real → resultados → carta— corre igual en local y dentro de la imagen, verificado de punta a punta.
 
-## Fase 1 — Persistencia y cuentas
+## Fase 1 — Persistencia y cuentas (siguiente)
 
 **Objetivo:** el trabajo del usuario sobrevive a cerrar el navegador.
 

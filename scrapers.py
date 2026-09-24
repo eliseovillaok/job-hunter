@@ -7,7 +7,6 @@ scrapers.py — Fuentes de trabajo con APIs públicas (sin auth requerida)
 - RemoteOK:       API JSON pública, filtro por tag client-side
 - Working Nomads: API REST pública, categorías dev
 - The Muse:       API REST paginada, EEUU + global
-- Remote.co:      RSS feed, remoto global
 - Jobspresso:     RSS feed, remoto global
 - JustJoin.it:    API REST pública, Europa/global
 - Authentic Jobs: RSS feed, EEUU + global
@@ -740,55 +739,6 @@ def scrape_themuse(keywords: list[str], max_results: int = 0) -> list[JobPosting
 
 
 # =============================================================================
-# Remote.co — RSS feed
-# =============================================================================
-def scrape_remoteco(keywords: list[str], max_results: int = 0) -> list[JobPosting]:
-    jobs = []
-    seen = set()
-
-    try:
-        feed = _parse_feed("https://remote.co/feed/")
-        entries = feed.get("entries", [])
-        log.info(f"[Remote.co] {len(entries)} ofertas totales, filtrando por keywords")
-
-        for entry in entries:
-            if max_results > 0 and len(jobs) >= max_results:
-                break
-            title_raw = entry.get("title", "")
-            summary   = entry.get("summary", "")
-            text      = f"{title_raw} {summary}".lower()
-            if not matches_keywords(keywords, text):
-                continue
-
-            jid = f"rco-{entry.get('id', entry.get('link', ''))[:60]}"
-            if jid in seen:
-                continue
-            seen.add(jid)
-
-            title, company = title_raw, ""
-            if " at " in title_raw:
-                parts = title_raw.rsplit(" at ", 1)
-                title, company = parts[0].strip(), parts[1].strip()
-
-            jobs.append(JobPosting(
-                id=jid,
-                title=title,
-                company=company,
-                description=_clean_desc(summary),
-                location="Remote",
-                remote=True,
-                url=entry.get("link", ""),
-                source="Remote.co",
-                published_at=entry.get("published", ""),
-            ))
-    except Exception as e:
-        log.error(f"[Remote.co] Error: {e}")
-
-    log.info(f"[Remote.co] {len(jobs)} ofertas tras filtro")
-    return jobs
-
-
-# =============================================================================
 # Jobspresso — RSS feed
 # =============================================================================
 def scrape_jobspresso(max_results: int = 0) -> list[JobPosting]:
@@ -959,7 +909,8 @@ def _fixed_list(fn: Callable[..., list[JobPosting]]) -> Callable[[list[str], int
     return scrape
 
 
-# Jobicy salió el 24/09/2026: su API pasa a redirigir a un artículo del blog y responde 403.
+# Retirados el 24/09/2026: Jobicy (su API redirige a un artículo del blog y responde 403) y
+# Remote.co (su feed agota el tiempo de espera en todas las corridas).
 PORTAL_SCRAPERS: dict[str, Callable[[list[str], int], list[JobPosting]]] = {
     "getonboard": scrape_getonboard,
     "latojobs": scrape_latojobs,
@@ -972,7 +923,6 @@ PORTAL_SCRAPERS: dict[str, Callable[[list[str], int], list[JobPosting]]] = {
     "wwr": scrape_weworkremotely,
     "themuse": scrape_themuse,
     "jobspresso": _fixed_list(scrape_jobspresso),
-    "remoteco": scrape_remoteco,
     "justjoinit": scrape_justjoinit,
     "authenticjobs": _fixed_list(scrape_authenticjobs),
 }

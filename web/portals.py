@@ -31,7 +31,6 @@ PORTALS: tuple[Portal, ...] = (
     Portal("wwr", "WeWorkRemotely", "us"),
     Portal("themuse", "The Muse", "us"),
     Portal("jobspresso", "Jobspresso", "us"),
-    Portal("remoteco", "Remote.co", "us"),
     Portal("justjoinit", "JustJoin.it", "eu", default=False),
     Portal("authenticjobs", "AuthenticJobs", "other"),
 )

@@ -161,7 +161,7 @@ El producto se siente fluido y predecible. Estas reglas aplican a toda pantalla 
 | "Te mostramos por qué cada oferta coincide con tu experiencia." | "¡Nuestra IA mágica encuentra tu trabajo soñado!" |
 | "Tu CV no indica tu nivel: lo dejamos como no especificado." | Inventar o suponer datos del usuario |
 | "No pudimos evaluar esta oferta." | "Error 500" o mensajes técnicos |
-| Cifras reales del producto (14 portales, 12 profesiones en el test) | Métricas o testimonios inventados |
+| Cifras reales del producto (13 portales, 12 profesiones en el test) | Métricas o testimonios inventados |
 
 **Vocabulario del producto**
 

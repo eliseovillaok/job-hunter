@@ -2,13 +2,13 @@
 
 ## Producto
 MVP de startup, desarrollado por **una sola persona**. Flujo:
-1. El usuario carga su CV → 2. la IA lo estructura → 3. se buscan ofertas en 14 portales públicos →
+1. El usuario carga su CV → 2. la IA lo estructura → 3. se buscan ofertas en 13 portales públicos →
 4. se comparan con el perfil (score 0–100 + motivos) → 5. se muestran las más relevantes → 6. el usuario decide qué guardar, descartar o postular.
 
 Prioridades del producto: relevancia, control del usuario, transparencia, simplicidad.
 **Sin despliegue público**: Streamlit Cloud se dio de baja y el producto es `web/`. El desarrollo corre en local; la salida a Railway o Render está preparada ([docs/deploy.md](docs/deploy.md)) y se decide en la Fase 2.
 
-**Ruta:** [docs/roadmap.md](docs/roadmap.md) — etapas iterativas con disparadores medibles. Antes de proponer trabajo, ubicarlo en la etapa actual; lo de etapas futuras se anota, no se construye.
+**Ruta:** [docs/roadmap.md](docs/roadmap.md) — fases con disparadores medibles. La Fase 0 se cerró el 24/09/2026; la siguiente es la Fase 1 (persistencia y cuentas). Antes de proponer trabajo, ubicarlo en la fase actual; lo de fases futuras se anota, no se construye.
 **Marca:** [docs/brand/BRAND.md](docs/brand/BRAND.md) — **leerlo antes de cualquier cambio visual o de texto** y pasar su checklist. Colores de [docs/brand/tokens.json](docs/brand/tokens.json) (paleta Esmeralda); no inventar colores. El producto se llama **JobHunter**. Si algo no cumple el manual, proponer el cambio al manual antes de implementarlo.
 
 ## Especificación maestra (la biblia)
@@ -128,4 +128,3 @@ La interfaz vive en `web/` y reusa el núcleo (candidate, scrapers, matching, ai
 - Las sesiones viven en memoria del proceso: un reinicio las borra y no habría forma de correr dos instancias. Se resuelve con la persistencia de la Fase 1 (spec §0.3).
 - `config.py` sigue con globals que solo usa el CLI (`main.py`): palabras clave, credenciales de correo, umbrales.
 - LatoJobs abre cada aviso (una request por oferta): su sitio no expone JSON reusable.
-- Remote.co no responde desde hace días (tiempo de espera agotado en dos corridas): decidir si se retira.
