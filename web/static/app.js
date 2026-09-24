@@ -215,6 +215,17 @@ function openChipInput(btn) {
   input.addEventListener("blur", () => { addChip(input); setTimeout(close, 0); });
 }
 
+// Quitar filtros: limpia el formulario y deja que su propio evento pida la lista.
+document.addEventListener("click", (e) => {
+  if (!e.target.closest("[data-clear-filters]")) return;
+  const form = document.getElementById("filters");
+  if (!form) return;
+  form.querySelectorAll("input[type=checkbox]").forEach((box) => { box.checked = false; });
+  const all = form.querySelector('input[name=show][value=all]');
+  if (all) all.checked = true;
+  form.dispatchEvent(new Event("change", { bubbles: true }));
+});
+
 // Copiar la carta: si el navegador no deja, al menos queda seleccionada para copiar a mano.
 document.addEventListener("click", async (e) => {
   const btn = e.target.closest("[data-copy]");

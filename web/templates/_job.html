@@ -15,12 +15,14 @@
     {% endif %}
     <div class="acts">
       {% if url %}<a class="btn btn-p" href="{{ url }}" target="_blank" rel="noopener noreferrer" hx-boost="false">{{ t('btn_view') }}</a>{% endif %}
-      {% if sj.evaluated %}<button class="btn btn-o" type="button" hx-post="/carta/{{ did }}" hx-target="#letter-{{ did }}" hx-swap="innerHTML transition:false">{{ t('btn_letter') }}</button>{% endif %}
+      {% if sj.evaluated %}<button class="btn btn-o" type="button" hx-post="/carta/{{ did }}" hx-target="#letter-{{ did }}"
+        hx-swap="innerHTML transition:false" hx-indicator="#letter-wait-{{ did }}" hx-disabled-elt="this">{{ t('btn_letter') }}</button>{% endif %}
       {% if sj.factors %}<button class="btn btn-g" type="button" data-toggle="why-{{ did }}" aria-expanded="false" aria-controls="why-{{ did }}">{{ t('btn_why') }} <span class="caret" aria-hidden="true">▾</span></button>{% endif %}
     </div>
+    <div class="letter-wait htmx-indicator" id="letter-wait-{{ did }}"><span class="spin"></span>{{ t('letter_generating') }}</div>
     <div id="letter-{{ did }}" aria-live="polite"></div>
     {% if sj.factors %}
-    <div class="factors" id="why-{{ did }}" hidden>
+    <div class="collapse" id="why-{{ did }}"><div class="factors">
       {% if sj.summary %}<p class="ai-note">{{ t('why_ai_summary', summary=sj.summary) }}</p>{% endif %}
       {% for name in factors %}{% set fs = sj.factors[name] %}
       <div class="factor">
@@ -31,7 +33,7 @@
       </div>
       {% endfor %}
       <p class="ai-note">{{ t('factors_note') }}</p>
-    </div>
+    </div></div>
     {% endif %}
   </div>
   <div class="score">

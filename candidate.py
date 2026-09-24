@@ -43,6 +43,8 @@ class Language:
 
 @dataclass
 class CandidateProfile:
+    # Nombre tal como figura en el CV. Solo se usa para firmar la carta de presentación.
+    full_name: str = ""
     summary: str = ""
     target_roles: list[str] = field(default_factory=list)
     seniority: str = UNKNOWN
@@ -175,6 +177,7 @@ PROFILE_SCHEMA = {
     "type": "object",
     "properties": {
         "cv_language": {"type": "string", "description": "ISO 639-1 code of the CV language, e.g. es, en, pt."},
+        "full_name": {"type": "string", "description": "The candidate's full name exactly as written in the CV. Empty string if the CV does not state it."},
         "summary": {"type": "string", "description": "2-4 sentence factual summary, in the CV language."},
         "target_roles": {**_STR_LIST, "description": "Roles the CV explicitly targets or has held. Not invented."},
         "seniority": {"type": "string", "enum": SENIORITY_LEVELS},
@@ -225,6 +228,7 @@ STRICT RULES:
 - List every skill, tool, experience, education entry and certification that the CV mentions. Do not truncate.
 - "skills" must include BOTH the skills section AND the concrete competencies evidenced in the experience descriptions (e.g. "Administración de medicación" from "administración de medicación a pacientes"), each with its evidence.
 - Location and languages: exactly as stated, or "unknown".
+- "full_name": copy the candidate's name exactly as the CV writes it. Never invent or complete a name.
 
 SEARCH TERMS ("search_terms"): short phrases a person would type in a job board to find openings for THIS candidate, in Spanish ("es") and in English ("en"):
 - Mostly job titles matching the roles in the CV at the candidate's actual level, plus common synonyms of those titles.

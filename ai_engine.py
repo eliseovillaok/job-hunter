@@ -229,9 +229,12 @@ def parse_json(raw: str) -> Any:
 # =============================================================================
 # Carta de presentación (solo a pedido del usuario)
 # =============================================================================
-def generate_cover_letter(job: JobPosting, match_reasons: list[str], profile: str, *, api_key: str, model: str) -> str:
-    """Genera la carta en el idioma de la oferta. Lanza excepción si falla."""
-    prompt = f"""Write a professional cover letter for the job posting below.
+def generate_cover_letter(job: JobPosting, match_reasons: list[str], profile: str, *, api_key: str,
+                          model: str, signature: str = "") -> str:
+    """Carta de presentación en el idioma de la oferta. Lanza excepción si falla."""
+    closing = (f"Close with a short valediction and, on the next line, exactly this name: {signature}"
+               if signature else "Close with a short valediction on its own line.")
+    prompt = f"""Write a cover letter for the job posting below: a letter of introduction, not a résumé in prose.
 
 LANGUAGE RULE: Detect the language of the job posting (title + description) and write the entire letter in that exact language. English job → English letter. Spanish job → Spanish letter. No mixing.
 
@@ -244,14 +247,16 @@ Company: {job.company}
 Why it matches: {", ".join(match_reasons)}
 Description: {job.description[:2000]}
 
-STRUCTURE (3–4 paragraphs):
-1. Brief introduction: who the candidate is and the role they are applying for.
-2. Skills & experience: connect only the candidate's actual skills and experience from the profile to this specific role. Zero invented metrics, zero invented achievements. If the profile says "colaboró en" or "supported", do not write "led" or "built". Mirror the profile's language.
-3. Why this company: write a specific paragraph about why the candidate wants to work at {job.company}. Base it on concrete details visible in the job description — product, mission, tech stack, culture, market, or problem they solve. Avoid generic praise like "innovative company" unless supported by specific facts from the description.
-4. Call to action: short, direct closing.
+HOW IT MUST READ:
+- Three short paragraphs, 40 to 80 words each. Never longer than 250 words in total.
+- Formal and warm, written by a person: no bullet lists, no headings, no filler such as "I am writing to express my interest in".
+- Pick at most three things from the profile that matter for THIS role. Do not restate the whole CV, do not list every tool.
+- Zero invented metrics or achievements. Keep the profile's own verbs: if it says "supported", do not write "led".
+- One paragraph on why this company, grounded in concrete details from the description (product, problem, stack, market). No generic praise.
+- {closing}
 
 First line of output must be: [SUBJECT: suggested email subject in the same language as the letter]
-Output only the cover letter, nothing else."""
+Output only the letter, nothing else."""
 
     raw = generate_text(prompt, api_key=api_key, model=model)
     if not raw:

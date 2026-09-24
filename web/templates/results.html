@@ -20,12 +20,14 @@
       {% for m in modalities %}
       <label class="chip"><input type="checkbox" name="mod" value="{{ m }}" {{ 'checked' if m in f.mods }}><span>{{ t('mod_' ~ m) }}</span></label>
       {% endfor %}
+      <label class="chip"><input type="checkbox" name="mod" value="unknown" {{ 'checked' if 'unknown' in f.mods }}><span>{{ t('flt_unknown') }}</span></label>
     </div>
     <h4>{{ t('flt_level') }}</h4>
     <div class="chips">
       {% for v in levels %}
       <label class="chip"><input type="checkbox" name="lvl" value="{{ v }}" {{ 'checked' if v in f.lvls }}><span>{{ t('sen_' ~ v) }}</span></label>
       {% endfor %}
+      <label class="chip"><input type="checkbox" name="lvl" value="unknown" {{ 'checked' if 'unknown' in f.lvls }}><span>{{ t('flt_unknown') }}</span></label>
     </div>
     <h4><label for="f-min">{{ t('flt_min') }}</label></h4>
     <input class="range" id="f-min" type="range" name="min" min="0" max="100" step="5" value="{{ f.min }}"

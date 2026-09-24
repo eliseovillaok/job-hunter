@@ -139,12 +139,13 @@ def chips(job, t) -> list[str]:
 
 
 def filtered(scored, show: str, min_score: int, mods: list[str], lvls: list[str]):
-    """Filtros de vista: igual que los filtros duros, un dato desconocido nunca oculta una oferta."""
+    """Filtros de vista: lo que se elige, se aplica. «No especificado» es una opción más, para que
+    lo que no se pudo detectar se pueda ver o esconder a voluntad, sin decidirlo por el usuario."""
     rec = ai_engine.recommended(scored, min_score)
     base = scored if show == "all" else rec
     jobs = [sj for sj in base
-            if (not mods or sj.job.modality == normalize.UNKNOWN or sj.job.modality in mods)
-            and (not lvls or sj.job.seniority == normalize.UNKNOWN or sj.job.seniority in lvls)]
+            if (not mods or sj.job.modality in mods)
+            and (not lvls or sj.job.seniority in lvls)]
     return jobs, rec
 
 
@@ -163,8 +164,8 @@ def read_filters(request: Request) -> dict:
     return {
         "show": "all" if q.get("show") == "all" else "rec",
         "min": min_score,
-        "mods": [m for m in q.getlist("mod") if m in matching.MODALITIES],
-        "lvls": [v for v in q.getlist("lvl") if v in LEVELS],
+        "mods": [m for m in q.getlist("mod") if m in matching.MODALITIES or m == normalize.UNKNOWN],
+        "lvls": [v for v in q.getlist("lvl") if v in LEVELS or v == normalize.UNKNOWN],
         "page": page,
     }
 
@@ -235,7 +236,8 @@ def cover_letter(request: Request, job_id: str):
         else:
             try:
                 sj.cover_letter = ai_engine.generate_cover_letter(
-                    sj.job, sj.match_reasons, profile.to_prompt(), api_key=s.api_key, model=s.model)
+                    sj.job, sj.match_reasons, profile.to_prompt(), api_key=s.api_key, model=s.model,
+                    signature=profile.full_name)
             except ai_engine.QuotaExceeded:
                 return render(request, "_letter.html", error=t("wz_err_quota"))
             except ai_engine.AuthError:
@@ -243,7 +245,7 @@ def cover_letter(request: Request, job_id: str):
             except Exception:
                 log.exception("carta job=%s", job_id)
                 return render(request, "_letter.html", error=t("letter_error", error=""))
-    return render(request, "_letter.html", letter=sj.cover_letter)
+    return render(request, "_letter.html", letter=sj.cover_letter, id=job_id)
 
 
 @app.get("/resultados/export.json")

@@ -146,8 +146,8 @@ def test_the_letter_uses_the_session_key(client, monkeypatch):
     sj = s.run.result.scored[0]
     seen = {}
 
-    def fake_letter(job, reasons, profile, *, api_key, model):
-        seen.update(job=job.title, key=api_key)
+    def fake_letter(job, reasons, profile, *, api_key, model, signature=""):
+        seen.update(job=job.title, key=api_key, firma=signature)
         return "Estimado equipo: me interesa el puesto."
 
     monkeypatch.setattr(web.ai_engine, "generate_cover_letter", fake_letter)
@@ -175,3 +175,35 @@ def test_the_export_carries_the_session_results(client, monkeypatch):
     s = searched(monkeypatch, client)
     payload = client.get("/resultados/export.json").json()
     assert [j["title"] for j in payload] == [sj.job.title for sj in s.run.result.scored]
+
+
+def test_the_level_filter_only_shows_that_level(client, monkeypatch):
+    """Antes, lo que no tenía nivel detectado pasaba siempre y el filtro parecía no hacer nada."""
+    monkeypatch.setattr(demo, "enabled", lambda: False)
+    jobs = []
+    for level in ("senior", "junior", "unknown"):
+        job = make_job(title=f"Puesto {level}")
+        job.seniority = level
+        jobs.append(ScoredJob(job=job, score=90, match_reasons=[], missing_skills=[], cover_letter=None, summary=""))
+    searched(monkeypatch, client, scored=jobs)
+    html = client.get("/resultados?lvl=senior").text
+    assert "Puesto senior" in html and "Puesto junior" not in html and "Puesto unknown" not in html
+    # Lo no detectado es una opción propia, no una excepción escondida.
+    html = client.get("/resultados?lvl=senior&lvl=unknown").text
+    assert "Puesto senior" in html and "Puesto unknown" in html
+
+
+def test_the_filters_panel_has_every_label(client, monkeypatch):
+    monkeypatch.setattr(demo, "enabled", lambda: False)
+    searched(monkeypatch, client)
+    html = client.get("/resultados").text
+    for text in ("Modalidad", "Nivel", "Afinidad mínima", "Qué mostrar", "No especificado"):
+        assert text in html
+    assert "flt_" not in html          # ninguna clave sin traducir
+
+
+def test_an_empty_result_offers_a_way_out(client, monkeypatch):
+    monkeypatch.setattr(demo, "enabled", lambda: False)
+    searched(monkeypatch, client)
+    html = client.get("/resultados?lvl=intern").text
+    assert "Ninguna oferta coincide" in html and "data-clear-filters" in html

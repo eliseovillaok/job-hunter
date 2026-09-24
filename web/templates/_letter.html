@@ -3,9 +3,13 @@
 <p class="note-inline">{{ error }}</p>
 {% else %}
 <div class="letter">
-  <div class="letter-h"><b>{{ t('cover_letter_expander') }}</b>
+  <div class="letter-h">
+    <b>{{ t('cover_letter_expander') }}</b>
+    <span class="sp"></span>
     <button class="link-btn" type="button" data-copy data-done="{{ t('btn_copied') }}">{{ t('btn_copy') }}</button>
+    <button class="btn-link" type="button" data-toggle="letter-body-{{ id }}" aria-expanded="true"
+            aria-controls="letter-body-{{ id }}">{{ t('btn_hide') }} <span class="caret" aria-hidden="true">▾</span></button>
   </div>
-  <pre>{{ letter }}</pre>
+  <div class="collapse open" id="letter-body-{{ id }}"><pre>{{ letter }}</pre></div>
 </div>
 {% endif %}
