@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ t('res_title') }} · JobHunter{% endblock %}
-{% block nav_cta %}<a class="btn btn-p" href="/asistente">{{ t('btn_new_search') }}</a>{% endblock %}
 {% block content %}
+{% import "_counts.html" as counts with context %}
 {% if notice %}<div class="notice" role="status">{{ notice }}</div>{% endif %}
 <div class="rhead">
   <div><h2>{{ t('res_title') }}</h2><p>{{ meta }}</p></div>
@@ -35,14 +35,17 @@
     <div class="small"><span data-min-out>{{ t('flt_min_hint', n=f.min) }}</span></div>
     <h4>{{ t('flt_show') }}</h4>
     <div class="chips">
-      <label class="chip"><input type="radio" name="show" value="rec" {{ 'checked' if f.show == 'rec' }}><span id="lbl-rec">{{ t('show_rec', n=n_rec) }}</span></label>
-      <label class="chip"><input type="radio" name="show" value="all" {{ 'checked' if f.show == 'all' }}><span>{{ t('show_all', n=n_all) }}</span></label>
+      <label class="chip"><input type="radio" name="show" value="rec" {{ 'checked' if f.show == 'rec' }}>{{ counts.rec() }}</label>
+      <label class="chip"><input type="radio" name="show" value="all" {{ 'checked' if f.show == 'all' }}>{{ counts.all() }}</label>
+      {{ counts.dismissed() }}
     </div>
     <template id="min-hint">{{ t('flt_min_hint', n='{n}') }}</template>
   </form>
 
   <div>
     <div id="job-list">{% include "_list.html" %}</div>
+    {# Guardar o descartar cambia los contadores; solo se refrescan ellos, la lista queda como está. #}
+    <div hidden hx-get="/resultados/lista" hx-include="#filters" hx-trigger="jh-jobs from:body" hx-swap="none"></div>
     <a class="btn btn-o export" href="/resultados/export.json" hx-boost="false" download>{{ t('res_export') }}</a>
   </div>
 </section>

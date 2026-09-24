@@ -7,8 +7,9 @@ de progreso solo lee ese estado.
 
 Qué asume:
 - La búsqueda se pasa el tiempo esperando (portales, Gemini), así que un hilo alcanza.
-- El estado vive en memoria: si el proceso se reinicia, la corrida se pierde y hay que repetirla.
-  Se resuelve con la persistencia de la Fase 1, no antes.
+- Al lanzarla se reserva una búsqueda del cupo mensual y se crea su fila en `search_runs`; al terminar
+  se guarda ahí la foto de los resultados (historial). Si el proceso se reinicia a mitad de camino, la
+  corrida en curso se pierde y queda como `running` en la base.
 - Límites en web/settings.py: una corrida por sesión, unas pocas en el proceso y un tiempo máximo.
 
 Cancelar y el tiempo máximo cortan entre portales y al terminar cada tanda de evaluación: la tanda
@@ -30,7 +31,7 @@ import matching
 import notifier
 import scrapers
 from candidate import CandidateProfile
-from web import portals, settings
+from web import persist, portals, settings
 from web.session import Session
 
 log = logging.getLogger("jobhunter.run")
@@ -48,6 +49,15 @@ _slots = threading.BoundedSemaphore(settings.MAX_RUNS)
 
 class _Stopped(Exception):
     """Cancelación o tiempo agotado, lanzada desde el progreso para no seguir evaluando."""
+
+
+class MonthlyLimit(Exception):
+    """El plan ya no tiene búsquedas este mes."""
+
+
+# Cómo queda cada final en search_runs.status.
+_DB_STATUS = {SUCCESS: "succeeded", PARTIAL: "partial", EMPTY: "succeeded", CANCELED: "canceled",
+              ERROR: "failed", TIMEOUT: "failed"}
 
 
 @dataclass
@@ -123,7 +133,19 @@ class Run:
     result: Optional[matching.MatchResult] = None
     started: float = field(default_factory=time.time)
     finished: float = 0.0
+    user_id: str = ""         # dueño de la corrida; vacío = no se guarda
+    db_id: str = ""           # search_runs.id
     _stop: threading.Event = field(default_factory=threading.Event, repr=False)
+
+    @property
+    def funnel(self) -> Optional[dict]:
+        """Qué pasó con las ofertas, para el encabezado de resultados (y el historial)."""
+        r = self.result
+        if r is None:
+            return None
+        return {"found": r.total_found, "dups": r.duplicates_removed, "excluded": dict(r.excluded),
+                "out": r.pre_ranked_out, "evaluated": sum(1 for sj in r.scored if sj.evaluated),
+                "top_n": self.eval_limit, "stop_reason": r.stop_reason}
 
     # ─── Lectura (la usa la pantalla de progreso) ────────────────────────────
     @property
@@ -170,17 +192,36 @@ class Run:
 
 
 def start(s: Session, lang: str) -> Run:
-    """Lanza la búsqueda de esta sesión. Si ya hay una corriendo, devuelve esa."""
+    """Lanza la búsqueda de esta sesión. Si ya hay una corriendo, devuelve esa.
+
+    Con una cuenta, antes reserva la búsqueda en el cupo del mes: `MonthlyLimit` si no quedan,
+    `persist.StoreError` si la base no respondió (y entonces no se busca: el cupo no se puede saltear)."""
     if s.run is not None and s.run.active:
         return s.run
     cfg = RunConfig.from_session(s, lang)
+    run_id = uuid.uuid4().hex[:12]
+    db_id = ""
+    store = persist.get()
+    if s.user_id and store is not None:
+        db_id = store.start_run(s.user_id, s.plan or persist.Plan(persist.FREE_PLAN), {
+            "sources_requested": len(cfg.portals), "trace_id": run_id, "lang": lang,
+            "model_name": None if demo.enabled() else cfg.model,
+            "query": {"terms": cfg.terms, "portals": cfg.portals, "modalities": sorted(cfg.prefs.modalities),
+                      "locations": cfg.prefs.locations, "job_languages": cfg.prefs.job_languages,
+                      "min_score": cfg.min_score, "eval_limit": cfg.eval_limit},
+        })
+        if db_id is None:
+            raise MonthlyLimit
     labels = {p.key: p.label for p in portals.PORTALS}
     run = Run(
-        id=uuid.uuid4().hex[:12],
+        id=run_id,
         portals=[PortalRun(key=k, label=labels.get(k, k)) for k in cfg.portals],
         eval_limit=cfg.eval_limit,
         min_score=cfg.min_score,
+        user_id=s.user_id if db_id else "",
+        db_id=db_id,
     )
+    s.history_view = None
     s.run = run
     threading.Thread(target=_execute, args=(run, cfg), name=f"run-{run.id}", daemon=True).start()
     return run
@@ -327,3 +368,24 @@ def _finish(run: Run, outcome: str) -> None:
         wizard.record_run(minutes, run.eval_limit)
     log.info("run=%s fin=%s portales=%d/%d ofertas=%d evaluadas=%d minutos=%.1f",
              run.id, outcome, run.portals_done, len(run.portals), run.found, run.evaluated, minutes)
+    _save(run)
+
+
+def _save(run: Run) -> None:
+    """Deja la corrida en el historial. Si la base no responde, los resultados siguen en la sesión."""
+    store = persist.get()
+    if not run.db_id or store is None:
+        return
+    fields = {"status": _DB_STATUS.get(run.outcome, "failed"), "sources_succeeded": run.portals_ok,
+              "jobs_seen": run.found, "error_summary": None}
+    if run.outcome in (ERROR, TIMEOUT) or run.failed_portals:
+        failed = ",".join(p.key for p in run.failed_portals)
+        fields["error_summary"] = (run.outcome if run.outcome in (ERROR, TIMEOUT) else "portals") + (f":{failed}" if failed else "")
+    if run.result is not None:
+        fields["funnel"] = run.funnel
+        fields["results"] = [persist.scored_to_dict(sj) for sj in run.result.scored]
+        fields["matches_created"] = sum(1 for sj in run.result.scored if sj.evaluated and sj.score >= run.min_score)
+    try:
+        store.finish_run(run.user_id, run.db_id, fields)
+    except Exception:  # noqa: BLE001 — el historial no puede tumbar el final de la búsqueda
+        log.warning("run=%s no se pudo guardar en el historial", run.id, exc_info=True)

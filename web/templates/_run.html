@@ -64,6 +64,7 @@
     <span class="hint">{{ t('run_hint') }}</span>
     <div class="r">
       <form action="/buscando/detener" method="post" hx-post="/buscando/detener" hx-target="#run">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <button class="btn btn-o" type="submit">{{ t('run_stop') }}</button>
       </form>
       {{ tip(t('run_stop_help')) }}

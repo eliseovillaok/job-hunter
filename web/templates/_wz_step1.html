@@ -16,8 +16,8 @@
   {% if s.cv %}
   <div class="file">
     <div class="fi">{{ s.cv.name.rsplit('.', 1)[-1]|upper }}<span class="check" aria-hidden="true">✓</span></div>
-    <div class="meta"><b>{{ s.cv.name }}</b><span>{{ [1, (s.cv.data|length / 1024)|round|int]|max }} KB · {{ t('wz_cv_next') }}</span></div>
-    <form action="/asistente/cv/quitar" method="post"><button class="link-btn" type="submit">{{ t('wz_change') }}</button></form>
+    <div class="meta"><b>{{ s.cv.name }}</b><span>{{ [1, ((s.cv.size or s.cv.data|length) / 1024)|round|int]|max }} KB · {{ t('wz_cv_next') }}</span></div>
+    <form action="/asistente/cv/quitar" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="link-btn" type="submit">{{ t('wz_change') }}</button></form>
   </div>
   <div class="foot">
     <span></span>
@@ -27,6 +27,7 @@
   {% else %}
   <div data-mode="upload" {{ 'hidden' if open_editor }}>
     <form class="dz" action="/asistente/cv" method="post" enctype="multipart/form-data" data-dropzone>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <input type="hidden" name="origin" value="wizard">
       <input type="file" name="cv" id="cv-file" accept=".pdf,.docx,.txt" data-autosubmit hidden>
       <div class="ic" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M12 18v-6M9 15l3-3 3 3"/></svg></div>
@@ -45,6 +46,7 @@
   </div>
 
   <form data-mode="write" action="/asistente/manual" method="post" {{ '' if open_editor else 'hidden' }}>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <div hx-post="/asistente/borrador/1" hx-trigger="input delay:800ms" hx-include="closest form" hx-swap="none" hx-disinherit="*">
       <div class="field">
         <label for="f-manual">{{ t('wz3_manual_label') }} {{ tip(t('wz1_manual_help')) }}</label>

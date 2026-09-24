@@ -22,8 +22,9 @@ como destino. Ante un conflicto manda la spec; este archivo dice **cuándo** y *
 | Núcleo | CV → perfil editable con evidencia · filtros duros · pre-ranking con embeddings · evaluación híbrida por factores · score explicable · tests + CI · eval por profesión (NDCG@5 medio 0.97, sin sesgo tech) |
 | UI (`web/`) | FastAPI + Jinja + HTMX: landing, asistente de 4 pasos, búsqueda real con progreso, resultados, cartas y resumen por correo |
 | Fuentes | 13 portales de acceso público, todos por API o feed oficial salvo tres. Retirados: los que pedían inicio de sesión, Jobicy (API discontinuada) y Remote.co (su feed no responde) |
+| Cuentas | Supabase (local): cuenta obligatoria antes del asistente; CV, perfil, preferencias, historial y guardadas persisten; tope mensual del plan gratuito |
 
-Lo que **no** existe todavía: base de datos, cuentas, pagos, automatización, despliegue propio.
+Lo que **no** existe todavía: staging en la nube, pagos, automatización, despliegue propio.
 La clave de Gemini la pone el usuario; en la fase de cobros pasa a ser nuestra y se vuelve un costo a controlar.
 
 ---
@@ -41,16 +42,17 @@ La clave de Gemini la pone el usuario; en la fase de cobros pasa a ser nuestra y
 
 **Cerrada:** el flujo completo —CV → perfil → búsqueda real → resultados → carta— corre igual en local y dentro de la imagen, verificado de punta a punta.
 
-## Fase 1 — Persistencia y cuentas (siguiente)
+## Fase 1 — Persistencia y cuentas (en curso)
 
 **Objetivo:** el trabajo del usuario sobrevive a cerrar el navegador.
 
-- [ ] Proyecto Supabase (local/staging/producción separados). *Requiere OK antes de sumar el servicio.*
-- [ ] Migraciones versionadas: `profiles`, `cv_documents`, `candidate_profiles`, `search_preferences` (spec §6.2).
-- [ ] Sesiones por cookie httponly + CSRF en toda acción que modifica estado (spec §7).
-- [ ] Alta, ingreso, salida y borrado de cuenta con su flujo completo (spec §4.4, §21.17).
-- [ ] Historial de búsquedas (`search_runs`) y ofertas guardadas/descartadas.
-- [ ] Límites por uso (todavía sin cobrar): búsquedas por mes, portales, resultados por búsqueda.
+- [x] Supabase local con el CLI (Postgres, Auth, Storage, correos de prueba).
+- [ ] Proyecto de staging en la nube, con SMTP propio (el incluido solo envía al equipo). Producción, en la Fase 2.
+- [x] Migraciones versionadas: `profiles`, `cv_documents`, `candidate_profiles`, `search_preferences`, `search_runs`, `saved_jobs`, `usage_events`, `plans`, `account_deletions` (spec §6.2), con RLS y bucket privado para los CV.
+- [x] Sesiones por cookie httponly + CSRF en toda acción que modifica estado (spec §7).
+- [x] Alta, ingreso, salida, recuperación de contraseña y borrado de cuenta con su flujo completo (spec §4.4, §21.17); export de datos en JSON.
+- [x] Historial de búsquedas (`search_runs`) y ofertas guardadas/descartadas.
+- [x] Límites por uso (todavía sin cobrar), desde el plan `free` del catálogo: búsquedas por mes (reserva atómica en el servidor), portales y resultados por búsqueda.
 
 **Listo cuando:** una persona se registra, se va, vuelve al otro día y encuentra su perfil y su historial.
 

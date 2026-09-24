@@ -1,0 +1,15 @@
+<!doctype html>
+<html>
+<body style="margin:0;padding:32px 16px;background:#F4F8F5;font-family:Inter,Arial,sans-serif;color:#13261E">
+  <div style="max-width:520px;margin:0 auto;background:#FFFFFF;border:1px solid #CFE0D6;border-radius:22px;padding:28px">
+    <p style="margin:0 0 20px;font-size:20px;font-weight:800"><span style="color:#13261E">Job</span><span style="color:#1F6F54">Hunter</span></p>
+    <h1 style="margin:0 0 8px;font-size:20px">Restablece tu contraseña</h1>
+    <p style="margin:0 0 20px;color:#3E5A4E;line-height:1.5">Selecciona el botón para elegir una contraseña nueva. El enlace vence en una hora.</p>
+    <p style="margin:0 0 28px"><a href="{{ .SiteURL }}/auth/confirmar?token_hash={{ .TokenHash }}&type=recovery"
+       style="display:inline-block;background:#1F6F54;color:#FFFFFF;text-decoration:none;font-weight:600;padding:12px 22px;border-radius:999px">Elegir contraseña nueva</a></p>
+    <h2 style="margin:0 0 8px;font-size:16px">Reset your password</h2>
+    <p style="margin:0 0 20px;color:#3E5A4E;line-height:1.5">Select the button above to choose a new password. The link expires in one hour.</p>
+    <p style="margin:0;color:#58736A;font-size:13px;line-height:1.5">Si no lo pediste, ignora este correo: tu contraseña no cambia. · If you did not ask for this, ignore this email: your password stays the same.</p>
+  </div>
+</body>
+</html>

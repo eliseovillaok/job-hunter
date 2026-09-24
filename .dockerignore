@@ -12,6 +12,8 @@ eval/
 # ...salvo los datos ficticios del modo demo (JOB_HUNTER_DEMO=1), que la imagen sí lleva.
 !eval/dataset.json
 scripts/
+# Migraciones y configuración del CLI de Supabase: se aplican con `supabase db push`, no desde la imagen.
+supabase/
 # De docs/ la app solo usa los colores y el logo; el resto es documentación.
 docs/
 !docs/brand/tokens.json

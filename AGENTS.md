@@ -11,7 +11,7 @@ MVP de startup, desarrollado por **una sola persona**. Flujo:
 Prioridades del producto: relevancia, control del usuario, transparencia, simplicidad.
 **Sin despliegue público**: Streamlit Cloud se dio de baja y el producto es `web/`. El desarrollo corre en local; la salida a Railway o Render está preparada ([docs/deploy.md](docs/deploy.md)) y se decide en la Fase 2.
 
-**Ruta:** [docs/roadmap.md](docs/roadmap.md) — fases con disparadores medibles. La Fase 0 se cerró el 24/09/2026; la siguiente es la Fase 1 (persistencia y cuentas). Antes de proponer trabajo, ubicarlo en la fase actual; lo de fases futuras se anota, no se construye.
+**Ruta:** [docs/roadmap.md](docs/roadmap.md) — fases con disparadores medibles. La Fase 0 se cerró el 24/09/2026; la Fase 1 (persistencia y cuentas) está en curso. Antes de proponer trabajo, ubicarlo en la fase actual; lo de fases futuras se anota, no se construye.
 **Marca:** [docs/brand/BRAND.md](docs/brand/BRAND.md) — **leerlo antes de cualquier cambio visual o de texto** y pasar su checklist. Colores de [docs/brand/tokens.json](docs/brand/tokens.json) (paleta Esmeralda); no inventar colores. El producto se llama **JobHunter**. Si algo no cumple el manual, proponer el cambio al manual antes de implementarlo.
 
 ## Especificación maestra (la biblia)
@@ -89,7 +89,8 @@ Los portales son dependencias poco confiables: HTML y APIs cambian, hay rate lim
 ## Mapa del código
 | Archivo | Rol |
 |---|---|
-| `web/` | **La aplicación**: FastAPI + Jinja2 + HTMX. `main.py` (landing, resultados, salud, middleware de sesión y CSP), `wizard.py` (asistente de 4 pasos), `run.py` (la búsqueda en un hilo, con su progreso en la sesión), `session.py` (estado por usuario en memoria, cookie httponly, vence a las 3 h), `portals.py` (portales por región), `common.py` (plantillas, idioma/tema, marca), `templates/` (maquetas aprobadas), `static/app.css` (colores solo vía variables de `tokens.json`) |
+| `web/` | **La aplicación**: FastAPI + Jinja2 + HTMX. `main.py` (landing, resultados, guardar/descartar, salud, middleware de sesión, muro de cuenta y CSP), `auth.py` (alta, ingreso, salida, confirmación y recuperación; cookies de Auth; `hydrate` rearma la sesión desde la base), `csrf.py` (doble envío: cookie `jh_csrf` + cabecera o campo; dependencia global), `account.py` (`/cuenta`, `/historial`, export JSON, borrado de CV y de cuenta), `wizard.py` (asistente de 4 pasos; persiste perfil y preferencias), `run.py` (la búsqueda en un hilo; reserva cupo y guarda `search_runs`), `persist.py` (contrato del store + `MemoryStore` para tests y demo), `supa.py` (`SupabaseStore`: Auth, PostgREST y Storage por HTTP), `session.py` (estado de trabajo en memoria atado a una cuenta, cookie httponly, vence a las 3 h), `settings.py` (variables de entorno), `portals.py` (portales por región), `common.py` (plantillas, idioma/tema, marca), `templates/` (maquetas aprobadas), `static/app.css` (colores solo vía variables de `tokens.json`) |
+| `supabase/` | `migrations/` (esquema, RLS, bucket privado de CV, RPC `start_search_run` y plan `free`), `templates/` (correos de Auth) y `config.toml` del stack local |
 | `i18n.py` | `TRANSLATIONS` ES/EN (se usa vía `t()` en las plantillas y `translator()` en `web/common.py`) |
 | `demo.py` | Modo demo (`JOB_HUNTER_DEMO=1`): resultados ficticios sin IA ni red, para probar la UI |
 | `scrapers.py` | Lectura de portales de acceso público. Firma: `scrape_x(keywords, max_results=0) -> list[JobPosting]`; el registro `PORTAL_SCRAPERS` (clave → función) es la única lista, la usan `web/run.py` y `get_all_jobs()` |
@@ -98,14 +99,15 @@ Los portales son dependencias poco confiables: HTML y APIs cambian, hay rate lim
 | `normalize.py` | Sin IA: idioma, seniority y modalidad de cada oferta, y deduplicación entre portales |
 | `matching.py` | Filtros duros (`SearchPreferences`), pre-ranking con embeddings, evaluación por lotes y `compute_score`. `match_jobs` es el pipeline único (app, CLI y eval) |
 | `eval/` | Perfiles y ofertas ficticios + `python -m eval.run`: métricas por profesión para detectar sesgos |
-| `tests/` | pytest sin red ni IA (corre en GitHub Actions) |
+| `tests/` | pytest sin red ni IA (corre en GitHub Actions); las cuentas usan `MemoryStore` (`conftest.py`). `test_supabase_integration.py` corre solo con `JH_SUPABASE_TESTS=1` contra el Supabase local |
+| `scripts/dev-env.ps1` | Carga las claves del Supabase local en la terminal actual (sin tocar `.env`) |
 | `notifier.py` | Digest HTML por SMTP (Gmail) |
 | `main.py` | CLI headless (`--cv`, `--top-n`, `--dry-run`, `--no-email`) |
 | `scripts/build_logo.py` | Genera los SVG/PNG del logo en `docs/brand/logo/` |
 | `config.py` | Globals de configuración (el wizard los sobreescribe; ver deuda) |
 | `Dockerfile` | Imagen de producción: `uvicorn web.main:app` con `$PORT`. Guía y variables en [docs/deploy.md](docs/deploy.md) |
 
-No hay base de datos ni API propia todavía. Cuando existan: migraciones sin cambios destructivos y contratos estables (cualquier cambio de contrato se explica y se confirma).
+**Base de datos:** Supabase (Postgres + Auth + Storage). Todo cambio de esquema va en una migración nueva de `supabase/migrations/` (idempotente, sin cambios destructivos) y con RLS en cada tabla; lo que decide cupos o planes lo escribe solo el servidor con la clave secreta. La clave secreta nunca llega al navegador ni a una plantilla. No hay API propia todavía: cualquier cambio de contrato se explica y se confirma.
 
 ## Entorno y comandos
 Desarrollo **solo en Windows + PowerShell** (no WSL: mezclar ambos genera ruido de CRLF y hooks rotos). `.gitattributes` fuerza LF.
@@ -113,13 +115,15 @@ Desarrollo **solo en Windows + PowerShell** (no WSL: mezclar ambos genera ruido 
 py -3.12 -m venv venv; .\venv\Scripts\Activate.ps1
 pip install -r requirements.txt -r requirements-dev.txt
 pre-commit install                         # gitleaks en cada commit
+npx --yes supabase@2.117.0 start           # Supabase local (Docker): API 54321, Studio 54323, correos 54324
+. .\scripts\dev-env.ps1                    # sus claves, solo en esta terminal
 $env:JOB_HUNTER_DEMO="1"; uvicorn web.main:app --reload --port 8600   # la app (web/), con datos demo
 python main.py --dry-run                   # CLI
 docker build -t jobhunter . ; docker run --rm -p 8000:8000 jobhunter   # igual que en producción
 ```
 `requirements.txt` = runtime de `web/` (lo instala la imagen); `requirements-dev.txt` = tooling local.
 Si gitleaks frena un commit: sacar el secreto, nunca saltear el hook con `--no-verify`.
-Tests: `pytest -q` (sin red ni IA; el LLM se reemplaza con un `generate` falso). Priorizar normalización, filtros, parseo de respuestas del LLM y scoring. Nada de tests solo para subir la cobertura.
+Tests: `pytest -q` (sin red ni IA; el LLM se reemplaza con un `generate` falso y la base con `MemoryStore`). Si se tocan `supa.py` o una migración: `$env:JH_SUPABASE_TESTS="1"; pytest tests/test_supabase_integration.py` con el stack local arriba. Priorizar normalización, filtros, parseo de respuestas del LLM y scoring. Nada de tests solo para subir la cobertura.
 Eval con Gemini real (a mano, consume cuota): `python -m eval.run` — lee `GEMINI_API_KEY` de `.env`. Correrlo antes y después de tocar prompts, pesos o normalización.
 
 ## Convenciones
@@ -133,6 +137,7 @@ La interfaz vive en `web/` y reusa el núcleo (candidate, scrapers, matching, ai
 
 ## Deuda conocida (no empeorarla; atacarla solo con OK)
 - Sin caché de evaluaciones: repetir una búsqueda vuelve a evaluar las mismas ofertas.
-- Las sesiones viven en memoria del proceso: un reinicio las borra y no habría forma de correr dos instancias. Se resuelve con la persistencia de la Fase 1 (spec §0.3).
+- El estado de trabajo (asistente a medio completar, búsqueda en curso, clave de Gemini) vive en memoria del proceso. Un reinicio lo borra —perfil, preferencias, CV e historial se recuperan de la base al volver a entrar, pero una búsqueda en curso se pierde— y no se pueden correr dos instancias.
+- El token de Auth se valida contra Supabase y se recuerda 60 s por proceso: una sesión cerrada desde otro navegador sigue sirviendo hasta un minuto.
 - `config.py` sigue con globals que solo usa el CLI (`main.py`): palabras clave, credenciales de correo, umbrales.
 - LatoJobs abre cada aviso (una request por oferta): su sitio no expone JSON reusable.

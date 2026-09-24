@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}{{ t('acc_title') }} · JobHunter{% endblock %}
+{% block content %}
+{% if notice %}<div class="notice" role="status">{{ notice }}</div>{% endif %}
+{% if error %}<div class="alert" role="alert"><p>{{ error }}</p></div>{% endif %}
+<div class="rhead">
+  <div><h2>{{ t('acc_title') }}</h2><p>{{ user.email }}</p></div>
+  <form method="post" action="/salir">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <button class="btn btn-o btn-sm" type="submit">{{ t('auth_logout') }}</button>
+  </form>
+</div>
+
+<div class="acc">
+  <section class="card">
+    <div class="card-h"><div>
+      <div class="eyebrow">{{ t('acc_plan') }}</div>
+      <h3>{{ t('acc_plan_free') }}</h3>
+    </div></div>
+    {% if usage %}
+    <div class="bigbar" role="progressbar" aria-valuemin="0" aria-valuemax="{{ usage.limit }}" aria-valuenow="{{ usage.used }}"
+         aria-label="{{ t('acc_usage_label') }}"><i style="width:{{ [100, (usage.used / usage.limit * 100)|round|int]|min if usage.limit else 0 }}%"></i></div>
+    <p class="acc-line">{{ t('acc_usage', used=usage.used, limit=usage.limit, date=format_date(usage.renews)) }}</p>
+    {% endif %}
+    {% if limits.portals or limits.eval %}<p class="help">{{ t('acc_limits', portals=limits.portals, n=limits.eval) }}</p>{% endif %}
+    <p class="help">{{ t('acc_plan_note') }}</p>
+  </section>
+
+  <section class="card">
+    <div class="card-h"><div>
+      <div class="eyebrow">{{ t('acc_cv') }}</div>
+      <h3>{{ t('acc_cv_title') }}</h3>
+    </div></div>
+    {% if s.cv %}
+    <div class="file">
+      <div class="fi">{{ s.cv.name.rsplit('.', 1)[-1]|upper }}</div>
+      <div class="meta"><b>{{ s.cv.name }}</b><span>{{ t('acc_cv_private') }}</span></div>
+    </div>
+    <div class="acts">
+      <a class="btn btn-o" href="/asistente/1">{{ t('acc_cv_replace') }}</a>
+      <button class="btn btn-g" type="button" data-toggle="cv-del" aria-expanded="false" aria-controls="cv-del">{{ t('acc_cv_delete') }} <span class="caret" aria-hidden="true">▾</span></button>
+    </div>
+    <div class="collapse" id="cv-del"><div>
+      <form class="confirm" method="post" action="/cuenta/cv/borrar">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <p>{{ t('acc_cv_delete_desc') }}</p>
+        <button class="btn btn-danger btn-sm" type="submit" data-busy="{{ t('auth_working') }}">{{ t('acc_cv_delete_btn') }}</button>
+      </form>
+    </div></div>
+    {% else %}
+    <p class="acc-line">{{ t('acc_cv_none') }}</p>
+    <div class="acts"><a class="btn btn-o" href="/asistente/1">{{ t('acc_cv_upload') }}</a></div>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <div class="card-h"><div>
+      <div class="eyebrow">{{ t('acc_data') }}</div>
+      <h3>{{ t('acc_data_title') }}</h3>
+      <p>{{ t('acc_data_desc') }}</p>
+    </div></div>
+    <div class="acts">
+      <a class="btn btn-o" href="/cuenta/datos.json" hx-boost="false" download>{{ t('acc_export') }}</a>
+      <a class="btn btn-g" href="/historial">{{ t('nav_history') }}</a>
+      <a class="btn btn-g" href="/nueva-clave">{{ t('acc_change_password') }}</a>
+    </div>
+  </section>
+
+  <section class="card acc-danger">
+    <div class="card-h"><div>
+      <div class="eyebrow">{{ t('acc_delete') }}</div>
+      <h3>{{ t('acc_delete_title') }}</h3>
+      <p>{{ t('acc_delete_desc') }}</p>
+    </div></div>
+    <form class="confirm" method="post" action="/cuenta/borrar">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <div class="field">
+        <label for="del-confirm">{{ t('acc_delete_confirm', email=user.email) }}</label>
+        <input id="del-confirm" class="input" type="email" name="confirm" autocomplete="off" required maxlength="254">
+      </div>
+      <button class="btn btn-danger" type="submit" data-busy="{{ t('acc_deleting') }}">{{ t('acc_delete_btn') }}</button>
+    </form>
+  </section>
+</div>
+{% endblock %}

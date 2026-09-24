@@ -1,0 +1,7 @@
+{# Contadores de «Qué mostrar». Con oob=True se reemplazan fuera de banda desde una respuesta HTMX. #}
+{% macro rec(oob=False) %}<span id="lbl-rec"{% if oob %} hx-swap-oob="true"{% endif %}>{{ t('show_rec', n=n_rec) }}</span>{% endmacro %}
+{% macro all(oob=False) %}<span id="lbl-all"{% if oob %} hx-swap-oob="true"{% endif %}>{{ t('show_all', n=n_all) }}</span>{% endmacro %}
+{% macro dismissed(oob=False) -%}
+<label class="chip" id="chip-dismissed"{% if not (n_dismissed or f.show == 'dismissed') %} hidden{% endif %}{% if oob %} hx-swap-oob="true"{% endif %}>
+  <input type="radio" name="show" value="dismissed" {{ 'checked' if f.show == 'dismissed' }}><span>{{ t('show_dismissed', n=n_dismissed) }}</span></label>
+{%- endmacro %}

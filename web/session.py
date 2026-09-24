@@ -1,9 +1,11 @@
 """
-web/session.py — Estado por usuario, en memoria del servidor.
+web/session.py — Estado de trabajo por navegador, en memoria del servidor.
 
-Cada navegador recibe una cookie aleatoria (httponly) que apunta a su Session. El CV, la API key y
-el perfil viven solo acá, nunca en disco ni en variables globales compartidas entre usuarios
-(CLAUDE.md, regla 2). Las sesiones vencen por inactividad.
+Cada navegador recibe una cookie aleatoria (httponly) que apunta a su Session. Lo guardado de la
+cuenta (CV, perfil, preferencias, historial) vive en la base (web/persist.py) y se copia acá al
+entrar; acá queda además lo que no se guarda nunca: la API key, la contraseña de correo y la búsqueda
+en curso. Una Session pertenece a una sola cuenta: si en el navegador entra otra, se descarta
+(AGENTS.md, regla 2). Las sesiones vencen por inactividad.
 """
 
 from __future__ import annotations
@@ -12,6 +14,7 @@ import secrets
 import threading
 import time
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 
 import ai_engine
@@ -31,12 +34,28 @@ MAX_SESSIONS = settings.MAX_SESSIONS
 class CVFile:
     name: str
     mime: str
-    data: bytes
+    data: bytes          # vacío si se recargó de la cuenta: se baja del almacenamiento solo si hace falta
     id: str
+    size: int = 0
+
+
+@dataclass
+class HistoryView:
+    """Una búsqueda anterior que se está mirando en /resultados (sale de search_runs)."""
+    run_id: str
+    scored: list
+    funnel: Optional[dict]
+    min_score: int
+    eval_limit: int
+    started_at: Optional[datetime] = None
 
 
 @dataclass
 class Session:
+    # Dueño: la cuenta con la que se armó. Vacío = nadie ingresó en este navegador.
+    user_id: str = ""
+    plan: Optional[object] = None      # persist.Plan, leído al entrar
+    cv_doc_id: str = ""                # cv_documents.id del CV vigente
     # Paso 1
     cv: Optional[CVFile] = None
     manual_profile: bool = False
@@ -62,6 +81,7 @@ class Session:
     eval_limit: int = matching.DEFAULT_TOP_N
     # La búsqueda en curso (o la última), con su progreso y su resultado.
     run: Optional["Run"] = None
+    history_view: Optional[HistoryView] = None
     touched: float = field(default_factory=time.time)
 
     # ─── Hasta qué paso puede llegar (no se saltean pasos) ───────────────
@@ -99,6 +119,20 @@ def get(sid: str | None) -> tuple[str, Session, bool]:
         sid = secrets.token_urlsafe(32)
         sess = _store[sid] = Session()
         return sid, sess, True
+
+
+def replace(sid: str, sess: Session) -> Session:
+    """Pone una sesión nueva en el lugar de `sid` (otra cuenta entró en este navegador)."""
+    with _lock:
+        _store[sid] = sess
+        return sess
+
+
+def drop(sid: str | None) -> None:
+    """Al salir de la cuenta: nada de lo que había en memoria sobrevive."""
+    if sid:
+        with _lock:
+            _store.pop(sid, None)
 
 
 def count() -> int:

@@ -17,8 +17,13 @@ import normalize
 from ai_engine import FactorScore, ScoredJob
 from candidate import CandidateProfile
 from scrapers import JobPosting
+from web.persist import Plan
 
 DATASET = Path(__file__).resolve().parent / "eval" / "dataset.json"
+
+# Límites del plan gratuito para las cuentas en memoria del modo demo. Los de verdad viven en la tabla
+# `plans` (supabase/migrations); estos solo sirven para ver la pantalla con los mismos números.
+PLAN = Plan("free", monthly_search_limit=10, sources_per_search_limit=8, results_per_search_limit=30)
 
 
 def enabled() -> bool:

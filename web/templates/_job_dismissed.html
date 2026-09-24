@@ -1,0 +1,6 @@
+{# La tarjeta recién descartada: queda un aviso con la opción de deshacer, sin saltos en la lista. #}
+<article class="job job-gone" role="status">
+  <p>{{ t('job_dismissed_note', title=sj.job.title) }}</p>
+  <button class="link-btn" type="button" hx-post="/ofertas/{{ dom_id(sj.job) }}/quitar" hx-target="closest .job"
+    hx-swap="outerHTML transition:false" hx-disabled-elt="this">{{ t('job_undo') }}</button>
+</article>

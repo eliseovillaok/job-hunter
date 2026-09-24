@@ -2,6 +2,7 @@
 {# Paso 3 · Tu perfil. Se lee de un vistazo: cada fila muestra su valor y se edita solo la que haga falta.
    La interpretación de la IA queda separada de la fuente (CLAUDE.md): cada dato dice de dónde sale. #}
 <form class="card" action="/asistente/perfil" method="post">
+<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 <div class="autosave" hx-post="/asistente/borrador/3" hx-trigger="change, input delay:800ms" hx-include="closest form" hx-swap="none" hx-disinherit="*">
   <div class="card-h"><div>
     <div class="eyebrow">{{ t('wz_step_of', n=3) }}</div>
