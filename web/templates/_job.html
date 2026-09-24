@@ -6,9 +6,9 @@
     <div class="meta">{{ [job.company, job.location, job.source]|select|join(' · ') }}</div>
     <div class="pills">{% for c in chips(job, t) %}<span>{{ c }}</span>{% endfor %}</div>
     {% if sj.evaluated %}
-    <div class="why">
+    <div class="why{{ ' one' if not sj.missing_skills }}">
       <div class="ok">{% for r in sj.match_reasons[:3] %}✓ {{ r }}<br>{% else %}<span class="na">{{ t('no_reasons') }}</span>{% endfor %}</div>
-      <div class="no">{% for m in sj.missing_skills[:3] %}• {{ m }}<br>{% else %}<span class="na">{{ t('no_missing') }}</span>{% endfor %}</div>
+      {% if sj.missing_skills %}<div class="no">{% for m in sj.missing_skills[:3] %}• {{ m }}<br>{% endfor %}</div>{% endif %}
     </div>
     {% else %}
     <div class="why"><div class="na">{{ t('not_evaluated_hint') }}</div></div>
@@ -23,16 +23,12 @@
     <div id="letter-{{ did }}" aria-live="polite"></div>
     {% if sj.factors %}
     <div class="collapse" id="why-{{ did }}"><div class="factors">
-      {% if sj.summary %}<p class="ai-note">{{ t('why_ai_summary', summary=sj.summary) }}</p>{% endif %}
       {% for name in factors %}{% set fs = sj.factors[name] %}
       <div class="factor">
         <div class="factor-h"><b>{{ t('f_' ~ name) }}</b><span>{{ fs.score }}/100 · {{ t('f_weight', w=(weights[name] * 100)|round|int) }}</span></div>
         <div class="bar"><i style="width:{{ fs.score }}%"></i></div>
-        {% if fs.evidence_job %}<p class="ev">{{ t('f_job') }} {{ fs.evidence_job }}</p>{% endif %}
-        {% if fs.evidence_cv %}<p class="ev">{{ t('f_cv') }} {{ fs.evidence_cv }}</p>{% endif %}
       </div>
       {% endfor %}
-      <p class="ai-note">{{ t('factors_note') }}</p>
     </div></div>
     {% endif %}
   </div>

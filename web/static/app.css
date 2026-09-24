@@ -120,22 +120,24 @@ a { color: var(--primary); }
 .meta { font-size: 13.5px; color: var(--text-2); margin-bottom: 10px; }
 .pills span { display: inline-block; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; background: var(--surface-subtle);
   color: var(--text-2); margin: 0 6px 6px 0; }
-.why { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 8px; font-size: 13.5px; line-height: 1.5; }
+.why { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 18px; margin-top: 8px; font-size: 13.5px; line-height: 1.55; }
+.why.one { grid-template-columns: 1fr; }
 .why .ok { color: var(--success); } .why .no { color: var(--warning); } .why .na { color: var(--text-muted); }
-.acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 14px; }
 .acts .btn { padding: 10px 18px; font-size: 13.5px; } .acts .btn-g { padding: 10px 12px; }
 .caret { display: inline-block; transition: transform .15s ease; } [aria-expanded="true"] .caret { transform: rotate(180deg); }
 .letter-wait { display: none; align-items: center; gap: 8px; margin-top: 12px; font-size: 13px; color: var(--text-muted); }
 .letter-wait.htmx-request, .htmx-request > .letter-wait { display: flex; }
 .letter { margin-top: 12px; border: 1px solid var(--border-subtle); border-radius: 16px; background: var(--surface-subtle); overflow: hidden;
   animation: fade-in .2s ease both; }
-.letter-h { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px;
-  border-bottom: 1px solid var(--border-subtle); font-size: 13px; }
-.letter .collapse > pre { margin: 0; padding: 14px; font: 500 13.5px/1.6 var(--body); color: var(--text); white-space: pre-wrap; word-break: break-word;
+.letter-h { display: flex; align-items: center; gap: 12px; padding: 10px 14px; font-size: 13px; }
+.letter:has(.collapse.open) .letter-h { border-bottom: 1px solid var(--border-subtle); }
+.letter-h .sp { flex: 1; }
+.letter pre { margin: 0; padding: 14px; font: 500 13.5px/1.6 var(--body); color: var(--text); white-space: pre-wrap; word-break: break-word;
   max-height: 340px; overflow-y: auto; }
 .note-inline { margin: 12px 0 0; padding: 10px 14px; border-radius: 14px; background: var(--surface-subtle); color: var(--text-2); font-size: 13.5px; }
 
-.factors { margin-top: 14px; padding: 16px 18px; border-radius: 16px; background: var(--surface-subtle); }
+.factors { margin-top: 12px; padding: 14px 18px; border-radius: 16px; background: var(--surface-subtle); }
 /* La lista no puede moverse cuando un filtro la vacía: la barra de desplazamiento siempre ocupa su lugar. */
 html { scrollbar-gutter: stable; }
 .results > div:last-child { min-height: 60vh; }

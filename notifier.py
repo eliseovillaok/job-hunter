@@ -19,9 +19,17 @@ from email.message import EmailMessage
 from email.utils import make_msgid
 from pathlib import Path
 
+import matching
+import normalize
 from ai_engine import ScoredJob, recommended
 from config import SMTP_HOST, SMTP_PORT
 from i18n import TRANSLATIONS
+
+# Los clientes de correo no cargan fuentes remotas de forma confiable (Gmail las ignora):
+# se piden igual para los que sí pueden y se declara el respaldo del sistema.
+BODY_FONT = "'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif"
+DISPLAY_FONT = "'Bricolage Grotesque'," + BODY_FONT
+FONTS_URL = "https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Inter:wght@400;600;700&display=swap"
 
 log = logging.getLogger(__name__)
 
@@ -59,41 +67,59 @@ def _band(score: int, c: dict) -> tuple[str, str]:
     return c["text-muted"], "aff_low"
 
 
+def _chips(job, t, c: dict) -> str:
+    """Las mismas etiquetas que la tarjeta de la app: modalidad y nivel detectados."""
+    labels = []
+    if job.modality in matching.MODALITIES:
+        labels.append(t(f"mod_{job.modality}"))
+    if job.seniority in normalize.SENIORITY_ORDER:
+        labels.append(t(f"sen_{job.seniority}"))
+    return "".join(
+        f'<span style="display:inline-block;font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px;'
+        f'background:{c["surface-subtle"]};color:{c["text-2"]};margin:0 6px 6px 0;">{html.escape(x)}</span>'
+        for x in labels)
+
+
 def _card(sj: ScoredJob, t, c: dict) -> str:
     esc = html.escape
     color, label = _band(sj.score, c)
+    initial = esc((sj.job.company or sj.job.title or "?").strip()[:1].upper())
     meta = " · ".join(esc(x) for x in (sj.job.company, sj.job.location, sj.job.source) if x)
     reasons = "".join(
-        f'<tr><td style="padding:2px 0;color:{c["success"]};font-size:13px;line-height:1.5;">✓ {esc(r)}</td></tr>'
-        for r in sj.match_reasons[:3])
+        f'<div style="color:{c["success"]};padding:2px 0;">✓ {esc(r)}</div>' for r in sj.match_reasons[:3])
     missing = "".join(
-        f'<tr><td style="padding:2px 0;color:{c["warning"]};font-size:13px;line-height:1.5;">• {esc(m)}</td></tr>'
-        for m in sj.missing_skills[:3])
+        f'<div style="color:{c["warning"]};padding:2px 0;">• {esc(m)}</div>' for m in sj.missing_skills[:3])
     url = sj.job.url if (sj.job.url or "").startswith(("http://", "https://")) else ""
     button = (f'<a href="{esc(url)}" style="display:inline-block;background:{c["primary"]};color:{c["on-primary"]};'
-              f'text-decoration:none;font-size:14px;font-weight:600;padding:11px 20px;border-radius:999px;">'
-              f'{t("btn_view")}</a>') if url else ""
+              f'text-decoration:none;font-size:13.5px;font-weight:600;padding:10px 18px;border-radius:999px;'
+              f'font-family:{BODY_FONT};">{t("btn_view")}</a>') if url else ""
 
     return f"""
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 14px;">
       <tr><td style="background:{c['surface']};border:1px solid {c['border-subtle']};border-radius:22px;padding:22px 24px;">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
           <tr>
-            <td style="vertical-align:top;">
-              <div style="font-size:17px;font-weight:700;color:{c['text']};line-height:1.35;">{esc(sj.job.title)}</div>
-              <div style="font-size:13px;color:{c['text-muted']};padding-top:4px;">{meta}</div>
+            <td width="52" style="vertical-align:top;padding-right:16px;">
+              <div style="width:52px;height:52px;line-height:52px;text-align:center;border-radius:14px;
+                          background:{c['primary']};color:{c['on-primary']};font-size:20px;font-weight:800;
+                          font-family:{DISPLAY_FONT};">{initial}</div>
             </td>
-            <td width="86" style="vertical-align:top;text-align:right;">
-              <div style="display:inline-block;border:2px solid {color};border-radius:999px;padding:7px 14px;
-                          font-size:17px;font-weight:700;color:{color};">{sj.score}</div>
-              <div style="font-size:11px;color:{color};padding-top:5px;letter-spacing:.04em;">{t(label)}</div>
+            <td style="vertical-align:top;">
+              <div style="font-size:19px;font-weight:700;color:{c['text']};line-height:1.3;
+                          font-family:{DISPLAY_FONT};letter-spacing:-.01em;">{esc(sj.job.title)}</div>
+              <div style="font-size:13.5px;color:{c['text-2']};padding:4px 0 10px;">{meta}</div>
+              <div>{_chips(sj.job, t, c)}</div>
+              <div style="font-size:13.5px;line-height:1.55;padding-top:6px;">{reasons}{missing}</div>
+              <div style="padding-top:16px;">{button}</div>
+            </td>
+            <td width="96" style="vertical-align:top;text-align:center;padding-left:12px;">
+              <div style="width:66px;height:66px;line-height:62px;margin:0 auto;border:3px solid {color};
+                          border-radius:50%;font-size:22px;font-weight:800;color:{c['text']};
+                          font-family:{DISPLAY_FONT};">{sj.score}</div>
+              <div style="font-size:11.5px;font-weight:600;color:{color};padding-top:6px;">{t(label)}</div>
             </td>
           </tr>
         </table>
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="padding-top:12px;">
-          {reasons}{missing}
-        </table>
-        <div style="padding-top:16px;">{button}</div>
       </td></tr>
     </table>"""
 
@@ -104,8 +130,18 @@ def build_html(jobs: list[ScoredJob], top: list[ScoredJob], *, lang: str, min_sc
     cards = "".join(_card(sj, t, c) for sj in top)
     return f"""<!doctype html>
 <html lang="{lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
-<title>{t('mail_subject', n=len(top))}</title></head>
-<body style="margin:0;padding:0;background:{c['bg']};">
+<title>{t('mail_subject', n=len(top))}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="{FONTS_URL}" rel="stylesheet">
+<style>
+  @import url('{FONTS_URL}');
+  body, td, div, a, span {{ font-family: {BODY_FONT}; }}
+  a {{ color: {c['primary']}; }}
+  @media (max-width: 620px) {{
+    .card-pad {{ padding: 18px 16px !important; }}
+  }}
+</style></head>
+<body style="margin:0;padding:0;background:{c['bg']};font-family:{BODY_FONT};">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:{c['bg']};padding:24px 12px;">
     <tr><td align="center">
       <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
@@ -114,15 +150,16 @@ def build_html(jobs: list[ScoredJob], top: list[ScoredJob], *, lang: str, min_sc
                        padding:20px 24px;border-bottom:0;">
           <img src="cid:{logo_cid}" width="36" height="36" alt=""
                style="vertical-align:middle;border-radius:10px;">
-          <span style="vertical-align:middle;padding-left:10px;font-size:19px;font-weight:800;color:{c['text']};
-                       letter-spacing:-.01em;">JobHunter</span>
+          <span style="vertical-align:middle;padding-left:10px;font-size:20px;font-weight:800;color:{c['text']};
+                       letter-spacing:-.01em;font-family:{DISPLAY_FONT};">JobHunter</span>
         </td></tr>
 
         <tr><td style="background:{c['surface']};border:1px solid {c['border-subtle']};border-top:0;border-bottom:0;
                        padding:4px 24px 22px;">
           <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
                       color:{c['text-muted']};padding-bottom:6px;">{date}</div>
-          <div style="font-size:26px;font-weight:800;color:{c['text']};line-height:1.2;">{t('mail_title', n=len(top))}</div>
+          <div style="font-size:28px;font-weight:800;color:{c['text']};line-height:1.15;letter-spacing:-.02em;
+                      font-family:{DISPLAY_FONT};">{t('mail_title', n=len(top))}</div>
           <div style="font-size:14px;color:{c['text-2']};padding-top:8px;line-height:1.6;">
             {t('mail_intro', n=len(top), total=len(jobs), score=min_score)}
           </div>
