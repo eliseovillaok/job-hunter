@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}{{ t('hist_title') }} · JobHunter{% endblock %}
+{% block content %}
+{% if error %}<div class="alert" role="alert"><p>{{ error }}</p></div>{% endif %}
+<div class="rhead">
+  <div><h2>{{ t('hist_title') }}</h2><p>{{ t('hist_desc') }}</p></div>
+</div>
+
+<div class="hist">
+  <section>
+    <h4 class="hist-h">{{ t('hist_runs') }}</h4>
+    {% for r in runs %}
+    <div class="hrow">
+      <div class="hrow-main">
+        <b>{{ r.date }}</b>
+        <span>{{ r.terms or t('hist_no_terms') }}</span>
+      </div>
+      <span class="st st-{{ r.status }}">{{ t('run_st_' ~ r.status) }}</span>
+      <span class="hrow-n">{{ t('hist_matches', n=r.matches_created or 0) if r.funnel else '—' }}</span>
+      {% if r.funnel %}<a class="link-btn" href="/historial/{{ r.id }}">{{ t('hist_open') }}</a>{% else %}<span></span>{% endif %}
+    </div>
+    {% else %}
+    <div class="empty"><p>{{ t('hist_runs_empty') }}</p><a class="btn btn-o" href="/asistente">{{ t('btn_new_search') }}</a></div>
+    {% endfor %}
+  </section>
+
+  <section>
+    <h4 class="hist-h">{{ t('hist_saved') }}</h4>
+    {% for j in saved %}{% set sj = j.scored %}{% set url = safe_url(sj.job.url) %}{% set aff = affinity(sj.score, sj.evaluated) %}
+    <div class="hrow saved">
+      <div class="hrow-main">
+        <b>{% if url %}<a href="{{ url }}" target="_blank" rel="noopener noreferrer" hx-boost="false">{{ sj.job.title }}</a>{% else %}{{ sj.job.title }}{% endif %}</b>
+        <span>{{ [sj.job.company, sj.job.location, sj.job.source]|select|join(' · ') }}</span>
+      </div>
+      <span class="hrow-n aff-{{ aff[1] }}">{{ sj.score if sj.evaluated else '—' }}</span>
+      <button class="link-btn" type="button" hx-post="/guardadas/{{ j.key }}/quitar" hx-target="closest .hrow"
+        hx-swap="outerHTML transition:false" hx-disabled-elt="this">{{ t('hist_unsave') }}</button>
+    </div>
+    {% else %}
+    <div class="empty"><p>{{ t('hist_saved_empty') }}</p></div>
+    {% endfor %}
+  </section>
+</div>
+{% endblock %}

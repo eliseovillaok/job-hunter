@@ -1,7 +1,12 @@
 # Despliegue
 
-JobHunter se despliega como **un solo proceso**: `uvicorn web.main:app`. No hay base de datos ni
-worker todavía, así que alcanza con un servicio web y un dominio.
+JobHunter se despliega como **un solo proceso**: `uvicorn web.main:app`, más un proyecto de
+**Supabase** (cuentas, Postgres y Storage para los CV). No hay worker todavía: alcanza con un servicio
+web, un proyecto de Supabase y un dominio.
+
+Las sesiones de trabajo (el asistente a medio completar, la búsqueda en curso) siguen en la memoria
+del proceso y se reconstruyen desde la base al volver a entrar. Por eso, por ahora, **una sola
+instancia** del servicio.
 
 El repo ya trae lo necesario para cualquiera de las dos plataformas candidatas: `Dockerfile`,
 `.dockerignore`, chequeos de salud (`/health/live` y `/health/ready`) y toda la configuración por
@@ -32,10 +37,49 @@ Después, `http://localhost:8000` y `http://localhost:8000/health/ready`.
 | `GEMINI_RPM` | `15` | Llamadas por minuto a Gemini |
 | `GEMINI_EMBED_RPM` | `5` | Llamadas por minuto a los embeddings (cupo propio, más bajo) |
 | `JOB_HUNTER_DEMO` | (vacío) | `1` = datos ficticios, sin IA ni red. **Nunca en producción** |
+| `SUPABASE_URL` | (vacío) | URL del proyecto (`https://<ref>.supabase.co`) |
+| `SUPABASE_PUBLISHABLE_KEY` | (vacío) | Clave publicable (`sb_publishable_…`, o `anon` legacy) |
+| `SUPABASE_SECRET_KEY` | (vacío) | Clave secreta (`sb_secret_…`, o `service_role` legacy). **Secreto** |
+| `JH_AUTH_DAYS` | `30` | Días que dura el ingreso en un navegador sin volver a poner la contraseña |
 
-No hay secretos del servidor todavía: la clave de Gemini la pone cada usuario y vive solo en su
-sesión. Cuando existan (Supabase, Stripe, Resend), van en el gestor de secretos de la plataforma,
-nunca en el repo.
+Sin las tres `SUPABASE_*` la app no puede registrar a nadie y `/health/ready` informa
+`"database": false`; con `JOB_HUNTER_DEMO=1` las cuentas viven en memoria y se pierden al reiniciar.
+
+La clave secreta es el único secreto del servidor por ahora (la de Gemini la pone cada usuario y vive
+solo en su sesión): va en el gestor de secretos de la plataforma, nunca en el repo ni en el navegador.
+Lo mismo cuando lleguen Stripe y Resend.
+
+## Supabase
+
+Las migraciones viven en `supabase/migrations/` y se aplican con el CLI (`npx supabase@2.117.0 …`,
+sin instalar nada global). Un proyecto por entorno: local, staging y producción, cada uno con sus
+claves.
+
+**Local** (necesita Docker Desktop):
+
+```powershell
+npx --yes supabase@2.117.0 start      # Postgres, Auth, Storage, Studio (54323) y Mailpit (54324)
+. .\scripts\dev-env.ps1               # carga las SUPABASE_* del stack local en esta terminal
+$env:JOB_HUNTER_DEMO="1"; uvicorn web.main:app --reload --port 8600
+```
+
+Los correos de confirmación y de recuperación llegan a Mailpit (`http://127.0.0.1:54324`). Para probar
+el store contra la base real: `$env:JH_SUPABASE_TESTS="1"; pytest tests/test_supabase_integration.py`.
+Después de cambiar una migración: `npx supabase@2.117.0 db reset` (borra los datos locales).
+
+**Staging / producción:**
+
+1. `npx supabase@2.117.0 login` y crear el proyecto (plan Free para staging; región `sa-east-1`, a
+   confirmar según los países de lanzamiento).
+2. `npx supabase@2.117.0 link --project-ref <ref>` y `npx supabase@2.117.0 db push`.
+3. En *Authentication → URL Configuration*: `Site URL` = la URL pública de la app, y
+   `<app>/auth/confirmar` en *Redirect URLs*.
+4. En *Authentication → Email Templates*, los enlaces de confirmación y de recuperación apuntan a
+   `{{ .SiteURL }}/auth/confirmar?token_hash={{ .TokenHash }}&type=email` (y `type=recovery`), como
+   en `supabase/templates/`.
+5. **SMTP propio** (Resend) antes de invitar a nadie: el SMTP incluido en Supabase solo envía a los
+   miembros del equipo del proyecto y con un tope muy bajo por hora.
+6. Cargar las tres `SUPABASE_*` en la plataforma y verificar `/health/ready` → `"database": true`.
 
 ## Railway o Render
 
@@ -61,7 +105,7 @@ Precios y planes cambian seguido: verificarlos el día que se contrate (spec §3
 ## Pasos, el día que se elija
 
 1. Crear el servicio desde el repo de GitHub, rama `main`, build por `Dockerfile`.
-2. Cargar las variables de entorno de la tabla (con `JH_HTTPS=1`).
+2. Cargar las variables de entorno de la tabla (con `JH_HTTPS=1` y las `SUPABASE_*` del entorno).
 3. Apuntar el chequeo de salud a `/health/ready`.
 4. Apuntar `jobhunter.site` al servicio y dejar que la plataforma gestione el certificado.
 5. Crear un segundo servicio `staging` desde la misma rama, con sus propias variables.

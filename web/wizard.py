@@ -2,12 +2,15 @@
 web/wizard.py — Asistente de búsqueda en 4 pasos (docs/design/mockup-wizard.html).
 
 1 Tu CV → 2 Acceso a la IA → 3 Tu perfil → 4 Tu búsqueda. No se saltean pasos (Session.max_step).
-Todo queda en la sesión del usuario (web/session.py); el CV nunca se escribe en disco.
+Se trabaja sobre la sesión (web/session.py) y cada cambio se guarda en la cuenta (web/persist.py):
+el CV en el almacenamiento privado, el perfil y las preferencias en la base. La clave de Gemini y la
+contraseña de correo quedan solo en la sesión. El CV nunca se escribe en el disco del servidor.
 """
 
 from __future__ import annotations
 
 import hashlib
+import logging
 import math
 import re
 from pathlib import Path
@@ -20,10 +23,12 @@ import candidate as cand
 import demo
 import normalize
 from candidate import CandidateProfile
-from web import portals, run, settings
-from web.common import LEVELS, prefs, render, sess, t_for
+from web import auth, persist, portals, run, settings
+from web.common import LEVELS, format_date, prefs, render, sess, t_for
+from web.persist import StoreError
 from web.session import CVFile, Session
 
+log = logging.getLogger("jobhunter.wizard")
 router = APIRouter()
 
 MAX_CV_BYTES = settings.MAX_CV_BYTES
@@ -42,6 +47,7 @@ _LANG_NAME_HINTS = {
 }
 MAX_TERMS = 20
 MAX_TEXT = 4000
+MAX_EVAL = 200
 
 
 # ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -74,6 +80,77 @@ def clean_list(values: list[str], limit: int = 40, max_len: int = 80) -> list[st
 
 def is_structured(p: CandidateProfile | None) -> bool:
     return bool(p and (p.summary or p.target_roles or p.skills or p.experiences))
+
+
+# ─── La cuenta ───────────────────────────────────────────────────────────────
+def to_account(request: Request, write) -> bool:
+    """Guarda en la cuenta con `write(store, user)`. La sesión ya tiene el cambio: si la base no
+    responde se devuelve False para avisarlo, y el próximo guardado lo vuelve a intentar."""
+    store, user = persist.get(), auth.current_user(request)
+    if store is None or user is None:
+        return True
+    try:
+        write(store, user)
+        return True
+    except StoreError:
+        log.warning("wizard: no se pudo guardar en la cuenta", exc_info=True)
+        return False
+
+
+def save_profile_row(request: Request, s: Session) -> bool:
+    if s.profile is None:
+        return True
+    source = "manual" if s.manual_profile else "cv"
+    return to_account(request, lambda st, u: st.save_profile(
+        u, s.profile.to_dict(), confirmed=s.profile_confirmed, source=source, cv_id=s.cv_doc_id or None))
+
+
+def save_prefs_row(request: Request, s: Session) -> bool:
+    return to_account(request, lambda st, u: st.save_preferences(u, {
+        "terms": s.terms, "modalities": s.modalities, "locations": s.locations, "job_languages": s.job_languages,
+        "portals": s.portals, "min_score": s.min_score, "eval_limit": s.eval_limit}))
+
+
+def limits(s: Session) -> dict:
+    """Topes del plan para el paso 4 (None = sin tope)."""
+    plan = s.plan
+    return {"portals": getattr(plan, "sources_per_search_limit", None),
+            "eval": getattr(plan, "results_per_search_limit", None),
+            "monthly": getattr(plan, "monthly_search_limit", None)}
+
+
+def fit_to_plan(s: Session) -> None:
+    """La selección por defecto (o una guardada con otro plan) nunca pasa los topes del plan."""
+    lim = limits(s)
+    if lim["portals"] is not None:
+        s.portals = s.portals[:lim["portals"]]
+    if lim["eval"] is not None:
+        s.eval_limit = min(s.eval_limit, lim["eval"])
+
+
+def usage(request: Request) -> dict | None:
+    """Búsquedas usadas este mes y cuándo se renueva el cupo."""
+    s, store, user = sess(request), persist.get(), auth.current_user(request)
+    monthly = limits(s)["monthly"]
+    if store is None or user is None or monthly is None:
+        return None
+    try:
+        used = store.searches_used(user)
+    except StoreError:
+        return None
+    return {"used": used, "limit": monthly, "left": max(0, monthly - used), "renews": persist.next_month_start()}
+
+
+def cv_data(request: Request, s: Session) -> bytes:
+    """Los bytes del CV: en la sesión si se acaba de subir; si no, del almacenamiento de la cuenta."""
+    if s.cv and s.cv.data:
+        return s.cv.data
+    store, user = persist.get(), auth.current_user(request)
+    data = store.cv_bytes(user) if store is not None and user is not None else None
+    if not data:
+        raise StoreError("cv file missing")
+    s.cv.data = data
+    return data
 
 
 # Duración real de las últimas búsquedas (en memoria del proceso; la etapa 3 las registra con record_run).
@@ -110,10 +187,10 @@ def verify_key(key: str, model: str) -> bool | None:
     return ai_engine.check_key(key, model)
 
 
-def analyze_cv(s: Session) -> CandidateProfile:
+def analyze_cv(request: Request, s: Session) -> CandidateProfile:
     if demo.enabled():
         return demo.load()[0]
-    contents = cand.cv_contents(s.cv.data, s.cv.mime)
+    contents = cand.cv_contents(cv_data(request, s), s.cv.mime)
     return cand.extract_profile(contents, api_key=s.api_key, model=s.model)
 
 
@@ -172,7 +249,8 @@ def go(step: int, **query) -> RedirectResponse:
 # ─── Navegación ──────────────────────────────────────────────────────────────
 @router.get("/asistente")
 def wizard_start(request: Request):
-    return go(sess(request).max_step())
+    notice = {"sesion": "vencida"} if request.query_params.get("sesion") == "vencida" else {}
+    return go(sess(request).max_step(), **notice)
 
 
 @router.get("/asistente/{step}", response_class=HTMLResponse)
@@ -203,9 +281,11 @@ def step_context(request: Request, step: int) -> dict:
         n_portals = len([k for k in s.portals if k in portals.BY_KEY])
         low, high = estimate_minutes(s.eval_limit, n_portals)
         mode_text = ", ".join(t(f"mod_{m}") for m in s.modalities) or t("pref_any")
+        lim = limits(s)
         return {"groups": portals.grouped(s.portals), "tagged": tagged, "job_langs": JOB_LANGUAGES,
                 "est_low": low, "est_high": high, "n_portals": n_portals, "mode_text": mode_text,
-                "rpm": ai_engine.REQUESTS_PER_MINUTE}
+                "rpm": ai_engine.REQUESTS_PER_MINUTE, "max_portals": lim["portals"],
+                "max_eval": lim["eval"] or MAX_EVAL, "usage": usage(request)}
     return {}
 
 
@@ -227,12 +307,13 @@ def invalid(request: Request, step: int, errors: dict, status_code: int = 400, *
 
 # ─── Sesión vencida ──────────────────────────────────────────────────────────
 def expired(request: Request):
-    """Si la sesión venció (o el servidor se reinició), volver al paso 1 explicando por qué."""
+    """Si la sesión en memoria venció (o el servidor se reinició), lo guardado en la cuenta ya se
+    recargó, pero no la clave de Gemini: volver al paso que corresponda explicando por qué."""
     if not getattr(request.state, "session_expired", False):
         return None
     if request.headers.get("HX-Request"):
-        return Response(status_code=204, headers={"HX-Redirect": "/asistente/1?sesion=vencida"})
-    return go(1, sesion="vencida")
+        return Response(status_code=204, headers={"HX-Redirect": "/asistente?sesion=vencida"})
+    return RedirectResponse("/asistente?sesion=vencida", status_code=303)
 
 
 # ─── Formularios → sesión (lo usan el envío y el guardado automático) ────────
@@ -283,7 +364,7 @@ def apply_search_form(s: Session, form) -> None:
             return default
 
     s.min_score = bounded("min_score", 30, 90, s.min_score)
-    s.eval_limit = bounded("eval_limit", 10, 200, s.eval_limit)
+    s.eval_limit = bounded("eval_limit", 10, limits(s)["eval"] or MAX_EVAL, s.eval_limit)
 
 
 @router.post("/asistente/borrador/{step}")
@@ -296,17 +377,21 @@ async def save_draft(request: Request, step: int):
     if step > s.max_step() or step not in (1, 2, 3, 4):
         return Response(status_code=204)
     form = await request.form()
+    saved = True
     if step == 1:
         if s.manual_profile and "notes" in form:
             s.profile = s.profile or CandidateProfile()
             s.profile.notes = str(form.get("notes", ""))[:MAX_TEXT].strip()
+            saved = save_profile_row(request, s)
     elif step == 2:
-        apply_ai_form(s, form)
+        apply_ai_form(s, form)       # clave, modelo y correo: solo en la sesión
     elif step == 3:
         apply_profile_form(s, form, t_for(request))
+        saved = save_profile_row(request, s)
     else:
         apply_search_form(s, form)
-    return Response(status_code=204)
+        saved = save_prefs_row(request, s)
+    return Response(status_code=204 if saved else 503)
 
 
 # ─── Paso 1: CV ──────────────────────────────────────────────────────────────
@@ -326,12 +411,20 @@ async def upload_cv(request: Request, cv: UploadFile = File(...), origin: str = 
         error = t("wz_err_type")   # la extensión no coincide con el contenido
     if error:
         return page(request, 1, status_code=400, error=error)
-    cv_id = hashlib.sha256(data).hexdigest()[:16]
+    sha = hashlib.sha256(data).hexdigest()
+    cv_id = sha[:16]
+    name, mime = Path(cv.filename).name[:120], CV_TYPES[ext][0]
+    if not (s.cv and s.cv.id == cv_id and s.cv_doc_id):
+        # El mismo archivo otra vez no se vuelve a subir; uno distinto reemplaza al vigente.
+        doc = {}
+        if not to_account(request, lambda st, u: doc.update(id=st.save_cv(u, name=name, mime=mime, data=data, sha=sha))):
+            return page(request, 1, status_code=503, error=t("err_store"))
+        s.cv_doc_id = doc.get("id", "")
     if cv_id != s.analyzed_cv_id:
         # Otro CV: el perfil y los términos anteriores ya no corresponden.
         s.profile, s.terms, s.job_languages = None, [], []
         s.profile_confirmed = False
-    s.cv = CVFile(name=Path(cv.filename).name[:120], mime=CV_TYPES[ext][0], data=data, id=cv_id)
+    s.cv = CVFile(name=name, mime=mime, data=data, id=cv_id, size=len(data))
     s.manual_profile = False
     return go(2) if origin == "landing" else go(1, listo=1)
 
@@ -340,7 +433,10 @@ async def upload_cv(request: Request, cv: UploadFile = File(...), origin: str = 
 def remove_cv(request: Request):
     if (r := expired(request)) is not None:
         return r
-    sess(request).cv = None
+    s = sess(request)
+    if not to_account(request, lambda st, u: st.delete_cv(u)):
+        return page(request, 1, status_code=503, error=t_for(request)("err_store"))
+    s.cv, s.cv_doc_id = None, ""
     return go(1)
 
 
@@ -353,9 +449,12 @@ async def manual_profile(request: Request):
     form = await request.form()
     notes = str(form.get("notes", ""))[:MAX_TEXT].strip()
     if s.cv or is_structured(s.profile):
-        # El perfil anterior venía de un CV: se empieza de cero.
+        # El perfil anterior venía de un CV: se empieza de cero. El CV guardado se borra: escribir el
+        # perfil a mano lo reemplaza, y no se guarda un archivo que ya no se usa.
+        if s.cv and not to_account(request, lambda st, u: st.delete_cv(u)):
+            return page(request, 1, status_code=503, error=t("err_store"))
         s.profile, s.terms, s.job_languages, s.analyzed_cv_id = None, [], [], ""
-    s.cv, s.manual_profile = None, True
+    s.cv, s.cv_doc_id, s.manual_profile = None, "", True
     if "notes" not in form:
         return go(1, escribir=1)
     if not notes:
@@ -363,6 +462,8 @@ async def manual_profile(request: Request):
     s.profile = s.profile or CandidateProfile()
     s.profile.notes = notes
     s.profile_confirmed = False
+    if not save_profile_row(request, s):
+        return page(request, 1, status_code=503, error=t("err_store"))
     return go(2)
 
 
@@ -429,7 +530,9 @@ async def save_ai(request: Request):
 
     if s.cv and s.analyzed_cv_id != s.cv.id:
         try:
-            profile = analyze_cv(s)
+            profile = analyze_cv(request, s)
+        except StoreError:
+            return page(request, 2, status_code=503, errors={"_": t("err_store")}, **step_context(request, 2))
         except ai_engine.AuthError:
             s.api_key, s.key_ok = "", False
             return page(request, 2, status_code=400, errors={"key": t("wz_err_key")}, **step_context(request, 2))
@@ -442,6 +545,12 @@ async def save_ai(request: Request):
         s.analyzed_cv_id = s.cv.id
         s.terms = profile.all_search_terms()
         s.job_languages = job_lang_codes(profile)
+        parsed = profile.to_dict()
+        model = "demo" if demo.enabled() else s.model
+        # La lectura de la IA queda junto al CV, con el modelo que la hizo (spec §10).
+        to_account(request, lambda st, u: st.mark_cv_parsed(u, s.cv_doc_id, parsed, model))
+        save_profile_row(request, s)
+        save_prefs_row(request, s)
     elif s.profile is None:
         s.profile = CandidateProfile()
     return go(3)
@@ -459,6 +568,8 @@ async def save_profile(request: Request):
     if s.profile.is_empty():
         return invalid(request, 3, {"notes": t("step4_warning")}, **step_context(request, 3))
     s.profile_confirmed = True
+    if not save_profile_row(request, s):
+        return page(request, 3, status_code=503, errors={"_": t("err_store")}, **step_context(request, 3))
     return go(4)
 
 
@@ -472,13 +583,25 @@ async def save_search(request: Request):
         return go(s.max_step())
     apply_search_form(s, await request.form())
     errors = {}
+    max_portals = limits(s)["portals"]
     if not s.terms:
         errors["terms"] = t("val_no_kw")
     if not s.portals:
         errors["portal"] = t("wz_err_portals")
+    elif max_portals is not None and len(s.portals) > max_portals:
+        errors["portal"] = t("wz_err_portals_max", n=max_portals)
     if errors:
         return invalid(request, 4, errors, **step_context(request, 4))
-    run.start(s, prefs(request)[0])
+    save_prefs_row(request, s)
+    try:
+        run.start(s, prefs(request)[0])
+    except run.MonthlyLimit:
+        u = usage(request) or {}
+        renews = u.get("renews") or persist.next_month_start()
+        return page(request, 4, status_code=429, **step_context(request, 4), errors={
+            "_": t("wz_err_monthly", n=limits(s)["monthly"], date=format_date(t, renews))})
+    except StoreError:
+        return page(request, 4, status_code=503, errors={"_": t("err_store")}, **step_context(request, 4))
     return RedirectResponse("/buscando", status_code=303)
 
 
@@ -491,6 +614,7 @@ def searching(request: Request):
     if s.run is None:
         return go(s.max_step())
     if s.run.outcome in (run.SUCCESS, run.PARTIAL):
+        s.history_view = None   # lo recién buscado va antes que una búsqueda vieja abierta mientras tanto
         return RedirectResponse("/resultados", status_code=303)
     return render(request, "searching.html", s=s, run=s.run)
 
@@ -503,6 +627,7 @@ def run_state(request: Request):
     if s.run is None:
         return go(s.max_step())
     if s.run.outcome in (run.SUCCESS, run.PARTIAL):
+        s.history_view = None
         if request.headers.get("HX-Request"):
             return Response(status_code=204, headers={"HX-Redirect": "/resultados"})
         return RedirectResponse("/resultados", status_code=303)

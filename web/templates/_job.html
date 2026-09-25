@@ -18,6 +18,15 @@
       {% if sj.evaluated %}<button class="btn btn-o" type="button" hx-post="/carta/{{ did }}" hx-target="#letter-{{ did }}"
         hx-swap="innerHTML transition:false" hx-indicator="#letter-wait-{{ did }}" hx-disabled-elt="this">{{ t('btn_letter') }}</button>{% endif %}
       {% if sj.factors %}<button class="btn btn-g" type="button" data-toggle="why-{{ did }}" aria-expanded="false" aria-controls="why-{{ did }}">{{ t('btn_why') }} <span class="caret" aria-hidden="true">▾</span></button>{% endif %}
+      {% if user and job_key is defined %}{% set st = states.get(job_key(job)) %}
+      <span class="job-state">
+        <button class="btn btn-g{{ ' is-on' if st == 'saved' }}" type="button" aria-pressed="{{ 'true' if st == 'saved' else 'false' }}"
+          hx-post="/ofertas/{{ did }}/{{ 'quitar' if st == 'saved' else 'guardar' }}" hx-target="closest .job" hx-swap="outerHTML transition:false"
+          hx-disabled-elt="this">{{ t('job_saved') if st == 'saved' else t('job_save') }}</button>
+        <button class="btn btn-g" type="button" hx-post="/ofertas/{{ did }}/{{ 'quitar' if st == 'dismissed' else 'descartar' }}"
+          hx-target="closest .job" hx-swap="outerHTML transition:false" hx-disabled-elt="this">{{ t('job_restore') if st == 'dismissed' else t('job_dismiss') }}</button>
+      </span>
+      {% endif %}
     </div>
     <div class="letter-wait htmx-indicator" id="letter-wait-{{ did }}"><span class="spin"></span>{{ t('letter_generating') }}</div>
     <div id="letter-{{ did }}" aria-live="polite"></div>

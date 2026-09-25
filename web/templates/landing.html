@@ -1,20 +1,29 @@
 {% extends "base.html" %}
-{% block nav_cta %}<a class="btn btn-p" href="/asistente">{{ t('nav_cta') }}</a>{% endblock %}
 {% block content %}
+{% if notice %}<div class="notice" role="status">{{ notice }}</div>{% endif %}
 <section class="hero">
   <div>
     <span class="eyebrow">● {{ t('hero_eyebrow') }}</span>
     <h1 class="h1">{{ t('hero_h1_a') }} <em>{{ t('hero_h1_em') }}</em> {{ t('hero_h1_b') }}</h1>
     <p class="sub">{{ t('hero_sub', n=n_portals) }}</p>
 
+    {% if not user %}
+    <div class="hero-cta">
+      <a class="btn btn-p" href="/crear-cuenta">{{ t('land_signup') }}</a>
+      <a class="btn btn-g" href="/ingresar">{{ t('land_login') }}</a>
+    </div>
+    <p class="small hero-note">{{ t('land_signup_note') }}</p>
+    {% else %}
     <form class="drop" action="/asistente/cv" method="post" enctype="multipart/form-data" data-dropzone>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <input type="hidden" name="origin" value="landing">
       <input type="file" name="cv" id="cv-landing" accept=".pdf,.docx,.txt" data-autosubmit hidden>
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M12 18v-6M9 15l3-3 3 3"/></svg>
       <span class="drop-txt"><b>{{ t('web_drop') }}</b> · {{ t('web_drop_formats', mb=max_cv_mb) }}</span>
       <label class="btn btn-p" for="cv-landing" tabindex="0" data-busy="{{ t('wz_uploading') }}">{{ t('up_button') }}</label>
     </form>
-    <form class="alt" action="/asistente/manual" method="post">{{ t('web_no_cv') }} <button class="link-btn" type="submit">{{ t('web_write_profile') }}</button></form>
+    <form class="alt" action="/asistente/manual" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token }}">{{ t('web_no_cv') }} <button class="link-btn" type="submit">{{ t('web_write_profile') }}</button></form>
+    {% endif %}
 
     <div class="proof">
       <div class="dots" aria-hidden="true">

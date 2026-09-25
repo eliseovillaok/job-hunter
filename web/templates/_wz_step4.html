@@ -2,6 +2,7 @@
 {# Paso 4 · Tu búsqueda. A la vista solo los términos; el resto se abre si hace falta cambiarlo.
    El resumen al pie se actualiza en vivo (app.js) y tiene el botón principal. #}
 <form class="card" action="/asistente/busqueda" method="post" data-search-form data-rpm="{{ rpm }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 <div class="autosave" hx-post="/asistente/borrador/4" hx-trigger="change, input delay:800ms" hx-include="closest form" hx-swap="none" hx-disinherit="*">
   <div class="card-h"><div>
     <div class="eyebrow">{{ t('wz_step_of', n=4) }}</div>
@@ -52,6 +53,7 @@
       <button class="link-btn" type="button" data-edit data-done="{{ t('wz_done') }}">{{ t('wz_edit') }}</button>
       <div class="re collapse wide"><div class="re-in">
         {{ field_error(errors, 'portal') }}
+        {% if max_portals %}<p class="help">{{ t('wz4_portals_max', n=max_portals) }}</p>{% endif %}
         <div class="groups">
           {% for g in groups %}
           <div class="group" data-group>
@@ -83,7 +85,7 @@
           </div>
           <div class="field">
             <div class="rl-range"><label for="f-eval">{{ t('eval_limit_label') }} {{ tip(t('eval_limit_help')) }}</label><b data-out="f-eval">{{ s.eval_limit }}</b></div>
-            <input id="f-eval" class="range" type="range" name="eval_limit" min="10" max="200" step="10" value="{{ s.eval_limit }}" style="--v:{{ ((s.eval_limit - 10) / 190 * 100)|round|int }}" data-range-min="10" data-range-max="200">
+            <input id="f-eval" class="range" type="range" name="eval_limit" min="10" max="{{ max_eval }}" step="10" value="{{ s.eval_limit }}" style="--v:{{ ((s.eval_limit - 10) / ([max_eval - 10, 1]|max) * 100)|round|int }}" data-range-min="10" data-range-max="{{ max_eval }}">
           </div>
         </div>
       </div></div>
@@ -96,6 +98,7 @@
       <span data-sum="line" data-any="{{ t('pref_any') }}"
             data-tpl="{{ t('wz4_sum_line', terms='{terms}', mode='{mode}', portals='{portals}') }}"
             >{{ t('wz4_sum_line', terms=s.terms|length, mode=mode_text, portals=n_portals) }}</span>
+      {% if usage %}<span>{{ t('wz4_usage', left=usage.left, limit=usage.limit, date=format_date(usage.renews)) }}</span>{% endif %}
     </div>
     <div class="sum-r">
       <div class="est"><span>{{ t('wz4_sum_time') }}</span><b data-sum="time">{{ est_low }}–{{ est_high }} min</b></div>

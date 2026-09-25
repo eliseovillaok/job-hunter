@@ -1,5 +1,6 @@
 {# Lista de ofertas. Se renderiza en la página y como fragmento HTMX al cambiar un filtro. #}
-{% if request.headers.get('HX-Request') %}<span id="lbl-rec" hx-swap-oob="true">{{ t('show_rec', n=n_rec) }}</span>{% endif %}
+{% if request.headers.get('HX-Request') %}{% import "_counts.html" as counts with context %}
+{{ counts.rec(True) }}{{ counts.all(True) }}{{ counts.dismissed(True) }}{% endif %}
 {% if not jobs %}
   <div class="empty">
     <p>{% if f.show == 'rec' and n_rec == 0 %}{{ t('no_recommended', score=f.min) if any_evaluated else t('none_evaluated') }}

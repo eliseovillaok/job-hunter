@@ -5,6 +5,13 @@ const reduceMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matche
 const hasVT = typeof document.startViewTransition === "function";
 document.documentElement.classList.toggle("no-vt", !hasVT);
 
+// ─── CSRF ────────────────────────────────────────────────────────────────────
+// Todo POST repite el token de la cookie jh_csrf en una cabecera (web/csrf.py): HTMX y los fetch de acá.
+const csrfToken = () => (document.cookie.match(/(?:^|;\s*)jh_csrf=([^;]+)/) || [])[1] || "";
+document.addEventListener("htmx:configRequest", (e) => {
+  if (e.detail.verb !== "get") e.detail.headers["X-CSRF-Token"] = csrfToken();
+});
+
 
 // ─── Abrir/cerrar con animación de altura ────────────────────────────────────
 // El estado final nunca depende de que la animación termine: si el navegador no la ejecuta
@@ -79,7 +86,8 @@ document.addEventListener("click", (e) => {
     if (railSub) railSub.textContent = railSub.dataset[mode === "write" ? "write" : "upload"];
     if (mode === "write") {
       // El servidor pasa a "perfil escrito a mano" para poder guardar el borrador.
-      fetch("/asistente/manual", { method: "POST", body: new URLSearchParams(), redirect: "manual" });
+      fetch("/asistente/manual", { method: "POST", body: new URLSearchParams(), redirect: "manual",
+                                   headers: { "X-CSRF-Token": csrfToken() } });
       setTimeout(() => card.querySelector("textarea")?.focus(), 230);
     }
     return;
@@ -373,7 +381,7 @@ document.addEventListener("htmx:confirm", (e) => {
   e.preventDefault();
   const form = dirty.closest("form");
   const url = dirty.getAttribute("hx-post");
-  fetch(url, { method: "POST", body: new FormData(form) })
+  fetch(url, { method: "POST", body: new FormData(form), headers: { "X-CSRF-Token": csrfToken() } })
     .finally(() => { dirty.removeAttribute("data-dirty"); e.detail.issueRequest(true); });
 });
 

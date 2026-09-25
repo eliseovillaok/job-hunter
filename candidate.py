@@ -77,6 +77,7 @@ class CandidateProfile:
         except (TypeError, ValueError):
             years = None
         return cls(
+            full_name=" ".join(str(d.get("full_name") or "").split())[:120],
             summary=d.get("summary") or "",
             target_roles=_clean_list(d.get("target_roles")),
             seniority=seniority if seniority in SENIORITY_LEVELS else UNKNOWN,

@@ -5,14 +5,14 @@ from fastapi.testclient import TestClient
 
 import demo
 from ai_engine import ScoredJob
-from helpers import make_job
+from helpers import make_job, sign_up
 from web import main as web
 from web import session as sessions
 
 
 @pytest.fixture
 def client():
-    return TestClient(web.app)
+    return sign_up(TestClient(web.app))
 
 
 @pytest.fixture
@@ -20,7 +20,8 @@ def demo_on(monkeypatch):
     monkeypatch.setattr(demo, "enabled", lambda: True)
 
 
-def test_landing_renders_in_both_languages(client):
+def test_landing_renders_in_both_languages():
+    client = TestClient(web.app)
     es = client.get("/")
     assert es.status_code == 200 and "Encuentra el trabajo" in es.text
     en = client.get("/?lang=en")

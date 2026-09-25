@@ -79,6 +79,11 @@ def format_duration(seconds: float) -> str:
     return f"{minutes} min {rest:02d} s" if minutes else f"{rest} s"
 
 
+def format_date(t, when) -> str:
+    """«1 de octubre» / «October 1». Las fechas se guardan en UTC y se muestran así, sin hora."""
+    return t("date_fmt", d=when.day, m=t(f"mon_{when.month}")) if when else ""
+
+
 def safe_url(url: str | None) -> str | None:
     """Solo enlaces http(s): una oferta no puede inyectar javascript: ni data: en un href."""
     if url and urlparse(url).scheme in ("http", "https"):
@@ -114,11 +119,13 @@ def sess(request: Request) -> sessions.Session:
 
 def render(request: Request, name: str, status_code: int = 200, headers: dict | None = None, **ctx) -> HTMLResponse:
     lang, theme = prefs(request)
+    t = translator(lang)
     response = templates.TemplateResponse(request, name, {
-        "t": translator(lang), "lang": lang, "theme": theme, "css_tokens": css_tokens(),
+        "t": t, "lang": lang, "theme": theme, "css_tokens": css_tokens(),
         "logo_light": logo_svg("lockup-light"), "logo_dark": logo_svg("lockup-dark"),
         "avatar_color": avatar_color, "affinity": affinity, "safe_url": safe_url, "dom_id": dom_id,
-        "format_duration": format_duration,
+        "format_duration": format_duration, "format_date": lambda when: format_date(t, when),
+        "user": getattr(request.state, "user", None), "csrf_token": getattr(request.state, "csrf", ""),
         "max_cv_mb": settings.MAX_CV_BYTES // (1024 * 1024), **ctx,
     }, status_code=status_code, headers=headers)
     for key, value in (("lang", request.query_params.get("lang")), ("theme", request.query_params.get("theme"))):

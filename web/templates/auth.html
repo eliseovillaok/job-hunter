@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{# Cuentas: una tarjeta centrada por pantalla. `mode` elige cuál; todo POST lleva el token CSRF. #}
+{% set titles = {'login': 'auth_login_title', 'signup': 'auth_signup_title', 'check_email': 'auth_check_title',
+                 'recover': 'auth_recover_title', 'reset_sent': 'auth_check_title', 'new_password': 'auth_newpass_title',
+                 'link_invalid': 'auth_link_invalid_title', 'down': 'auth_down_title', 'csrf': 'csrf_title'} %}
+{% block title %}{{ t(titles[mode]) }} · JobHunter{% endblock %}
+{% block nav_links %}{% endblock %}
+{% block nav_cta %}{% if not user %}<a class="btn btn-g btn-sm" href="/">{{ t('auth_back_home') }}</a>{% endif %}{% endblock %}
+{% block content %}
+<div class="auth">
+  {% if notice %}<div class="notice" role="status">{{ notice }}</div>{% endif %}
+  <section class="card">
+    <div class="card-h"><div>
+      <h3>{{ t(titles[mode]) }}</h3>
+      {% if mode == 'login' %}<p>{{ t('auth_login_desc') }}</p>
+      {% elif mode == 'signup' %}<p>{{ t('auth_signup_desc') }}</p>
+      {% elif mode == 'check_email' %}<p>{{ t('auth_check_desc', email=email) }}</p>
+      {% elif mode == 'recover' %}<p>{{ t('auth_recover_desc') }}</p>
+      {% elif mode == 'reset_sent' %}<p>{{ t('auth_recover_sent', email=email) }}</p>
+      {% elif mode == 'new_password' %}<p>{{ t('auth_newpass_desc') }}</p>
+      {% elif mode == 'link_invalid' %}<p>{{ t('auth_link_invalid_desc') }}</p>
+      {% elif mode == 'down' %}<p>{{ t('auth_down_desc') }}</p>
+      {% elif mode == 'csrf' %}<p>{{ t('csrf_desc') }}</p>{% endif %}
+    </div></div>
+
+    {% if error %}<div class="alert" role="alert"><p>{{ error }}</p></div>{% endif %}
+
+    {% if mode in ('login', 'signup') %}
+    <form method="post" action="{{ '/ingresar' if mode == 'login' else '/crear-cuenta' }}" class="auth-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="next" value="{{ next }}">
+      <div class="field">
+        <label for="a-email">{{ t('auth_email') }}</label>
+        <input id="a-email" class="input" type="email" name="email" value="{{ email or '' }}" autocomplete="email" required maxlength="254" autofocus>
+      </div>
+      <div class="field">
+        <div class="flabel"><label for="a-pass">{{ t('auth_password') }}</label>{% if mode == 'login' %}<span><a href="/recuperar">{{ t('auth_forgot') }}</a></span>{% endif %}</div>
+        <input id="a-pass" class="input" type="password" name="password" required maxlength="128"
+               autocomplete="{{ 'current-password' if mode == 'login' else 'new-password' }}" {{ 'minlength=8' if mode == 'signup' }}
+               {% if mode == 'signup' %}aria-describedby="a-pass-help"{% endif %}>
+        {% if mode == 'signup' %}<p class="help" id="a-pass-help">{{ t('auth_password_help') }}</p>{% endif %}
+      </div>
+      <button class="btn btn-p auth-submit" type="submit" data-busy="{{ t('auth_working') }}">{{ t('auth_login_btn') if mode == 'login' else t('auth_signup_btn') }}</button>
+    </form>
+    {% if code == 'email_not_confirmed' %}
+    <form method="post" action="/crear-cuenta/reenviar" class="auth-alt">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="email" value="{{ email }}">
+      <button class="link-btn" type="submit">{{ t('auth_resend_confirm') }}</button>
+    </form>
+    {% endif %}
+    <p class="auth-alt">
+      {% if mode == 'login' %}{{ t('auth_to_signup') }} <a href="/crear-cuenta{{ '?next=' ~ next|urlencode if next != '/asistente' }}">{{ t('auth_signup_btn') }}</a>
+      {% else %}{{ t('auth_to_login') }} <a href="/ingresar{{ '?next=' ~ next|urlencode if next != '/asistente' }}">{{ t('auth_login_btn') }}</a>{% endif %}
+    </p>
+    {% if mode == 'signup' %}<p class="small auth-note">{{ t('auth_signup_note') }}</p>{% endif %}
+
+    {% elif mode == 'check_email' %}
+    {% if resent %}<div class="notice" role="status">{{ t('auth_resent') }}</div>{% endif %}
+    <form method="post" action="/crear-cuenta/reenviar" class="auth-alt">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="email" value="{{ email }}">
+      {{ t('auth_no_email') }} <button class="link-btn" type="submit">{{ t('auth_resend') }}</button>
+    </form>
+    <p class="auth-alt"><a href="/ingresar">{{ t('auth_login_btn') }}</a></p>
+
+    {% elif mode == 'recover' %}
+    <form method="post" action="/recuperar" class="auth-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <div class="field">
+        <label for="a-email">{{ t('auth_email') }}</label>
+        <input id="a-email" class="input" type="email" name="email" value="{{ email or '' }}" autocomplete="email" required maxlength="254" autofocus>
+      </div>
+      <button class="btn btn-p auth-submit" type="submit" data-busy="{{ t('auth_working') }}">{{ t('auth_recover_btn') }}</button>
+    </form>
+    <p class="auth-alt"><a href="/ingresar">{{ t('auth_back_login') }}</a></p>
+
+    {% elif mode == 'reset_sent' %}
+    <p class="auth-alt"><a href="/ingresar">{{ t('auth_back_login') }}</a></p>
+
+    {% elif mode == 'new_password' %}
+    <form method="post" action="/nueva-clave" class="auth-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <div class="field">
+        <label for="a-pass">{{ t('auth_new_password') }}</label>
+        <input id="a-pass" class="input" type="password" name="password" autocomplete="new-password" required minlength="8" maxlength="128"
+               aria-describedby="a-pass-help" autofocus>
+        <p class="help" id="a-pass-help">{{ t('auth_password_help') }}</p>
+      </div>
+      <button class="btn btn-p auth-submit" type="submit" data-busy="{{ t('auth_working') }}">{{ t('auth_newpass_btn') }}</button>
+    </form>
+
+    {% elif mode == 'link_invalid' %}
+    <p class="auth-alt"><a class="btn btn-o" href="/recuperar">{{ t('auth_recover_btn') }}</a> <a class="btn btn-g" href="/ingresar">{{ t('auth_login_btn') }}</a></p>
+
+    {% elif mode in ('down', 'csrf') %}
+    <p class="auth-alt"><a class="btn btn-o" href="{{ next or '/' }}" hx-boost="false">{{ t('btn_reload') }}</a></p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

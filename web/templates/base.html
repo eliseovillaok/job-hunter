@@ -27,10 +27,13 @@
     <a class="logo" href="/" aria-label="JobHunter">
       <span class="logo-light">{{ logo_light | safe }}</span><span class="logo-dark">{{ logo_dark | safe }}</span>
     </a>
-    {% block nav_links %}<div class="links" hx-boost="false">
+    {% block nav_links %}{% if user %}<div class="links">
+      <a href="/resultados">{{ t('nav_results') }}</a>
+      <a href="/historial">{{ t('nav_history') }}</a>
+    </div>{% else %}<div class="links" hx-boost="false">
       <a href="/#como-funciona" data-smooth>{{ t('nav_how') }}</a>
       <a href="/#privacidad" data-smooth>{{ t('nav_privacy') }}</a>
-    </div>{% endblock %}
+    </div>{% endif %}{% endblock %}
     <div class="navr">
       <button class="icon-btn" type="button" data-theme-toggle aria-label="{{ t('theme_label') }}">
         <svg class="i-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
@@ -40,7 +43,11 @@
         <a href="?lang=es" class="{{ 'on' if lang == 'es' }}" hreflang="es" hx-push-url="false" hx-swap="innerHTML show:none">ES</a>
         <a href="?lang=en" class="{{ 'on' if lang == 'en' }}" hreflang="en" hx-push-url="false" hx-swap="innerHTML show:none">EN</a>
       </div>
-      {% block nav_cta %}<a class="btn btn-p" href="/asistente">{{ t('nav_cta') }}</a>{% endblock %}
+      {% if user %}<a class="icon-btn" href="/cuenta" aria-label="{{ t('nav_account') }}" title="{{ t('nav_account') }}">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+      </a>{% endif %}
+      {% block nav_cta %}{% if user %}<a class="btn btn-p" href="/asistente">{{ t('btn_new_search') }}</a>
+      {% else %}<a class="btn btn-g btn-sm" href="/ingresar">{{ t('nav_login') }}</a><a class="btn btn-p" href="/crear-cuenta">{{ t('nav_signup') }}</a>{% endif %}{% endblock %}
     </div>
   </nav>
   <main class="page">{% block content %}{% endblock %}</main>

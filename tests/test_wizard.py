@@ -11,7 +11,7 @@ import demo
 import matching
 import scrapers
 from candidate import CandidateProfile, Language, Skill
-from helpers import make_job
+from helpers import make_job, sign_up
 from web import session as sessions
 from web import run, wizard
 from web.main import app
@@ -42,7 +42,7 @@ def profile(**kw) -> CandidateProfile:
 
 @pytest.fixture
 def client():
-    return TestClient(app)
+    return sign_up(TestClient(app))
 
 
 def upload(client, name="cv.txt", data=b"Contadora junior", origin="wizard"):
@@ -87,7 +87,8 @@ def test_upload_from_landing_goes_to_step_2(client):
 
 
 def test_sessions_are_isolated():
-    a, b = TestClient(app), TestClient(app)
+    a = sign_up(TestClient(app), "persona-a@example.com")
+    b = sign_up(TestClient(app), "persona-b@example.com")
     upload(a)
     assert a.get("/asistente/2", follow_redirects=False).status_code == 200
     assert b.get("/asistente/2", follow_redirects=False).status_code == 303
@@ -271,8 +272,10 @@ def test_new_cv_invalidates_previous_profile(client, monkeypatch):
 def test_expired_session_explains_instead_of_silently_resetting(client):
     client.cookies.set(sessions.COOKIE, "sesion-que-ya-no-existe")
     r = client.post("/asistente/perfil", data={"summary": "x"}, follow_redirects=False)
+    assert r.headers["location"] == "/asistente?sesion=vencida"
+    r = client.get("/asistente?sesion=vencida", follow_redirects=False)
     assert r.headers["location"] == "/asistente/1?sesion=vencida"
-    assert "venció" in client.get("/asistente/1?sesion=vencida").text
+    assert "inactividad" in client.get(r.headers["location"]).text
 
 
 def test_saved_key_is_masked_and_can_be_changed(client, monkeypatch):

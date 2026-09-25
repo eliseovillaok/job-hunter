@@ -9,15 +9,17 @@ vale la pena.
 
 ## Cómo funciona
 
-1. **Subes tu CV** (PDF, DOCX o TXT) o escribes tu perfil a mano.
+1. **Creas tu cuenta y subes tu CV** (PDF, DOCX o TXT), o escribes tu perfil a mano.
 2. **La IA lo estructura**: roles, nivel, años, habilidades, idiomas y ubicación, cada dato con la
    frase de tu CV que lo respalda. Lo que tu CV no dice queda como «no especificado».
 3. **Revisas y corriges** ese perfil: es tuyo, y es lo que se compara contra cada oferta.
 4. **Eliges portales y filtros** (modalidad, ubicaciones, idioma del aviso).
 5. **Se busca y se evalúa**: cada oferta recibe una afinidad de 0 a 100 con sus motivos y lo que te
    falta. Los filtros duros descartan antes de gastar IA.
-6. **Decides tú**: abrir o descartar. Si quieres, se genera una carta de presentación para una oferta
-   puntual, y puedes recibir el resumen por correo.
+6. **Decides tú**: abrir, guardar o descartar. Si quieres, se genera una carta de presentación para
+   una oferta puntual, y puedes recibir el resumen por correo.
+7. **Vuelves cuando quieras**: tu perfil, tus preferencias, tu historial de búsquedas y tus ofertas
+   guardadas siguen en tu cuenta.
 
 Detalle del cálculo: [docs/scoring.md](docs/scoring.md).
 
@@ -26,12 +28,14 @@ Detalle del cálculo: [docs/scoring.md](docs/scoring.md).
 - No inventa experiencia. Si tu CV dice «servicios de AWS», no deduce «EC2, S3, Lambda».
 - No entra a portales que exigen iniciar sesión, ni esquiva CAPTCHAs ni límites de acceso. Solo usa
   fuentes públicas o con API.
-- No guarda tu CV ni tu clave: viven en la sesión del servidor y se borran por inactividad.
+- No guarda tu clave de Gemini: vive en la sesión del servidor y se borra por inactividad.
 - No se postula por ti.
 
 ## Requisitos
 
 - **Python 3.12**
+- **Supabase** para las cuentas: el stack local del CLI (necesita Docker) o un proyecto en la nube.
+  Sin él, solo el modo demo, con cuentas en memoria.
 - **Una API key de Google Gemini** ([aistudio.google.com/apikey](https://aistudio.google.com/apikey),
   gratuita con cuota diaria). La pones en la app; no se guarda en ningún lado.
 - Opcional: una cuenta de Gmail con contraseña de aplicación, si quieres recibir los resultados por
@@ -43,10 +47,12 @@ Detalle del cálculo: [docs/scoring.md](docs/scoring.md).
 py -3.12 -m venv venv
 .\venv\Scripts\Activate.ps1
 pip install -r requirements.txt -r requirements-dev.txt
+npx --yes supabase@2.117.0 start     # Supabase local: base, cuentas, archivos y correos de prueba
+. .\scripts\dev-env.ps1              # sus claves, solo en esta terminal
 python -m uvicorn web.main:app --reload --port 8600
 ```
 
-Luego abre `http://localhost:8600`.
+Luego abre `http://localhost:8600`. Los correos de confirmación llegan a `http://127.0.0.1:54324`.
 
 En Linux o macOS es lo mismo, con `python3 -m venv venv` y `source venv/bin/activate`.
 
@@ -58,7 +64,8 @@ Para ver la interfaz completa sin gastar cuota de Gemini —resultados ficticios
 $env:JOB_HUNTER_DEMO="1"; python -m uvicorn web.main:app --reload --port 8600
 ```
 
-Cualquier clave que empiece con `AIza` sirve en este modo.
+Cualquier clave que empiece con `AIza` sirve en este modo. Si no cargaste las claves de Supabase, las
+cuentas viven en memoria y se pierden al reiniciar.
 
 ### Como contenedor
 
@@ -87,8 +94,12 @@ revisada— antes de entrar. Los portales que pedían iniciar sesión se retirar
 
 ## Privacidad
 
-- El CV y la API key viven en memoria del servidor, atados a una cookie de sesión, y se borran tras
-  tres horas de inactividad. No se escriben en disco.
+- Tu CV se guarda en un almacenamiento privado de tu cuenta (Supabase Storage, con acceso solo para
+  ti). Al reemplazarlo o borrarlo se borran el archivo y el perfil que salió de él; al borrar la
+  cuenta se borra todo.
+- Desde tu cuenta puedes descargar en JSON todo lo que guardamos.
+- La API key de Gemini vive solo en memoria del servidor, atada a tu sesión, y se borra tras tres
+  horas de inactividad. No se escribe en disco ni en la base.
 - A Gemini viaja el texto de tu CV (para estructurarlo) y el texto de las ofertas (para evaluarlas),
   con tu propia clave.
 - Los portales reciben las palabras de búsqueda, nada tuyo.
@@ -99,7 +110,8 @@ revisada— antes de entrar. Los portales que pedían iniciar sesión se retirar
 
 | Ruta | Qué hay |
 |---|---|
-| `web/` | La aplicación: FastAPI + Jinja2 + HTMX (`main.py`, `wizard.py`, `session.py`, `portals.py`, `templates/`, `static/`) |
+| `web/` | La aplicación: FastAPI + Jinja2 + HTMX (`main.py`, `wizard.py`, `auth.py`, `account.py`, `session.py`, `persist.py`, `supa.py`, `templates/`, `static/`) |
+| `supabase/` | Migraciones SQL (tablas, RLS, Storage, plan gratuito) y plantillas de correo de Auth |
 | `candidate.py` | CV → perfil estructurado con evidencia |
 | `scrapers.py` | Lectura de los portales (APIs y feeds públicos), todo normalizado a `JobPosting` |
 | `normalize.py` | Idioma, nivel y modalidad de cada oferta, y deduplicación |
@@ -112,7 +124,8 @@ revisada— antes de entrar. Los portales que pedían iniciar sesión se retirar
 ## Desarrollo
 
 ```bash
-pytest -q                 # sin red ni IA
+pytest -q                 # sin red ni IA (las cuentas, en memoria)
+JH_SUPABASE_TESTS=1 pytest tests/test_supabase_integration.py   # contra el Supabase local
 python -m eval.run        # calidad del matching con Gemini real (consume cuota)
 pre-commit install        # detección de secretos en cada commit
 ```

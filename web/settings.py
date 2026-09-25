@@ -16,6 +16,13 @@ comportamiento en un servidor no hace falta tocar código, solo variables de ent
 | `JH_SCRAPE_TIMEOUT` | `480`       | Segundos para leer portales; al agotarse se evalúa lo que hay     |
 | `JH_SCRAPE_WORKERS` | `6`         | Portales que se leen en paralelo                                   |
 | `GEMINI_RPM`        | `15`        | Llamadas por minuto a Gemini (subir solo con una key paga)        |
+| `SUPABASE_URL`      | (vacío)     | URL del proyecto de Supabase (cuentas y datos)                    |
+| `SUPABASE_PUBLISHABLE_KEY` | (vacío) | Clave publicable (o `anon` legacy): pedidos con el JWT del usuario |
+| `SUPABASE_SECRET_KEY` | (vacío)   | Clave secreta (o `service_role` legacy). Solo servidor, nunca al navegador |
+| `JH_AUTH_DAYS`      | `30`        | Días que dura el ingreso en un navegador sin volver a poner la contraseña |
+
+Sin `SUPABASE_URL`, con `JOB_HUNTER_DEMO=1` las cuentas viven en memoria (se pierden al reiniciar);
+sin las dos cosas, la app no puede registrar a nadie y `/health/ready` lo informa.
 """
 
 from __future__ import annotations
@@ -38,3 +45,8 @@ RUN_TIMEOUT = _int("JH_RUN_TIMEOUT", 20 * 60, minimum=60)
 SCRAPE_TIMEOUT = _int("JH_SCRAPE_TIMEOUT", 8 * 60, minimum=30)
 SCRAPE_WORKERS = _int("JH_SCRAPE_WORKERS", 6, minimum=1)
 HTTPS_ONLY_COOKIES = os.environ.get("JH_HTTPS") == "1"
+AUTH_DAYS = _int("JH_AUTH_DAYS", 30, minimum=1)
+
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
+SUPABASE_PUBLISHABLE_KEY = os.environ.get("SUPABASE_PUBLISHABLE_KEY") or os.environ.get("SUPABASE_ANON_KEY", "")
+SUPABASE_SECRET_KEY = os.environ.get("SUPABASE_SECRET_KEY") or os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
