@@ -418,3 +418,30 @@ enabled = true
 # formatted with uppercase keywords, indent 2, max width 180, trailing commas,
 # and column/key alignment. Set to "null" to emit raw, unformatted SQL.
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":180,\"commaStyle\":\"trailing\"}"
+
+# Staging in the cloud (`supabase link` + `supabase config push`). Everything not overridden here is
+# inherited from the local config above, templates included. Until the app has a public URL (Phase 2)
+# staging is exercised from a local app on port 8600.
+[remotes.staging]
+project_id = "ipzowncmuppdhbeffaai"
+
+[remotes.staging.auth]
+site_url = "http://localhost:8600"
+additional_redirect_urls = ["http://localhost:8600/auth/confirmar", "http://127.0.0.1:8600/auth/confirmar"]
+
+[remotes.staging.auth.rate_limit]
+email_sent = 30
+
+[remotes.staging.auth.email]
+max_frequency = "60s"
+
+# Supabase's built-in SMTP only reaches project members. Without a verified domain, Resend only
+# delivers from onboarding@resend.dev to the Resend account owner.
+[remotes.staging.auth.email.smtp]
+enabled = true
+host = "smtp.resend.com"
+port = 465
+user = "resend"
+pass = "env(RESEND_API_KEY)"
+admin_email = "onboarding@resend.dev"
+sender_name = "JobHunter"
