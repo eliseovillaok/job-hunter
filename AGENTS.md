@@ -131,6 +131,7 @@ Eval con Gemini real (a mano, consume cuota): `python -m eval.run` — lee `GEMI
 - **Nuevo portal**: primero la base de adquisición (API oficial, feed licenciado o página pública revisada; nunca detrás de un login). Después: función en `scrapers.py` + entrada en `PORTAL_SCRAPERS` + entrada en `web/portals.py` + claves i18n + README. Un test verifica que las dos listas coincidan.
 - Modelo Gemini por defecto: `ai_engine.DEFAULT_MODEL`. No usar modelos deprecados.
 - Los comentarios explican el *por qué*, no el *qué*. Commits enfocados, sin tocar archivos ajenos a la tarea.
+- PRs a `main` siempre con **rebase and merge** (`gh pr merge --rebase`): historial lineal, sin merge commits.
 
 ## UI: FastAPI + Jinja2 + HTMX
 La interfaz vive en `web/` y reusa el núcleo (candidate, scrapers, matching, ai_engine). La migración desde Streamlit se cerró el 24/09/2026: `app.py`, `theme.py` y `ui.py` se eliminaron y están en el historial de git. HTML externo siempre con autoescape de Jinja (nunca `|safe` sobre datos externos) y enlaces de ofertas por `safe_url`. La API key nunca se vuelve a mostrar en la página. En modo demo (`JOB_HUNTER_DEMO=1`) el asistente simula la IA: cualquier clave que empiece con `AIza` sirve y el perfil sale de `demo.py`.
