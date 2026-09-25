@@ -56,6 +56,38 @@ Luego abre `http://localhost:8600`. Los correos de confirmación llegan a `http:
 
 En Linux o macOS es lo mismo, con `python3 -m venv venv` y `source venv/bin/activate`.
 
+### Contra el proyecto de staging en la nube
+
+Para desarrollar contra la base de datos de staging (sin desplegar la app):
+
+```powershell
+py -3.12 -m venv venv
+.\venv\Scripts\Activate.ps1
+pip install -r requirements.txt -r requirements-dev.txt
+npx --yes supabase@2.117.0 login     # autenticarse con tu cuenta de Supabase (una sola vez)
+npx --yes supabase@2.117.0 link --project-ref ipzowncmuppdhbeffaai  # vincular al proyecto
+git fetch && git checkout chore/supabase-staging
+# Copiar a mano .env.staging (en .gitignore) desde la otra PC si no lo tenés
+# Contiene las claves de Supabase staging y de Resend
+# .env.staging: no commitear, agregar a tu gestor de contraseñas
+```
+
+Luego, en cada terminal:
+
+```powershell
+.\venv\Scripts\Activate.ps1
+Get-Content .env.staging | ForEach-Object { if ($_ -match '^\s*([A-Z_]+)\s*=\s*(.+)$') { [Environment]::SetEnvironmentVariable($matches[1], $matches[2].Trim()) } }
+$env:JOB_HUNTER_DEMO="1"; python -m uvicorn web.main:app --reload --port 8600
+```
+
+O en una sola línea (sin el `$env:JOB_HUNTER_DEMO` si querés gastar cuota de Gemini):
+
+```powershell
+. .\scripts\dev-env-staging.ps1; $env:JOB_HUNTER_DEMO="1"; python -m uvicorn web.main:app --reload --port 8600
+```
+
+Los correos que se envíen van a `onboarding@resend.dev` (sin dominio propio verificado en Resend, es el único destinatario).
+
 ### Modo demo
 
 Para ver la interfaz completa sin gastar cuota de Gemini —resultados ficticios, sin red ni IA—:

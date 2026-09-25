@@ -69,8 +69,7 @@ Después de cambiar una migración: `npx supabase@2.117.0 db reset` (borra los d
 
 **Staging / producción:**
 
-1. `npx supabase@2.117.0 login` y crear el proyecto (plan Free para staging; región `sa-east-1`, a
-   confirmar según los países de lanzamiento).
+1. `npx supabase@2.117.0 login` y crear el proyecto (plan Free para staging; región `us-east-1`).
 2. `npx supabase@2.117.0 link --project-ref <ref>` y `npx supabase@2.117.0 db push`.
 3. En *Authentication → URL Configuration*: `Site URL` = la URL pública de la app, y
    `<app>/auth/confirmar` en *Redirect URLs*.

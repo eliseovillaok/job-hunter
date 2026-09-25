@@ -47,7 +47,7 @@ La clave de Gemini la pone el usuario; en la fase de cobros pasa a ser nuestra y
 **Objetivo:** el trabajo del usuario sobrevive a cerrar el navegador.
 
 - [x] Supabase local con el CLI (Postgres, Auth, Storage, correos de prueba).
-- [ ] Proyecto de staging en la nube, con SMTP propio (el incluido solo envía al equipo). Producción, en la Fase 2.
+- [x] Proyecto de staging en la nube (`jobhunter-staging`, ref `ipzowncmuppdhbeffaai`, `us-east-1`, plan Free), con SMTP de Resend (`onboarding@resend.dev`, sin dominio propio). Producción, en la Fase 2.
 - [x] Migraciones versionadas: `profiles`, `cv_documents`, `candidate_profiles`, `search_preferences`, `search_runs`, `saved_jobs`, `usage_events`, `plans`, `account_deletions` (spec §6.2), con RLS y bucket privado para los CV.
 - [x] Sesiones por cookie httponly + CSRF en toda acción que modifica estado (spec §7).
 - [x] Alta, ingreso, salida, recuperación de contraseña y borrado de cuenta con su flujo completo (spec §4.4, §21.17); export de datos en JSON.
