@@ -136,4 +136,4 @@ Antes de tocar algo conviene leer [AGENTS.md](AGENTS.md) (cómo se trabaja en es
 
 ## Licencia
 
-EULA.
+AGPL v3.0
